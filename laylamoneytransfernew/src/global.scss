@@ -495,13 +495,28 @@ ion-toast.fb-toast {
   &::part(button) {
     color: #ffffff !important;
   }
-  // Push the visible toast container below the system/notch + header bar
+  // Paint the visible container directly — some Ionic builds ignore --background
+  // on the toast, leaving a white box; with white text that = invisible. This guarantees
+  // a dark box behind the white text. Push it below the system/notch + header bar.
   &::part(container) {
+    background: #{$fb-navy};
+    color: #ffffff;
+    border-radius: 10px;
     margin-top: calc(env(safe-area-inset-top, 0px) + 12px);
     padding: 12px 16px;
     box-shadow: 0 6px 24px rgba(0,0,0,0.25);
   }
 }
+
+// Variant container backgrounds (mirror the --background variants above, but painted
+// on the actual visible element so the message is always readable).
+ion-toast.fb-toast-success::part(container) { background: #059669; }
+ion-toast.fb-toast-danger::part(container)  { background: #dc2626; }
+ion-toast.fb-toast-warning::part(container) { background: #d97706; }
+ion-toast.fb-toast-primary::part(container),
+ion-toast.fb-toast-navy::part(container)    { background: #{$fb-navy}; }
+ion-toast.fb-toast-sky::part(container)     { background: #{$fb-sky}; }
+ion-toast.fb-toast-info::part(container)    { background: #2563EB; }
 
 ion-toast.fb-toast-success {
   --background: #059669 !important;
