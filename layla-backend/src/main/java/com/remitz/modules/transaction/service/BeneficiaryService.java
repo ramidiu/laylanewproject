@@ -2,6 +2,7 @@ package com.remitz.modules.transaction.service;
 
 import com.remitz.common.dto.BeneficiaryResponse;
 import com.remitz.common.dto.CreateBeneficiaryRequest;
+import com.remitz.common.enums.DeliveryMethod;
 import com.remitz.common.dto.UpdateBeneficiaryRequest;
 import com.remitz.common.exception.RemitzException;
 import com.remitz.common.exception.ResourceNotFoundException;
@@ -29,6 +30,27 @@ public class BeneficiaryService {
     // Code added by Naresh: System Controls Phase 7 — runtime beneficiary write gate.
     private final SystemConfigService systemConfigService;
 
+    private static boolean blank(String s) { return s == null || s.isBlank(); }
+
+    /** Reject incomplete beneficiaries by delivery method (prevents blank recipients). */
+    private void validateBeneficiaryFields(CreateBeneficiaryRequest r) {
+        if (blank(r.getFullName()))
+            throw new RemitzException("Beneficiary full name is required", HttpStatus.BAD_REQUEST);
+        DeliveryMethod dm = r.getDeliveryMethod();
+        if (dm == DeliveryMethod.BANK_DEPOSIT) {
+            if (blank(r.getBankName()))
+                throw new RemitzException("Bank name is required for bank transfers", HttpStatus.BAD_REQUEST);
+            if (blank(r.getAccountNumber()) && blank(r.getIban()))
+                throw new RemitzException("Account number (or IBAN) is required for bank transfers", HttpStatus.BAD_REQUEST);
+        } else if (dm == DeliveryMethod.MOBILE_WALLET) {
+            if (blank(r.getMobileNumber()))
+                throw new RemitzException("Mobile number is required for mobile money", HttpStatus.BAD_REQUEST);
+        } else if (dm == DeliveryMethod.CASH_PICKUP) {
+            if (blank(r.getBankName()))
+                throw new RemitzException("Collection point is required for cash pickup", HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private void ensureBeneficiaryWritesEnabled() {
         // Code added by Naresh: Read runtime control from system_config with safe fallback.
         if (!systemConfigService.getBoolean("beneficiary.enabled", true)) {
@@ -41,6 +63,7 @@ public class BeneficiaryService {
     @Transactional
     public BeneficiaryResponse addBeneficiary(Long userId, CreateBeneficiaryRequest request) {
         ensureBeneficiaryWritesEnabled();
+        validateBeneficiaryFields(request);
         BeneficiaryEntity entity = BeneficiaryEntity.builder()
                 .userId(userId)
                 .fullName(request.getFullName())

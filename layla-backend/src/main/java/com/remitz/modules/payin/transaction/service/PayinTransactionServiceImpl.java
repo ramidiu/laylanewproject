@@ -107,6 +107,13 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 return CreatePayinTransactionResponse.failure("Beneficiary not found or does not belong to this customer");
             }
         } else if (request.getBeneficiaryDetails() != null) {
+            // Enforce required beneficiary details by delivery method — never create an
+            // incomplete recipient (root cause of blank "Beneficiary Details" popups).
+            String validationError = validateBeneficiaryDetails(request.getDeliveryMethod(), request.getBeneficiaryDetails());
+            if (validationError != null) {
+                log.warn("PayIn beneficiary validation failed: {}", validationError);
+                return CreatePayinTransactionResponse.failure(validationError);
+            }
             beneficiary = createBeneficiary(request.getBeneficiaryDetails(), customer.getCustomerId());
         } else {
             return CreatePayinTransactionResponse.failure("Either beneficiaryId or beneficiaryDetails is required");
@@ -474,5 +481,23 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
 
     private static boolean hasText(String s) {
         return s != null && !s.isBlank();
+    }
+
+    /** Reject incomplete beneficiaries by delivery method. Returns an error message, or null if valid. */
+    private String validateBeneficiaryDetails(String deliveryMethod, BeneficiaryDetailsDto d) {
+        if (d == null) return "Beneficiary details are required";
+        if (!hasText(d.getName())) return "Beneficiary full name is required";
+        String dm = deliveryMethod == null ? "" : deliveryMethod.toUpperCase();
+        if (dm.contains("BANK")) {
+            if (!hasText(d.getBankName())) return "Bank name is required for bank transfers";
+            if (!hasText(d.getAccountNumber()) && !hasText(d.getIban()))
+                return "Account number (or IBAN) is required for bank transfers";
+        } else if (dm.contains("MOBILE")) {
+            if (!hasText(d.getMobileNumber())) return "Mobile number is required for mobile money";
+        } else if (dm.contains("CASH")) {
+            if (!hasText(d.getCollectionPointName()) && !hasText(d.getBankName()))
+                return "Collection point is required for cash pickup";
+        }
+        return null;
     }
 }
