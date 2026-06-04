@@ -344,7 +344,11 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
     entry.loadingDocs = true;
     this.kycService.getDocuments(entry.user.uuid).subscribe({
       next: (docs) => {
-        entry.documents = docs || [];
+        // Hide legacy/imported placeholder docs (no real file — "no_image.png" / empty path).
+        entry.documents = (docs || []).filter(d => {
+          const p = (d.filePath || '').toLowerCase();
+          return p && !p.includes('no_image');
+        });
         entry.loadingDocs = false;
         for (const doc of entry.documents) {
           if (doc.fileUrl) {
