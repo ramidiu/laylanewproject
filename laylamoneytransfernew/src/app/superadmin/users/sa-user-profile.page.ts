@@ -23,11 +23,12 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
   kycStatus: KycStatusResponse | null = null;
   documents: KycDocumentResponse[] = [];
 
-  /** Docs shown in the UI: for PARTIAL customers, hide imported placeholders (no real upload);
-   *  for everyone else show all documents normally. */
+  /** Docs shown in the UI: hide imported/placeholder docs (no real file), keep all real uploads. */
   get displayDocuments(): KycDocumentResponse[] {
-    const isPartial = (this.kycStatus?.overallStatus || '').toUpperCase() === 'PARTIAL';
-    return isPartial ? this.documents.filter(d => (d as any).realUpload === true) : this.documents;
+    return this.documents.filter(d => {
+      const p = ((d as any).filePath || '').toLowerCase();
+      return (d as any).realUpload !== false && !p.includes('no_image');
+    });
   }
   transactions: TransactionResponse[] = [];
   totalTransactions = 0;

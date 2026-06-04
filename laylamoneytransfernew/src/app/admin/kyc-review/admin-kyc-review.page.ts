@@ -148,12 +148,11 @@ export class AdminKycReviewPage implements OnInit, OnDestroy {
     entry.loadingDocs = true;
     this.kycService.getDocuments(entry.user.uuid).subscribe({
       next: (docs) => {
-        // ONLY for partial customers, hide legacy/imported placeholder docs. Pending customers
-        // show ALL their documents (real uploads) so they can be reviewed normally.
-        const isPartial = (entry.kycStatus?.overallStatus || '').toUpperCase() === 'PARTIAL';
-        entry.documents = isPartial
-          ? (docs || []).filter(d => (d as any).realUpload === true)
-          : (docs || []);
+        // Hide only the imported/placeholder docs (no real file). Keep every real upload.
+        entry.documents = (docs || []).filter(d => {
+          const p = (d.filePath || '').toLowerCase();
+          return (d as any).realUpload !== false && !p.includes('no_image');
+        });
         entry.loadingDocs = false;
         for (const doc of entry.documents) {
           if (doc.fileUrl) {
