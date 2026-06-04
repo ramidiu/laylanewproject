@@ -148,11 +148,8 @@ export class AdminKycReviewPage implements OnInit, OnDestroy {
     entry.loadingDocs = true;
     this.kycService.getDocuments(entry.user.uuid).subscribe({
       next: (docs) => {
-        // Hide legacy/imported placeholder docs (no real file — "no_image.png" / empty path).
-        entry.documents = (docs || []).filter(d => {
-          const p = (d.filePath || '').toLowerCase();
-          return p && !p.includes('no_image');
-        });
+        // Only show real customer uploads (have a file_hash). Legacy/imported placeholders hidden.
+        entry.documents = (docs || []).filter(d => (d as any).realUpload === true);
         entry.loadingDocs = false;
         for (const doc of entry.documents) {
           if (doc.fileUrl) {

@@ -29,4 +29,6 @@ public class KycDocumentResponse {
     private String fileName;
     private String fileUrl;
     private LocalDateTime createdAt;
+    // true = a real customer upload (has a SHA-256 file_hash); false = legacy/imported placeholder.
+    private Boolean realUpload;
 }

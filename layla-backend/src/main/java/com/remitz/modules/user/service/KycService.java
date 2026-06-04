@@ -517,6 +517,7 @@ public class KycService {
                 .fileName(extractFileName(entity.getFilePath()))
                 .fileUrl("/api/users/" + entity.getUserId() + "/kyc/documents/" + entity.getId() + "/file")
                 .createdAt(entity.getCreatedAt())
+                .realUpload(entity.getFileHash() != null && !entity.getFileHash().isBlank())
                 .build();
     }
 

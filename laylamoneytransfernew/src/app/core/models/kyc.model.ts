@@ -13,6 +13,7 @@ export interface KycDocumentResponse {
   uploadedAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  realUpload?: boolean;
 }
 
 export interface KycStatusResponse {
