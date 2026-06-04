@@ -4,6 +4,10 @@
     {{ 'TRANSACTION_DETAIL.BACK' | translate }}
   </button>
   <div class="detail-page-header__actions" *ngIf="transaction">
+    <button class="detail-page-header__invoice" (click)="viewReceipt()">
+      <ion-icon name="receipt-outline"></ion-icon>
+      View Receipt
+    </button>
     <button class="detail-page-header__invoice"
             (click)="downloadReceipt()"
             [disabled]="downloading">
@@ -144,5 +148,16 @@
   <div class="detail-note">
     <ion-icon name="shield-checkmark-outline"></ion-icon>
     <span>{{ 'TRANSACTION_DETAIL.SECURE_NOTE' | translate }}</span>
+  </div>
+</div>
+
+<!-- Inline receipt viewer (renders in mobile WebView, where PDF/print don't) -->
+<div class="receipt-overlay" *ngIf="showReceiptModal" (click)="closeReceipt()">
+  <div class="receipt-sheet" (click)="$event.stopPropagation()">
+    <div class="receipt-sheet__bar">
+      <span>Receipt</span>
+      <button class="receipt-sheet__close" (click)="closeReceipt()"><ion-icon name="close-outline"></ion-icon></button>
+    </div>
+    <div class="receipt-sheet__body" [innerHTML]="receiptHtml"></div>
   </div>
 </div>

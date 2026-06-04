@@ -330,3 +330,10 @@
     line-height: 1.5;
   }
 }
+
+/* Inline receipt viewer */
+.receipt-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
+.receipt-sheet { background: #fff; border-radius: 14px; width: 100%; max-width: 640px; margin: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.3); overflow: hidden; }
+.receipt-sheet__bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #1B3A6B; color: #fff; font-weight: 600; }
+.receipt-sheet__close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; }
+.receipt-sheet__body { padding: 20px; max-height: 80vh; overflow-y: auto; }

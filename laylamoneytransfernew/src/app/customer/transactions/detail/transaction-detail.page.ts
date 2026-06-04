@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ToastController } from '@ionic/angular';
 import { TransactionService } from '../../../core/services/transaction.service';
 import { UserService } from '../../../core/services/user.service';
@@ -24,6 +25,9 @@ export class TransactionDetailPage implements OnInit {
   downloading = false;
   // Code added by Naresh: independent flag so the Invoice button shows its own loading state.
   downloadingInvoice = false;
+  // Inline HTML receipt (works inside the mobile React-Native WebView, where PDF/print don't).
+  showReceiptModal = false;
+  receiptHtml: SafeHtml | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -34,7 +38,8 @@ export class TransactionDetailPage implements OnInit {
     private datePipe: DatePipe,
     private decimalPipe: DecimalPipe,
     private titleCasePipe: TitleCasePipe,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -140,8 +145,29 @@ export class TransactionDetailPage implements OnInit {
       });
   }
 
+  /** Show the receipt inline (HTML) — renders inside the mobile WebView where PDF/print fail. */
+  viewReceipt(): void {
+    const inner = this.buildReceiptInnerHtml();
+    if (!inner) return;
+    this.receiptHtml = this.sanitizer.bypassSecurityTrustHtml(inner);
+    this.showReceiptModal = true;
+  }
+
+  closeReceipt(): void {
+    this.showReceiptModal = false;
+  }
+
   private printFallback(): void {
-    if (!this.transaction) return;
+    const inner = this.buildReceiptInnerHtml();
+    if (!inner) return;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt - ${this.transaction?.referenceNumber}</title></head><body style="max-width:600px;margin:0 auto;padding:40px;">${inner}</body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
+  }
+
+  /** Builds the receipt as a self-contained HTML string (scoped <style> + content). */
+  private buildReceiptInnerHtml(): string {
+    if (!this.transaction) return '';
     const t = this.transaction;
 
     const fmt = (v: number) => this.decimalPipe.transform(v, '1.2-2') || '0.00';
@@ -149,34 +175,33 @@ export class TransactionDetailPage implements OnInit {
     const date = this.datePipe.transform(t.createdAt, 'EEEE, MMMM d, y · h:mm a') || '';
     const delivery = this.titleCasePipe.transform(t.deliveryMethod) || t.deliveryMethod;
 
-    const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Receipt - ${t.referenceNumber}</title>
+    const html = `
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; padding: 40px; max-width: 600px; margin: 0 auto; }
-  .brand { text-align: center; font-size: 20px; font-weight: 700; color: #1B3571; margin-bottom: 24px; }
-  .ref-box { background: #f8f9fb; border-radius: 12px; text-align: center; padding: 20px; margin-bottom: 24px; }
-  .ref-box .ref { font-size: 18px; font-weight: 700; color: #1B3571; font-family: monospace; }
-  .ref-box .date { font-size: 13px; color: #6b7280; margin-top: 4px; }
-  .ref-box .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; background: #fef3c7; color: #92400e; }
-  .transfer { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #e5e7eb; }
-  .transfer .side { text-align: center; flex: 1; }
-  .transfer .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-  .transfer .amount { font-size: 24px; font-weight: 700; color: #1B3571; font-family: monospace; }
-  .transfer .receive { color: #059669; }
-  .transfer .cur { font-size: 13px; color: #6b7280; margin-left: 4px; }
-  .transfer .arrow { color: #9ca3af; font-size: 20px; }
-  .section-title { font-size: 15px; font-weight: 700; color: #1B3571; padding: 16px 0 12px; border-bottom: 1px solid #e5e7eb; }
-  .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
-  .row .rl { color: #6b7280; }
-  .row .rv { font-weight: 500; text-align: right; }
-  .row.total { border-top: 2px solid #e5e7eb; border-bottom: none; margin-top: 4px; padding-top: 12px; }
-  .row.total .rl { font-weight: 700; color: #1B3571; }
-  .row.total .rv { font-weight: 700; color: #059669; font-size: 15px; }
-  .note { display: flex; align-items: center; gap: 10px; background: #ecfdf5; border-radius: 8px; padding: 14px; margin-top: 24px; font-size: 13px; color: #065f46; }
-  .note svg { min-width: 18px; }
-  @media print { body { padding: 20px; } }
-</style></head><body>
+  .ly-receipt { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; max-width: 600px; margin: 0 auto; }
+  .ly-receipt * { box-sizing: border-box; }
+  .ly-receipt .brand { text-align: center; font-size: 18px; font-weight: 700; color: #1B3571; margin-bottom: 20px; }
+  .ly-receipt .ref-box { background: #f8f9fb; border-radius: 12px; text-align: center; padding: 18px; margin-bottom: 20px; }
+  .ly-receipt .ref-box .ref { font-size: 17px; font-weight: 700; color: #1B3571; font-family: monospace; }
+  .ly-receipt .ref-box .date { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .ly-receipt .ref-box .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; background: #fef3c7; color: #92400e; }
+  .ly-receipt .transfer { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #e5e7eb; }
+  .ly-receipt .transfer .side { text-align: center; flex: 1; }
+  .ly-receipt .transfer .label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+  .ly-receipt .transfer .amount { font-size: 22px; font-weight: 700; color: #1B3571; font-family: monospace; }
+  .ly-receipt .transfer .receive { color: #059669; }
+  .ly-receipt .transfer .cur { font-size: 12px; color: #6b7280; margin-left: 4px; }
+  .ly-receipt .transfer .arrow { color: #9ca3af; font-size: 20px; }
+  .ly-receipt .section-title { font-size: 14px; font-weight: 700; color: #1B3571; padding: 16px 0 12px; border-bottom: 1px solid #e5e7eb; }
+  .ly-receipt .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+  .ly-receipt .row .rl { color: #6b7280; }
+  .ly-receipt .row .rv { font-weight: 500; text-align: right; }
+  .ly-receipt .row.total { border-top: 2px solid #e5e7eb; border-bottom: none; margin-top: 4px; padding-top: 12px; }
+  .ly-receipt .row.total .rl { font-weight: 700; color: #1B3571; }
+  .ly-receipt .row.total .rv { font-weight: 700; color: #059669; font-size: 15px; }
+  .ly-receipt .note { display: flex; align-items: center; gap: 10px; background: #ecfdf5; border-radius: 8px; padding: 14px; margin-top: 20px; font-size: 13px; color: #065f46; }
+  .ly-receipt .note svg { min-width: 18px; }
+</style>
+<div class="ly-receipt">
 <div class="brand">Layla Money Transfer — Transaction Receipt</div>
 <div class="ref-box">
   <div class="status">${t.status}</div>
@@ -201,13 +226,8 @@ ${t.referralCodeUsed ? `<div class="row"><span class="rl">Referral Code</span><s
   <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
   <span>This transfer was processed securely by Layla Money Transfer. Keep this receipt for your records.</span>
 </div>
-</body></html>`;
+</div>`;
 
-    const w = window.open('', '_blank');
-    if (w) {
-      w.document.write(html);
-      w.document.close();
-      setTimeout(() => w.print(), 300);
-    }
+    return html;
   }
 }
