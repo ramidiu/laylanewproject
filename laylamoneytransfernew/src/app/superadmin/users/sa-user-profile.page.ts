@@ -22,6 +22,13 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
   user: UserResponse | null = null;
   kycStatus: KycStatusResponse | null = null;
   documents: KycDocumentResponse[] = [];
+
+  /** Docs shown in the UI: for PARTIAL customers, hide imported placeholders (no real upload);
+   *  for everyone else show all documents normally. */
+  get displayDocuments(): KycDocumentResponse[] {
+    const isPartial = (this.kycStatus?.overallStatus || '').toUpperCase() === 'PARTIAL';
+    return isPartial ? this.documents.filter(d => (d as any).realUpload === true) : this.documents;
+  }
   transactions: TransactionResponse[] = [];
   totalTransactions = 0;
   txPage = 0;

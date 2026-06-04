@@ -41,7 +41,7 @@
     </button>
     <button class="profile-tab" [class.profile-tab--active]="activeTab === 'kyc'" (click)="activeTab = 'kyc'">
       <ion-icon name="document-text-outline"></ion-icon> KYC Documents
-      <span class="tab-badge tab-badge--warning" *ngIf="documents.length > 0">{{ documents.length }}</span>
+      <span class="tab-badge tab-badge--warning" *ngIf="displayDocuments.length > 0">{{ displayDocuments.length }}</span>
     </button>
     <button class="profile-tab" [class.profile-tab--active]="activeTab === 'transactions'" (click)="activeTab = 'transactions'">
       <ion-icon name="swap-horizontal-outline"></ion-icon> Transactions
@@ -299,15 +299,15 @@
     </ng-template>
 
     <!-- Existing documents shown FIRST -->
-    <div class="fb-card" *ngIf="documents.length === 0 && !showUploadPanel">
+    <div class="fb-card" *ngIf="displayDocuments.length === 0 && !showUploadPanel">
       <div class="empty-state">
         <ion-icon name="document-outline" class="empty-state__icon"></ion-icon>
         <p class="empty-state__text">No KYC documents uploaded yet.</p>
       </div>
     </div>
 
-    <div class="kyc-docs-list" *ngIf="documents.length > 0">
-      <div class="kyc-doc-card fb-card" *ngFor="let doc of documents">
+    <div class="kyc-docs-list" *ngIf="displayDocuments.length > 0">
+      <div class="kyc-doc-card fb-card" *ngFor="let doc of displayDocuments">
         <div class="kyc-doc-card__header">
           <div>
             <span class="kyc-doc-card__type">{{ formatDocType(doc.documentType) }}</span>

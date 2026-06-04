@@ -344,9 +344,12 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
     entry.loadingDocs = true;
     this.kycService.getDocuments(entry.user.uuid).subscribe({
       next: (docs) => {
-        // Only show real customer uploads (have a file_hash). Legacy/imported placeholders
-        // (no_image.png or migrated paths with no hash) are hidden.
-        entry.documents = (docs || []).filter(d => (d as any).realUpload === true);
+        // ONLY for partial customers, hide the legacy/imported placeholder docs (no real upload)
+        // so they don't get bogus Approve/Reject. Pending customers show ALL their documents.
+        const isPartial = (entry.kycStatus?.overallStatus || '').toUpperCase() === 'PARTIAL';
+        entry.documents = isPartial
+          ? (docs || []).filter(d => (d as any).realUpload === true)
+          : (docs || []);
         entry.loadingDocs = false;
         for (const doc of entry.documents) {
           if (doc.fileUrl) {
