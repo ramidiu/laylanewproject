@@ -49,6 +49,15 @@ public class TransactionReceiptService {
         return render(tx);
     }
 
+    /** The branded receipt as HTML (same template/vars as the PDF) — for inline display
+     *  in the mobile WebView, which can't render the PDF. */
+    public String generateHtmlForTransaction(Long transactionId) {
+        TransactionEntity tx = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", transactionId));
+        BeneficiaryEntity beneficiary = beneficiaryRepository.findById(tx.getBeneficiaryId()).orElse(null);
+        return substitute(loadTemplate(), buildVariables(tx, beneficiary));
+    }
+
     public byte[] generatePdfByReference(String referenceNumber) {
         TransactionEntity tx = transactionRepository.findByReferenceNumber(referenceNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", "referenceNumber", referenceNumber));

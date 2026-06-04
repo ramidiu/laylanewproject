@@ -158,6 +158,9 @@
       <span>Receipt</span>
       <button class="receipt-sheet__close" (click)="closeReceipt()"><ion-icon name="close-outline"></ion-icon></button>
     </div>
-    <div class="receipt-sheet__body" [innerHTML]="receiptHtml"></div>
+    <div class="receipt-sheet__body">
+      <div *ngIf="loadingReceipt" style="text-align:center;padding:40px;color:#6b7280;">Loading receipt…</div>
+      <iframe *ngIf="!loadingReceipt && receiptHtml" [srcdoc]="receiptHtml" class="receipt-frame" title="Receipt"></iframe>
+    </div>
   </div>
 </div>

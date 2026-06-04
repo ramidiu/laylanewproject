@@ -145,12 +145,25 @@ export class TransactionDetailPage implements OnInit {
       });
   }
 
-  /** Show the receipt inline (HTML) — renders inside the mobile WebView where PDF/print fail. */
+  loadingReceipt = false;
+
+  /** Show the BACKEND branded receipt inline as HTML — renders in the mobile WebView (PDF doesn't). */
   viewReceipt(): void {
-    const inner = this.buildReceiptInnerHtml();
-    if (!inner) return;
-    this.receiptHtml = this.sanitizer.bypassSecurityTrustHtml(inner);
+    if (!this.transaction || this.loadingReceipt) return;
+    this.loadingReceipt = true;
     this.showReceiptModal = true;
+    this.receiptHtml = null;
+    this.transactionService.getReceiptHtml(this.transaction.id!).subscribe({
+      next: (html) => {
+        this.receiptHtml = this.sanitizer.bypassSecurityTrustHtml(html);
+        this.loadingReceipt = false;
+      },
+      error: () => {
+        // Fallback to the client-rendered receipt if the backend HTML isn't available.
+        this.receiptHtml = this.sanitizer.bypassSecurityTrustHtml(this.buildReceiptInnerHtml());
+        this.loadingReceipt = false;
+      }
+    });
   }
 
   closeReceipt(): void {

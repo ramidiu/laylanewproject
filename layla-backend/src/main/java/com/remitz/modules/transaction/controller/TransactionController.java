@@ -47,6 +47,16 @@ public class TransactionController {
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
+    @GetMapping(value = "/{id}/receipt.html", produces = MediaType.TEXT_HTML_VALUE)
+    @Operation(summary = "Receipt as HTML", description = "Branded receipt rendered as HTML (for mobile in-app viewing)")
+    public ResponseEntity<String> getReceiptHtml(@PathVariable Long id) {
+        String html = transactionReceiptService.generateHtmlForTransaction(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.TEXT_HTML);
+        headers.setCacheControl("no-store");
+        return ResponseEntity.ok().headers(headers).body(html);
+    }
+
     @PostMapping
     @PreAuthorize("hasPermission(null, 'transaction:create')")
     @Operation(summary = "Create a new transaction", description = "Creates a new remittance transaction from a validated quote")

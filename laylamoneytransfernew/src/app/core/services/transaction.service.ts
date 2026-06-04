@@ -104,6 +104,11 @@ export class TransactionService {
     });
   }
 
+  /** Branded receipt as HTML (same template as the PDF) — for inline viewing in the mobile WebView. */
+  getReceiptHtml(id: string | number): Observable<string> {
+    return this.http.get(`${this.baseUrl}/${id}/receipt.html`, { responseType: 'text' });
+  }
+
   getRecent(limit: number = 5): Observable<TransactionResponse[]> {
     return this.http.get<any>(this.baseUrl, {
       params: new HttpParams()
