@@ -1,0 +1,54 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">Executive Overview</h1>
+      <p class="dashboard__subtitle">Platform health at a glance</p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="dashboard__metrics">
+      <app-metric-card label="Total Volume" [value]="(totalVolume | number:'1.0-0') + ' GBP'" icon="trending-up-outline" iconBg="#059669"></app-metric-card>
+      <app-metric-card label="Revenue" [value]="(totalRevenue | number:'1.0-0') + ' GBP'" icon="cash-outline" iconBg="#7c3aed"></app-metric-card>
+      <app-metric-card label="Total Users" [value]="totalUsers | number" icon="people-outline" iconBg="#1B3571"></app-metric-card>
+      <app-metric-card label="Transactions" [value]="totalTxns | number" icon="swap-horizontal-outline" iconBg="#0891b2"></app-metric-card>
+      <app-metric-card label="Open Alerts" [value]="openAlerts | number" icon="alert-circle-outline" iconBg="#dc2626"></app-metric-card>
+    </div>
+
+    <div class="dashboard__charts">
+      <app-chart-panel title="Transaction Status" subtitle="Current pipeline">
+        <canvas baseChart [type]="statusChart.type" [data]="statusChart.data" [options]="statusChart.options" height="260"></canvas>
+      </app-chart-panel>
+    </div>
+
+    <div class="dashboard__table-panel">
+      <div class="dashboard__table-header">Recent Transactions</div>
+      <table class="dashboard__table" *ngIf="recentTxns.length > 0">
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Beneficiary</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of recentTxns">
+            <td class="mono">{{ t.referenceNumber }}</td>
+            <td>{{ t.beneficiaryName || '—' }}</td>
+            <td class="num num--bold">{{ t.sendAmount | number:'1.2-2' }} {{ t.sendCurrency }}</td>
+            <td><span class="dashboard__badge dashboard__badge--primary">{{ t.status }}</span></td>
+            <td>{{ t.createdAt | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dashboard__empty" *ngIf="recentTxns.length === 0">No recent transactions</div>
+    </div>
+  </ng-container>
+</div>

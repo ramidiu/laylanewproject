@@ -1,0 +1,332 @@
+@import '../../../../theme/remitzai-design-tokens';
+
+:host {
+  display: block;
+  padding: $fb-space-4;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+// Page Header
+.detail-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $fb-space-4;
+
+  &__back {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    background: none;
+    border: none;
+    color: $fb-navy;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    cursor: pointer;
+    padding: $fb-space-2 $fb-space-3;
+    border-radius: $fb-radius-md;
+    transition: background $fb-transition-fast;
+
+    ion-icon { font-size: 20px; }
+
+    &:hover { background: $fb-gray-100; }
+  }
+
+  &__print {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    background: $fb-navy;
+    color: $fb-white;
+    border: none;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    cursor: pointer;
+    padding: $fb-space-2 $fb-space-4;
+    border-radius: $fb-radius-md;
+    transition: background $fb-transition-fast;
+
+    ion-icon { font-size: 18px; }
+
+    &:hover:not(:disabled) { background: $fb-navy-dark; }
+    &:disabled { opacity: 0.6; cursor: wait; }
+  }
+
+  /* Code added by Naresh: Download Invoice — secondary button. */
+  &__invoice {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    background: $fb-white;
+    color: $fb-navy;
+    border: 1px solid $fb-navy;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    cursor: pointer;
+    padding: $fb-space-2 $fb-space-4;
+    border-radius: $fb-radius-md;
+    transition: background $fb-transition-fast, color $fb-transition-fast;
+
+    ion-icon { font-size: 18px; }
+
+    &:hover:not(:disabled) { background: $fb-navy; color: $fb-white; }
+    &:disabled { opacity: 0.6; cursor: wait; }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-2;
+    align-items: center;
+  }
+
+  /* Mobile: stack the action buttons and push them full-width. */
+  @media (max-width: 600px) {
+    flex-wrap: wrap;
+
+    &__actions {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      margin-top: $fb-space-2;
+    }
+    &__invoice, &__print { justify-content: center; }
+  }
+}
+
+.detail-loading {
+  .fb-skeleton--card {
+    margin-bottom: $fb-space-4;
+  }
+}
+
+// Status Banner
+.detail-status-banner {
+  text-align: center;
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  padding: $fb-space-5;
+  margin-bottom: $fb-space-4;
+  box-shadow: $fb-shadow-card;
+
+  app-status-chip {
+    margin-bottom: $fb-space-2;
+  }
+
+  &__ref {
+    font-size: $fb-text-lg;
+    font-weight: $fb-font-bold;
+    color: $fb-navy;
+    margin-top: $fb-space-2;
+  }
+
+  &__date {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    margin-top: $fb-space-1;
+  }
+}
+
+// Cards
+.detail-card {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  padding: $fb-space-5;
+  margin-bottom: $fb-space-4;
+  box-shadow: $fb-shadow-card;
+
+  &__title {
+    font-size: $fb-text-base;
+    font-weight: $fb-font-bold;
+    color: $fb-navy;
+    margin: 0 0 $fb-space-4;
+    padding-bottom: $fb-space-3;
+    border-bottom: 1px solid $fb-gray-100;
+  }
+}
+
+// Transfer Summary
+.detail-transfer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $fb-space-3;
+  padding: $fb-space-2 0;
+
+  &__side {
+    text-align: center;
+    flex: 1;
+
+    &--receive .detail-transfer__amount {
+      color: $fb-success;
+    }
+  }
+
+  &__label {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: $fb-space-1;
+  }
+
+  &__amount {
+    font-size: $fb-text-2xl;
+    font-weight: $fb-font-bold;
+    color: $fb-navy;
+
+    &--receive {
+      color: $fb-success;
+    }
+  }
+
+  &__currency {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-500;
+    margin-left: $fb-space-1;
+  }
+
+  &__arrow {
+    color: $fb-gray-400;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+// Detail Rows
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $fb-space-3 0;
+  border-bottom: 1px solid $fb-gray-100;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__label {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+  }
+
+  &__value {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-800;
+    text-align: right;
+  }
+
+  &--total {
+    border-bottom: none;
+    padding-top: $fb-space-3;
+    margin-top: $fb-space-1;
+    border-top: 2px solid $fb-gray-200;
+
+    .detail-row__label {
+      font-weight: $fb-font-bold;
+      color: $fb-navy;
+    }
+
+    .detail-row__value {
+      font-size: $fb-text-base;
+      font-weight: $fb-font-bold;
+      color: $fb-success;
+    }
+  }
+}
+
+// Timeline
+.detail-timeline {
+  position: relative;
+  padding-left: $fb-space-6;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: $fb-space-4;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 20px;
+    bottom: 0;
+    width: 2px;
+    background: $fb-gray-200;
+  }
+
+  &:last-child::before {
+    display: none;
+  }
+
+  &__dot {
+    position: absolute;
+    left: -26px;
+    top: 4px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid $fb-gray-300;
+    background: $fb-white;
+  }
+
+  &--current &__dot {
+    background: $fb-sky;
+    border-color: $fb-sky;
+  }
+
+  &__content {
+    padding-left: $fb-space-2;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-800;
+
+    ion-icon {
+      font-size: 14px;
+      color: $fb-gray-400;
+    }
+  }
+
+  &__meta {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    margin-top: $fb-space-1;
+  }
+}
+
+// Security Note
+.detail-note {
+  display: flex;
+  align-items: flex-start;
+  gap: $fb-space-3;
+  background: $fb-success-bg;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-4;
+  margin-bottom: $fb-space-4;
+
+  ion-icon {
+    font-size: 20px;
+    color: $fb-success;
+    min-width: 20px;
+    margin-top: 2px;
+  }
+
+  span {
+    font-size: $fb-text-sm;
+    color: #065F46;
+    line-height: 1.5;
+  }
+}

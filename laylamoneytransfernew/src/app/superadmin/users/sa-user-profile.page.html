@@ -1,0 +1,399 @@
+<div class="user-profile" *ngIf="!loading">
+  <!-- Header -->
+  <div class="page-header">
+    <button class="fb-btn fb-btn--ghost back-btn" (click)="goBack()">
+      <ion-icon name="arrow-back-outline"></ion-icon> Users
+    </button>
+    <div class="page-header__info" *ngIf="user">
+      <div class="user-avatar-lg">{{ user.firstName?.[0] || '?' }}{{ user.lastName?.[0] || '?' }}</div>
+      <div>
+        <h1 class="page-title">{{ user.firstName }} {{ user.lastName }}</h1>
+        <p class="page-subtitle">{{ user.email }}</p>
+      </div>
+    </div>
+    <div class="page-header__actions" *ngIf="user">
+      <span class="status-badge status-badge--{{ user.status === 'ACTIVE' ? 'success' : 'danger' }}">
+        {{ user.status }}
+      </span>
+      <span class="tier-badge">KYC: {{ user.kycTier || 'NONE' }}</span>
+      <button class="fb-btn fb-btn--danger" *ngIf="user.status === 'ACTIVE'" (click)="suspendUser()">
+        Suspend
+      </button>
+      <button class="fb-btn fb-btn--primary" *ngIf="user.status !== 'ACTIVE'" (click)="activateUser()">
+        Activate
+      </button>
+    </div>
+  </div>
+
+  <!-- KYC Status Banner -->
+  <div *ngIf="kycStatus" class="kyc-banner kyc-banner--{{ getKycStatusClass(kycStatus.overallStatus) }}">
+    <ion-icon name="shield-checkmark-outline"></ion-icon>
+    <span>KYC Status: <strong>{{ kycStatus.overallStatus || 'NOT SUBMITTED' }}</strong></span>
+    <span *ngIf="kycStatus.nextTierRequirements?.length">
+      &nbsp;— Next: {{ kycStatus.nextTierRequirements[0] }}
+    </span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="profile-tabs">
+    <button class="profile-tab" [class.profile-tab--active]="activeTab === 'details'" (click)="activeTab = 'details'">
+      <ion-icon name="person-outline"></ion-icon> Profile Details
+    </button>
+    <button class="profile-tab" [class.profile-tab--active]="activeTab === 'kyc'" (click)="activeTab = 'kyc'">
+      <ion-icon name="document-text-outline"></ion-icon> KYC Documents
+      <span class="tab-badge tab-badge--warning" *ngIf="documents.length > 0">{{ documents.length }}</span>
+    </button>
+    <button class="profile-tab" [class.profile-tab--active]="activeTab === 'transactions'" (click)="activeTab = 'transactions'">
+      <ion-icon name="swap-horizontal-outline"></ion-icon> Transactions
+      <span class="tab-badge" *ngIf="totalTransactions > 0">{{ totalTransactions }}</span>
+    </button>
+  </div>
+
+  <!-- ── Details Tab ── -->
+  <div *ngIf="activeTab === 'details'" class="tab-content">
+    <form [formGroup]="editForm" *ngIf="editForm" class="fb-card profile-form">
+      <h3 class="profile-form__title">Edit Profile</h3>
+
+      <div class="form-grid">
+        <div class="fb-field">
+          <label class="fb-field__label">First Name</label>
+          <input class="fb-input" formControlName="firstName" placeholder="First name" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Last Name</label>
+          <input class="fb-input" formControlName="lastName" placeholder="Last name" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Phone</label>
+          <input class="fb-input" formControlName="phone" placeholder="Phone number" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Date of Birth</label>
+          <input class="fb-input" type="date" formControlName="dateOfBirth" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Country</label>
+          <input class="fb-input" formControlName="country" placeholder="Country code (e.g. GB)" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Preferred Language</label>
+          <input class="fb-input" formControlName="preferredLanguage" placeholder="e.g. en" />
+        </div>
+        <div class="fb-field fb-field--full">
+          <label class="fb-field__label">Find address</label>
+          <app-address-autocomplete
+            [country]="editForm.get('country')?.value || 'GB'"
+            (addressSelected)="onAddressSelected($event)"
+          ></app-address-autocomplete>
+        </div>
+        <div class="fb-field fb-field--full">
+          <label class="fb-field__label">Address Line 1</label>
+          <input class="fb-input" formControlName="addressLine1" placeholder="Address line 1" />
+        </div>
+        <div class="fb-field fb-field--full">
+          <label class="fb-field__label">Address Line 2</label>
+          <input class="fb-input" formControlName="addressLine2" placeholder="Address line 2 (optional)" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">City</label>
+          <input class="fb-input" formControlName="city" placeholder="City" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Postcode</label>
+          <input class="fb-input" formControlName="postcode" placeholder="Postcode" />
+        </div>
+      </div>
+
+      <div class="profile-form__footer">
+        <span class="profile-form__meta" *ngIf="user">
+          Joined: {{ user.createdAt | date:'MMM d, y' }} &nbsp;|&nbsp; UUID: {{ user.uuid }}
+        </span>
+        <button
+          class="fb-btn fb-btn--primary"
+          type="button"
+          [disabled]="!editForm.dirty || saving"
+          (click)="onSaveProfile()"
+        >
+          {{ saving ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Risk Score -->
+    <div class="fb-card risk-card">
+      <h3 class="profile-form__title">Risk Score</h3>
+      <div *ngIf="riskLoading" class="risk-card__loading">Calculating risk score…</div>
+      <div *ngIf="!riskLoading && !riskScore" class="risk-card__loading">Risk score unavailable.</div>
+
+      <ng-container *ngIf="!riskLoading && riskScore">
+        <div class="risk-card__summary">
+          <span class="status-badge status-badge--{{ riskColor(riskScore.riskScore) }}">{{ riskScore.riskScore }}</span>
+          <div class="risk-card__meta">
+            <span class="fb-field__label">Risk points</span>
+            <span class="risk-card__value">{{ riskScore.riskPoints }}</span>
+          </div>
+          <span *ngIf="riskScore.overridden" class="tier-badge">Overridden</span>
+        </div>
+
+        <div class="risk-card__breakdown">
+          <div class="risk-card__breakdown-item" *ngFor="let entry of breakdownEntries()">
+            <span class="fb-field__label">{{ entry.key }}</span>
+            <span class="risk-card__value">{{ entry.value }}</span>
+          </div>
+        </div>
+
+        <div class="risk-card__override">
+          <label class="fb-field__label">Override risk level</label>
+          <div class="risk-card__override-row">
+            <select class="fb-input" [(ngModel)]="riskOverrideLevel" [ngModelOptions]="{standalone: true}">
+              <option value="">— Keep calculated —</option>
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+            <button
+              type="button"
+              class="fb-btn fb-btn--primary"
+              [disabled]="!riskOverrideLevel || riskOverriding"
+              (click)="saveRiskOverride()"
+            >
+              {{ riskOverriding ? 'Saving…' : 'Apply Override' }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ── KYC Tab ── -->
+  <div *ngIf="activeTab === 'kyc'" class="tab-content">
+
+    <!-- Admin Upload Panel (rendered AFTER the existing docs list — see bottom of tab) -->
+    <ng-template #adminUploadPanel>
+    <div class="upload-panel fb-card">
+      <div class="upload-panel__header">
+        <div class="upload-panel__title">
+          <ion-icon name="cloud-upload-outline"></ion-icon>
+          <span>Upload Document for Customer</span>
+        </div>
+      </div>
+
+      <div class="upload-panel__body">
+
+        <!-- Section tabs -->
+        <div class="upload-type-tabs">
+          <button type="button" [class.upload-type-tab--active]="uploadSection === 'identity'" (click)="switchSection('identity')">
+            <ion-icon name="card-outline"></ion-icon> Identity Document
+          </button>
+          <button type="button" [class.upload-type-tab--active]="uploadSection === 'address'" (click)="switchSection('address')">
+            <ion-icon name="home-outline"></ion-icon> Address Proof
+          </button>
+        </div>
+
+        <!-- ── Identity Section ── -->
+        <ng-container *ngIf="uploadSection === 'identity'">
+          <div class="form-grid">
+            <div class="fb-field">
+              <label class="fb-field__label">Document Type</label>
+              <select class="fb-input" [(ngModel)]="uploadDocType" [ngModelOptions]="{standalone: true}" (ngModelChange)="onDocTypeChange()">
+                <option value="PASSPORT">Passport</option>
+                <option value="DRIVING_LICENCE">Driving Licence</option>
+                <option value="NATIONAL_ID">National ID</option>
+                <option value="SOURCE_OF_FUNDS">Source of Funds</option>
+              </select>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">Document Number</label>
+              <input class="fb-input" type="text" placeholder="e.g. 123456789"
+                [(ngModel)]="uploadDocNumber" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">Issue Date</label>
+              <input class="fb-input" type="date" [(ngModel)]="uploadIssueDate" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">Expiry Date</label>
+              <input class="fb-input" type="date" [(ngModel)]="uploadExpiryDate" [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+
+          <div class="fb-field">
+            <label class="fb-field__label">Front / Main Photo <span class="upload-required">*</span></label>
+            <div class="adm-upload" (click)="frontInput.click()">
+              <input #frontInput type="file" accept="image/*,application/pdf" hidden (change)="onFrontFileSelected($event)" />
+              <div class="adm-upload__idle" *ngIf="!uploadFrontFile">
+                <ion-icon name="cloud-upload-outline"></ion-icon>
+                <span>Click to upload</span>
+                <span class="adm-upload__hint">JPG, PNG or PDF</span>
+              </div>
+              <div class="adm-upload__done" *ngIf="uploadFrontFile">
+                <ion-icon name="document-outline"></ion-icon>
+                <span>{{ uploadFrontFile.name }}</span>
+                <ion-icon name="checkmark-circle" class="adm-upload__check"></ion-icon>
+              </div>
+            </div>
+          </div>
+
+          <div class="fb-field" *ngIf="isDrivingLicence">
+            <label class="fb-field__label">Back Photo <span class="upload-required">*</span></label>
+            <div class="adm-upload" (click)="backInput.click()">
+              <input #backInput type="file" accept="image/*,application/pdf" hidden (change)="onBackFileSelected($event)" />
+              <div class="adm-upload__idle" *ngIf="!uploadBackFile">
+                <ion-icon name="cloud-upload-outline"></ion-icon>
+                <span>Click to upload back</span>
+                <span class="adm-upload__hint">JPG, PNG or PDF</span>
+              </div>
+              <div class="adm-upload__done" *ngIf="uploadBackFile">
+                <ion-icon name="document-outline"></ion-icon>
+                <span>{{ uploadBackFile.name }}</span>
+                <ion-icon name="checkmark-circle" class="adm-upload__check"></ion-icon>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ── Address Proof Section ── -->
+        <ng-container *ngIf="uploadSection === 'address'">
+          <div class="form-grid">
+            <div class="fb-field">
+              <label class="fb-field__label">Address Proof Type <span class="upload-required">*</span></label>
+              <select class="fb-input" [(ngModel)]="uploadAddressSubType" [ngModelOptions]="{standalone: true}">
+                <option value="" disabled>Select proof type…</option>
+                <option *ngFor="let t of ADDRESS_PROOF_TYPES" [value]="t">{{ t }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fb-field">
+            <label class="fb-field__label">Upload Document <span class="upload-required">*</span></label>
+            <div class="adm-upload" (click)="addrInput.click()">
+              <input #addrInput type="file" accept="image/*,application/pdf" hidden (change)="onFrontFileSelected($event)" />
+              <div class="adm-upload__idle" *ngIf="!uploadFrontFile">
+                <ion-icon name="cloud-upload-outline"></ion-icon>
+                <span>Click to upload document</span>
+                <span class="adm-upload__hint">JPG, PNG or PDF</span>
+              </div>
+              <div class="adm-upload__done" *ngIf="uploadFrontFile">
+                <ion-icon name="document-outline"></ion-icon>
+                <span>{{ uploadFrontFile.name }}</span>
+                <ion-icon name="checkmark-circle" class="adm-upload__check"></ion-icon>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Submit -->
+        <div class="upload-panel__footer">
+          <button
+            class="fb-btn fb-btn--primary"
+            type="button"
+            [disabled]="!uploadFrontFile || uploading || (uploadSection === 'address' && !uploadAddressSubType)"
+            (click)="onAdminUpload()"
+          >
+            <ion-icon name="cloud-upload-outline"></ion-icon>
+            {{ uploading ? 'Uploading…' : 'Upload Document' }}
+          </button>
+        </div>
+      </div>
+    </div>
+    </ng-template>
+
+    <!-- Existing documents shown FIRST -->
+    <div class="fb-card" *ngIf="documents.length === 0 && !showUploadPanel">
+      <div class="empty-state">
+        <ion-icon name="document-outline" class="empty-state__icon"></ion-icon>
+        <p class="empty-state__text">No KYC documents uploaded yet.</p>
+      </div>
+    </div>
+
+    <div class="kyc-docs-list" *ngIf="documents.length > 0">
+      <div class="kyc-doc-card fb-card" *ngFor="let doc of documents">
+        <div class="kyc-doc-card__header">
+          <div>
+            <span class="kyc-doc-card__type">{{ formatDocType(doc.documentType) }}</span>
+            <span *ngIf="doc.documentNumber" class="kyc-doc-card__number">{{ doc.documentNumber }}</span>
+          </div>
+          <span class="status-badge status-badge--{{ getDocStatusClass(doc.status) }}">{{ doc.status }}</span>
+        </div>
+
+        <div class="kyc-doc-card__meta">
+          <span *ngIf="doc.createdAt">Uploaded: {{ doc.createdAt | date:'MMM d, y HH:mm' }}</span>
+          <span *ngIf="doc.verifiedAt">Reviewed: {{ doc.verifiedAt | date:'MMM d, y HH:mm' }}</span>
+        </div>
+
+        <div *ngIf="doc.status === 'REJECTED' && doc.rejectionReason" class="kyc-doc-card__rejection">
+          Rejection reason: {{ doc.rejectionReason }}
+        </div>
+
+        <div class="kyc-doc-card__actions">
+          <button class="fb-btn fb-btn--secondary" *ngIf="doc.fileUrl" (click)="openDoc(doc)">
+            <ion-icon name="eye-outline"></ion-icon> Preview
+          </button>
+          <ng-container *ngIf="doc.status === 'PENDING'">
+            <button class="fb-btn fb-btn--success" (click)="approveDoc(doc)">
+              <ion-icon name="checkmark-outline"></ion-icon> Approve
+            </button>
+            <button class="fb-btn fb-btn--danger" (click)="rejectDoc(doc)">
+              <ion-icon name="close-outline"></ion-icon> Reject
+            </button>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload panel now rendered AFTER existing docs -->
+    <ng-container *ngTemplateOutlet="adminUploadPanel"></ng-container>
+  </div>
+
+  <!-- ── Transactions Tab ── -->
+  <div *ngIf="activeTab === 'transactions'" class="tab-content">
+    <div class="fb-card" *ngIf="transactions.length === 0">
+      <div class="empty-state">
+        <ion-icon name="swap-horizontal-outline" class="empty-state__icon"></ion-icon>
+        <p class="empty-state__text">No transactions found for this user.</p>
+      </div>
+    </div>
+
+    <div class="fb-card table-card" *ngIf="transactions.length > 0">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Amount</th>
+            <th>Recipient Gets</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of transactions">
+            <td class="tx-ref">{{ tx.referenceNumber }}</td>
+            <td>{{ tx.sendAmount | number:'1.2-2' }} {{ tx.sendCurrency }}</td>
+            <td>{{ tx.receiveAmount | number:'1.2-2' }} {{ tx.receiveCurrency }}</td>
+            <td>
+              <span class="status-badge status-badge--{{ tx.status === 'COMPLETED' || tx.status === 'PAID' ? 'success' : tx.status === 'FAILED' || tx.status === 'CANCELLED' ? 'danger' : 'warning' }}">
+                {{ tx.status === 'COMPLETED' || tx.status === 'PAID' ? 'Paid' : tx.status }}
+              </span>
+            </td>
+            <td>{{ tx.createdAt | date:'MMM d, y HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <span>Showing {{ transactions.length }} of {{ totalTransactions }} transactions</span>
+        <button
+          class="fb-btn fb-btn--secondary"
+          *ngIf="hasMoreTransactions"
+          [disabled]="txLoading"
+          (click)="loadMoreTransactions()"
+        >
+          {{ txLoading ? 'Loading…' : 'Load More' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+</div>

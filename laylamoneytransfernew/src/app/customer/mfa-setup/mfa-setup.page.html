@@ -1,0 +1,103 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home/profile"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'MFA_SETUP.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="mfa-content">
+  <div class="mfa-container">
+    <div class="mfa-header">
+      <div class="mfa-header__icon">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+      </div>
+      <h1 class="mfa-header__title">{{ 'MFA_SETUP.TITLE' | translate }}</h1>
+      <p class="mfa-header__subtitle">{{ 'MFA_SETUP.SUBTITLE' | translate }}</p>
+    </div>
+
+    <div class="mfa-card" *ngIf="!loading">
+      <!-- MFA already enabled -->
+      <div *ngIf="mfaEnabled && step === 'setup'">
+        <div class="mfa-status mfa-status--enabled">
+          <ion-icon name="checkmark-circle"></ion-icon>
+          <span>{{ 'PROFILE.ENABLE_MFA' | translate }}</span>
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'AUTH.PASSWORD' | translate }}</label>
+          <input type="password" class="fb-input" [(ngModel)]="password" [placeholder]="'AUTH.PASSWORD_PLACEHOLDER' | translate" />
+        </div>
+        <button class="mfa-btn mfa-btn--danger" (click)="onDisable()" [disabled]="!password">
+          {{ 'PROFILE.DISABLE_MFA' | translate }}
+        </button>
+        <button class="mfa-btn mfa-btn--outline" routerLink="/home/profile">
+          {{ 'COMMON.CANCEL' | translate }}
+        </button>
+      </div>
+
+      <!-- Step 1: Setup QR code -->
+      <div *ngIf="!mfaEnabled && step === 'setup'">
+        <div class="mfa-steps">
+          <div class="mfa-step">
+            <span class="mfa-step__num">1</span>
+            <span>Download Google Authenticator app</span>
+          </div>
+          <div class="mfa-step">
+            <span class="mfa-step__num">2</span>
+            <span>{{ 'MFA_SETUP.SUBTITLE' | translate }}</span>
+          </div>
+          <div class="mfa-step">
+            <span class="mfa-step__num">3</span>
+            <span>{{ 'MFA_SETUP.ENTER_CODE' | translate }}</span>
+          </div>
+        </div>
+
+        <div class="mfa-qr" *ngIf="qrCodeDataUri">
+          <img [src]="qrCodeDataUri" alt="QR Code" class="mfa-qr__img" />
+        </div>
+        <div class="mfa-qr mfa-qr--loading" *ngIf="!qrCodeDataUri && !error">
+          {{ 'COMMON.LOADING' | translate }}
+        </div>
+
+        <div class="mfa-secret" *ngIf="secret">
+          <label class="fb-field__label">{{ 'MFA_SETUP.VERIFY_CODE' | translate }}:</label>
+          <div class="mfa-secret__value">{{ secret }}</div>
+        </div>
+
+        <button class="mfa-btn" (click)="step = 'verify'" [disabled]="!secret">
+          {{ 'COMMON.NEXT' | translate }}
+        </button>
+      </div>
+
+      <!-- Step 2: Verify -->
+      <div *ngIf="!mfaEnabled && step === 'verify'">
+        <p class="mfa-card__text">{{ 'MFA_SETUP.ENTER_CODE' | translate }}:</p>
+        <div class="fb-field">
+          <input type="text" class="fb-input mfa-code-input" [(ngModel)]="verifyCode"
+                 [placeholder]="'AUTH.MFA_PLACEHOLDER' | translate" maxlength="6" inputmode="numeric" />
+        </div>
+        <button class="mfa-btn" (click)="onEnable()" [disabled]="verifyCode.length !== 6 || enabling">
+          {{ enabling ? ('COMMON.LOADING' | translate) : ('MFA_SETUP.ENABLE' | translate) }}
+        </button>
+        <button class="mfa-btn mfa-btn--outline" (click)="step = 'setup'">
+          {{ 'COMMON.BACK' | translate }}
+        </button>
+      </div>
+
+      <!-- Step 3: Done -->
+      <div *ngIf="step === 'done'">
+        <div class="mfa-done">
+          <ion-icon name="checkmark-circle" class="mfa-done__icon"></ion-icon>
+          <h2>{{ 'MFA_SETUP.ENABLE' | translate }}</h2>
+          <p>Your account is now protected with two-factor authentication.</p>
+        </div>
+        <button class="mfa-btn" routerLink="/home/profile">
+          {{ 'COMMON.BACK' | translate }}
+        </button>
+      </div>
+
+      <div class="mfa-error" *ngIf="error">{{ error }}</div>
+    </div>
+  </div>
+</ion-content>

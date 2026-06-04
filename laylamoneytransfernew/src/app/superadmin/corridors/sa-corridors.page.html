@@ -1,0 +1,95 @@
+<div class="admin-corridors">
+  <h1 class="page-title">Corridors</h1>
+  <p class="page-subtitle">Manage remittance corridors and fees</p>
+
+  <div *ngIf="loading" class="loading">
+    <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+  </div>
+
+  <div class="corridor-grid" *ngIf="!loading">
+    <div class="fb-card corridor-card" *ngFor="let corridor of corridors" [class.inactive]="!corridor.isActive">
+      <div class="corridor-card__header">
+        <div class="corridor-card__route">
+          <span class="corridor-card__country">{{ corridor.sendCountry }}</span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span class="corridor-card__country">{{ corridor.receiveCountry }}</span>
+        </div>
+        <ion-toggle [checked]="corridor.isActive" (ionChange)="toggleCorridor(corridor)" color="success"></ion-toggle>
+      </div>
+      <div class="corridor-card__currencies">
+        <span class="fb-currency">{{ corridor.sendCurrency }}</span>
+        <ion-icon name="swap-horizontal-outline"></ion-icon>
+        <span class="fb-currency">{{ corridor.receiveCurrency }}</span>
+      </div>
+      <div class="corridor-card__details">
+        <div class="detail-row"><span>Delivery Methods</span><span>{{ corridor.deliveryMethods.join(', ') }}</span></div>
+        <div class="detail-row"><span>Limits</span><span class="fb-currency">{{ corridor.minAmount | number:'1.0-0' }} - {{ corridor.maxAmount | number:'1.0-0' }} {{ corridor.sendCurrency }}</span></div>
+      </div>
+      <div class="corridor-card__fees" *ngIf="editingFees != corridor.id">
+        <div class="detail-row"><span>Base Fee</span><span class="fb-currency">{{ getFeeDisplay(corridor) }} {{ corridor.sendCurrency }}</span></div>
+        <div class="detail-row"><span>Fee Percent</span><span>{{ getFeePctDisplay(corridor) }}%</span></div>
+        <button class="fb-btn fb-btn--secondary fee-edit-btn" (click)="startEditFees(corridor)">
+          <ion-icon name="create-outline"></ion-icon> Edit Fees
+        </button>
+      </div>
+      <div class="corridor-card__fees-edit" *ngIf="editingFees == corridor.id">
+        <div class="fb-field">
+          <label class="fb-field__label">Base Fee ({{ corridor.sendCurrency }})</label>
+          <input type="number" class="fb-input" [(ngModel)]="editBaseFee" step="0.01" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Fee Percent (%)</label>
+          <input type="number" class="fb-input" [(ngModel)]="editFeePercent" step="0.01" />
+        </div>
+        <div class="fee-edit-actions">
+          <button class="fb-btn fb-btn--primary" (click)="saveFees(corridor)">Save</button>
+          <button class="fb-btn fb-btn--secondary" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Referral Config -->
+      <div class="referral-config-section">
+        <div class="referral-config-section__title">
+          <ion-icon name="gift-outline"></ion-icon>
+          Referral Config
+        </div>
+
+        <div *ngIf="editingReferral != corridor.id">
+          <div class="detail-row">
+            <span>Rate Boost</span>
+            <span>{{ getReferralBoost(corridor.id) }}%</span>
+          </div>
+          <div class="detail-row">
+            <span>Referrer Credit</span>
+            <span class="fb-currency">{{ getReferralCredit(corridor.id) }} {{ getReferralCurrency(corridor.id) }}</span>
+          </div>
+          <div class="referral-config-section__note" *ngIf="!getReferralConfigId(corridor.id)">
+            Using global default
+          </div>
+          <button class="fb-btn fb-btn--secondary fee-edit-btn" (click)="startEditReferral(corridor)">
+            <ion-icon name="create-outline"></ion-icon>
+            Edit Referral Config
+          </button>
+        </div>
+
+        <div *ngIf="editingReferral == corridor.id">
+          <div class="fb-field">
+            <label class="fb-field__label">Rate Boost for New Customer (%)</label>
+            <input type="number" class="fb-input" [(ngModel)]="editRateBoost" step="0.01" min="0" max="10" placeholder="e.g. 0.50" />
+            <span class="fb-field__hint">Applied to the exchange rate (e.g. 0.50 = +0.5%)</span>
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">Referrer Wallet Credit ({{ corridor.sendCurrency }})</label>
+            <input type="number" class="fb-input" [(ngModel)]="editReferralCredit" step="0.01" min="0" placeholder="e.g. 5.00" />
+            <span class="fb-field__hint">Credited to referrer's wallet when the referred transfer completes</span>
+          </div>
+          <div class="fee-edit-actions">
+            <button class="fb-btn fb-btn--primary" (click)="saveReferral(corridor)">Save</button>
+            <button class="fb-btn fb-btn--secondary" (click)="cancelReferralEdit()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

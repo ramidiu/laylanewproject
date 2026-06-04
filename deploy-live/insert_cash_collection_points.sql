@@ -1,0 +1,38 @@
+-- ============================================================================
+-- Cash collection points â€” populate the new DB (cash pickup had none).
+-- Idempotent: skips any point already present (by country_code + point_name).
+-- Apply on the server:  mysql -uroot -p remitz < insert_cash_collection_points.sql
+-- ============================================================================
+
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'BD','Bangladesh','Sonali Bank - Dhaka','Motijheel Commercial Area','Dhaka','+88029550426',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='BD' AND x.point_name='Sonali Bank - Dhaka');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'EG','Egypt','Banque Misr - Mohandiseen','151 Mohamed Farid St, Cairo','Cairo','+20237490000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='EG' AND x.point_name='Banque Misr - Mohandiseen');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'EG','Egypt','National Bank of Egypt - Tahrir','1187 Corniche El Nil, Cairo','Cairo','+20223919000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='EG' AND x.point_name='National Bank of Egypt - Tahrir');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'GH','Ghana','GCB Bank - Accra','Thorpe Road, High Street','Accra','+233302664910',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='GH' AND x.point_name='GCB Bank - Accra');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'IN','India','HDFC Bank - Connaught Place','Block A, Connaught Place, New Delhi 110001','New Delhi','+911123417940',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='IN' AND x.point_name='HDFC Bank - Connaught Place');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'IN','India','SBI Branch - Mumbai Central','Dr DN Road, Fort, Mumbai 400001','Mumbai','+912222620000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='IN' AND x.point_name='SBI Branch - Mumbai Central');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'KE','Kenya','Equity Bank - Nairobi','Equity Centre, Hospital Road, Upper Hill','Nairobi','+254763026000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='KE' AND x.point_name='Equity Bank - Nairobi');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'KE','Kenya','KCB Bank - Mombasa','Nkrumah Road, Mombasa','Mombasa','+254412226501',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='KE' AND x.point_name='KCB Bank - Mombasa');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'NG','Nigeria','FirstBank - Abuja','Wuse Zone 4, Abuja','Abuja','+23494620000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='NG' AND x.point_name='FirstBank - Abuja');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'NG','Nigeria','GTBank - Lagos Mainland','Herbert Macaulay Way, Yaba, Lagos','Lagos','+23412800000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='NG' AND x.point_name='GTBank - Lagos Mainland');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'PH','Philippines','Cebuana Lhuillier - Manila','Rizal Avenue, Manila','Manila','+63281234567',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='PH' AND x.point_name='Cebuana Lhuillier - Manila');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'PH','Philippines','MLhuillier - Cebu','Colon Street, Cebu City','Cebu','+63322531234',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='PH' AND x.point_name='MLhuillier - Cebu');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'PK','Pakistan','HBL - Karachi','Habib Bank Plaza, I.I. Chundrigar Road','Karachi','+922132418000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='PK' AND x.point_name='HBL - Karachi');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'SD','Sudan','Bank of Khartoum - Al-Amarat','Al-Amarat, Block 3, Khartoum','Khartoum','+249155000000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='SD' AND x.point_name='Bank of Khartoum - Al-Amarat');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'SD','Sudan','Omdurman National Bank - Main','Al-Mawrada Street, Omdurman','Omdurman','+249187000000',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='SD' AND x.point_name='Omdurman National Bank - Main');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'UG','Uganda','Centenary Bank – Entebbe Road','Plot 7 Entebbe Rd, Kampala','Kampala','+256312212219',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='UG' AND x.point_name='Centenary Bank – Entebbe Road');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'UG','Uganda','Stanbic Bank – Kampala Road','Plot 45 Kampala Rd, Kampala','Kampala','+256312224600',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='UG' AND x.point_name='Stanbic Bank – Kampala Road');
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active) SELECT 'ZA','South Africa','Standard Bank - Johannesburg','Simmonds Street, Johannesburg','Johannesburg','+27860123456',1 WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code='ZA' AND x.point_name='Standard Bank - Johannesburg');
+
+SELECT country_code, COUNT(*) AS points FROM cash_collection_points GROUP BY country_code ORDER BY country_code;
+
+-- Legacy cash_coll_point migrated from layla1 (COUNTRY_ID 202=Sudan/SD, 83=UK/GB).
+INSERT INTO cash_collection_points (country_code,country_name,point_name,address,city,contact_number,is_active)
+SELECT * FROM (
+  SELECT 'SD' cc,'Sudan' cn,'sudan' pn,'street no.5, scity' ad,'sudan' ci,'896789878' ph, 1 ia UNION ALL
+  SELECT 'SD','Sudan','cash pickup','sssss, tttttt','yutytyu','896789878',1 UNION ALL
+  SELECT 'SD','Sudan','CashPickUpTest','Sudan','Sudan','7896541230',1 UNION ALL
+  SELECT 'SD','Sudan','sudan cash pick up','sudan cash pick up','sudan cash pick up','sudan cash pick up',1 UNION ALL
+  SELECT 'SD','Sudan','Khartoum Bank','234234','Khartoum','342234',1 UNION ALL
+  SELECT 'GB','United Kingdom','uk','uk, uk cash pick up','cash pick up','896789878',1
+) v
+WHERE NOT EXISTS (SELECT 1 FROM cash_collection_points x WHERE x.country_code=v.cc AND x.point_name=v.pn);

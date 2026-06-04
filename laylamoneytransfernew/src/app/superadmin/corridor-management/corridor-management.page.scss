@@ -1,0 +1,491 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.corridor-mgmt { max-width: 1200px; }
+
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: $fb-space-6; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }
+.section-title { font-size: $fb-text-base; font-weight: $fb-font-semibold; color: $fb-gray-900; margin: 0 0 $fb-space-4; }
+
+.add-form-card { padding: $fb-space-6; margin-bottom: $fb-space-4; }
+
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: $fb-space-4;
+  @media (max-width: $fb-breakpoint-md) { grid-template-columns: 1fr; }
+}
+
+.fb-field { margin-bottom: $fb-space-3; }
+.fb-field__label { display: block; font-size: $fb-text-sm; font-weight: $fb-font-medium; color: $fb-gray-700; margin-bottom: $fb-space-1; }
+.form-actions { display: flex; gap: $fb-space-3; margin-top: $fb-space-4; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.table-loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.corridor-badge {
+  display: inline-flex; align-items: center; gap: $fb-space-2;
+  ion-icon { color: $fb-sky; font-size: 16px; }
+}
+
+.currency-tag {
+  display: inline-block; padding: 2px $fb-space-2; background: $fb-sky-wash;
+  border-radius: $fb-radius-sm; font-family: $fb-font-mono; font-weight: $fb-font-bold;
+  font-size: $fb-text-sm; color: $fb-navy;
+}
+
+.config-tabs { margin-bottom: $fb-space-4; }
+.tab-content { margin-top: $fb-space-4; }
+.tab-header { display: flex; justify-content: flex-end; margin-bottom: $fb-space-4; }
+
+.corridor-detail {
+  font-size: $fb-text-xs; color: $fb-gray-400; margin-top: 2px;
+}
+
+.margin-info {
+  font-size: $fb-text-xs; color: $fb-gray-500; font-family: $fb-font-mono;
+}
+
+.partner-select {
+  min-width: 180px; font-size: $fb-text-sm; padding: $fb-space-1 $fb-space-2;
+  border: 1px solid $fb-gray-200; border-radius: $fb-radius-sm;
+  background: white; cursor: pointer;
+  &:focus { border-color: $fb-navy; outline: none; }
+}
+
+.empty-state {
+  text-align: center; padding: $fb-space-10; color: $fb-gray-400;
+  ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
+  p { margin: 0 0 $fb-space-1; font-size: $fb-text-sm; }
+  span { font-size: $fb-text-xs; }
+}
+
+// ── Role Badges (Pay-In / Admin / Payout) ──────────────────────
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border-radius: $fb-radius-md;
+  overflow: hidden;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  line-height: 1;
+
+  &__label {
+    padding: 5px 8px;
+    color: $fb-white;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+
+  &__value {
+    padding: 5px 10px;
+    font-weight: $fb-font-medium;
+  }
+
+  // PAY-IN: green when active, gray when "Direct"
+  &--payin {
+    .role-badge__label { background: $fb-gray-400; }
+    .role-badge__value { background: $fb-gray-100; color: $fb-gray-600; }
+
+    &.role-badge--active {
+      .role-badge__label { background: $fb-success; }
+      .role-badge__value { background: $fb-success-bg; color: darken($fb-success, 15%); }
+    }
+  }
+
+  // ADMIN: always amber/warning
+  &--admin {
+    .role-badge__label { background: $fb-warning; }
+    .role-badge__value { background: $fb-warning-bg; color: darken($fb-warning, 20%); }
+  }
+
+  // PAYOUT: orange/blue when active, gray when "None"
+  &--payout {
+    .role-badge__label { background: $fb-gray-400; }
+    .role-badge__value { background: $fb-gray-100; color: $fb-gray-600; }
+
+    &.role-badge--active {
+      .role-badge__label { background: $fb-sky; }
+      .role-badge__value { background: $fb-sky-pale; color: $fb-sky-dark; }
+    }
+  }
+}
+
+// ── Corridor Config Table ──────────────────────────────────────
+
+.corridor-config-table {
+  th, td { vertical-align: middle; }
+
+  .row-expanded {
+    background: $fb-sky-wash;
+    td { border-bottom-color: transparent; }
+  }
+}
+
+// ── Config Panel (expanded inline) ─────────────────────────────
+
+.config-panel-row {
+  td {
+    padding: 0 !important;
+    background: $fb-gray-50;
+    border-bottom: 2px solid $fb-sky;
+  }
+}
+
+.config-panel {
+  padding: $fb-space-6;
+  animation: slideDown 200ms ease-out;
+
+  &__title {
+    font-size: $fb-text-base;
+    font-weight: $fb-font-semibold;
+    color: $fb-navy;
+    margin: 0 0 $fb-space-5;
+    padding-bottom: $fb-space-3;
+    border-bottom: 1px solid $fb-gray-200;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $fb-space-6;
+    margin-bottom: $fb-space-5;
+
+    @media (max-width: $fb-breakpoint-md) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-3;
+    padding-top: $fb-space-4;
+    border-top: 1px solid $fb-gray-200;
+  }
+}
+
+.config-section {
+  padding: $fb-space-4;
+  border-radius: $fb-radius-md;
+  border: 1px solid $fb-gray-200;
+  background: $fb-white;
+
+  &__heading {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    margin: 0 0 $fb-space-3;
+    padding-bottom: $fb-space-2;
+    border-bottom: 2px solid transparent;
+  }
+
+  &--payin .config-section__heading {
+    color: $fb-success;
+    border-bottom-color: $fb-success;
+  }
+
+  &--payout .config-section__heading {
+    color: $fb-sky-dark;
+    border-bottom-color: $fb-sky;
+  }
+}
+
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $fb-space-3;
+}
+
+// ── Fee Split Preview ──────────────────────────────────────────
+
+.fee-preview {
+  background: $fb-white;
+  border: 1px solid $fb-gray-200;
+  border-radius: $fb-radius-md;
+  padding: $fb-space-4;
+  margin-bottom: $fb-space-4;
+
+  &__title {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-700;
+    margin-bottom: $fb-space-3;
+  }
+
+  &__items {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+    flex-wrap: wrap;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: $fb-space-2 $fb-space-4;
+    border-radius: $fb-radius-md;
+    min-width: 80px;
+
+    &--payin {
+      background: $fb-success-bg;
+      .fee-preview__label { color: $fb-success; }
+      .fee-preview__amount { color: darken($fb-success, 10%); }
+    }
+
+    &--admin {
+      background: $fb-warning-bg;
+      .fee-preview__label { color: $fb-warning; }
+      .fee-preview__amount { color: darken($fb-warning, 15%); }
+    }
+
+    &--payout {
+      background: $fb-sky-pale;
+      .fee-preview__label { color: $fb-sky-dark; }
+      .fee-preview__amount { color: $fb-navy; }
+    }
+
+    &--total {
+      background: $fb-gray-100;
+      .fee-preview__label { color: $fb-gray-500; }
+      .fee-preview__amount { color: $fb-gray-900; }
+    }
+  }
+
+  &__label {
+    font-size: 10px;
+    font-weight: $fb-font-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+
+  &__amount {
+    font-size: $fb-text-lg;
+    font-weight: $fb-font-bold;
+    font-family: $fb-font-mono;
+  }
+
+  &__divider {
+    font-size: $fb-text-sm;
+    color: $fb-gray-400;
+    font-weight: $fb-font-bold;
+  }
+}
+
+// ── Small Button Variant ───────────────────────────────────────
+
+.fb-btn--sm {
+  font-size: $fb-text-xs;
+  padding: $fb-space-1 $fb-space-3;
+  display: inline-flex;
+  align-items: center;
+  gap: $fb-space-1;
+
+  ion-icon { font-size: 14px; }
+}
+
+// ── Corridor Fees Tab ─────────────────────────────────────────
+
+.form-grid--3col {
+  grid-template-columns: 1fr 1fr 1fr;
+  @media (max-width: $fb-breakpoint-md) { grid-template-columns: 1fr; }
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $fb-space-1;
+  padding: $fb-space-2 $fb-space-4;
+  border: none;
+  border-radius: $fb-radius-md;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+  transition: opacity 150ms, background 150ms;
+  line-height: 1.2;
+
+  ion-icon { font-size: 16px; }
+
+  &:hover { opacity: 0.85; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &--primary {
+    background: $fb-navy;
+    color: $fb-white;
+  }
+
+  &--success {
+    background: $fb-success;
+    color: $fb-white;
+  }
+
+  &--danger {
+    background: $fb-danger;
+    color: $fb-white;
+  }
+
+  &--sm {
+    padding: $fb-space-1 $fb-space-2;
+    font-size: $fb-text-xs;
+    ion-icon { font-size: 14px; }
+  }
+}
+
+.actions-cell {
+  display: flex;
+  gap: $fb-space-2;
+  align-items: center;
+}
+
+.fee-type-badge {
+  display: inline-block;
+  padding: 2px $fb-space-2;
+  border-radius: $fb-radius-sm;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  &--flat {
+    background: $fb-sky-wash;
+    color: $fb-navy;
+  }
+
+  &--percentage {
+    background: $fb-warning-bg;
+    color: darken($fb-warning, 20%);
+  }
+
+  &--tiered {
+    background: $fb-success-bg;
+    color: darken($fb-success, 15%);
+  }
+}
+
+.fee-amount {
+  font-family: $fb-font-mono;
+  font-weight: $fb-font-semibold;
+  font-size: $fb-text-sm;
+  color: $fb-gray-900;
+}
+
+.currency-tag--sm {
+  font-size: $fb-text-xs;
+  padding: 1px $fb-space-1;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: $fb-space-1;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  &--active {
+    color: $fb-success;
+    &::before { background: $fb-success; }
+  }
+
+  &--inactive {
+    color: $fb-gray-400;
+    &::before { background: $fb-gray-400; }
+  }
+}
+
+.row-editing {
+  background: $fb-sky-wash;
+
+  td { vertical-align: middle; }
+}
+
+.fb-input--inline {
+  padding: $fb-space-1 $fb-space-2;
+  font-size: $fb-text-sm;
+  width: 100%;
+  min-width: 80px;
+}
+
+// ── Tier Rules Editor ─────────────────────────────────────────
+
+.tier-rules-editor {
+  margin-top: $fb-space-3;
+  padding: $fb-space-3 $fb-space-4;
+  background: $fb-gray-50;
+  border-radius: $fb-radius-md;
+  border: 1px solid $fb-gray-200;
+
+  &__title {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    color: $fb-navy;
+    margin: 0 0 $fb-space-3;
+  }
+}
+
+.tier-row {
+  margin-bottom: $fb-space-2;
+
+  &__fields {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  &__separator {
+    color: $fb-gray-400;
+    font-size: $fb-text-xs;
+    flex-shrink: 0;
+  }
+}
+
+.tier-input {
+  width: 110px !important;
+  min-width: 80px !important;
+  height: 32px;
+}
+
+.tier-select {
+  width: 120px !important;
+  min-width: 100px !important;
+  height: 32px;
+}
+
+.tier-summary {
+  font-size: 11px;
+  line-height: 1.6;
+  color: $fb-gray-600;
+  font-family: $fb-font-mono;
+  white-space: pre-line;
+}
+
+.tier-inline-hint {
+  font-size: $fb-text-xs;
+  color: $fb-gray-400;
+  font-style: italic;
+}
+
+.tier-editor-row {
+  td {
+    padding: 0 $fb-space-4 $fb-space-3 !important;
+    background: $fb-sky-wash;
+    border-bottom: 2px solid $fb-sky;
+  }
+}
+
+// ── Animation ──────────────────────────────────────────────────
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

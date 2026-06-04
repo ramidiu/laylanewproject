@@ -1,0 +1,446 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home/dashboard" color="light"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'SEND_MONEY.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="send-content">
+
+  <!-- SECTION 1: Country Selection -->
+  <section class="send-section" *ngIf="currentStep !== 'review'">
+    <h2 class="section-title">{{ 'SEND_MONEY.WHERE_SENDING' | translate }}</h2>
+    <p class="section-subtitle">{{ 'SEND_MONEY.SELECT_COUNTRY' | translate }}</p>
+
+    <div class="corridor-grid">
+      <div
+        *ngFor="let corridor of corridors"
+        class="corridor-card"
+        [class.selected]="selectedCorridor?.id === corridor.id"
+        (click)="onCorridorSelect(corridor)"
+      >
+        <img [src]="corridor.receiveCountry | countryFlagSvg" class="corridor-card__flag" alt="" onerror="this.style.display='none'" />
+        <div class="corridor-card__name">{{ getCountryName(corridor.receiveCountry) }}</div>
+        <div class="corridor-card__currency">{{ corridor.receiveCurrency }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Calculator -->
+  <section class="send-section" *ngIf="currentStep !== 'country' && currentStep !== 'review'" #calculatorSection>
+    <h2 class="section-title">{{ 'SEND_MONEY.HOW_MUCH' | translate }}</h2>
+
+    <div class="calc-card">
+      <label class="field-label">{{ 'SEND_MONEY.YOU_SEND' | translate }}</label>
+      <div class="amount-input">
+        <input
+          type="number"
+          class="amount-input__field amount-input__field--left"
+          [(ngModel)]="sendAmount"
+          (ngModelChange)="onAmountChange()"
+          placeholder="0.00"
+          min="1"
+        />
+        <span class="amount-input__badge amount-input__badge--right">
+          <img *ngIf="selectedCorridor?.sendCountry" [src]="selectedCorridor.sendCountry | countryFlagSvg" class="amount-input__flag" alt="" onerror="this.style.display='none'" />
+          {{ selectedCorridor?.sendCurrency }}
+        </span>
+      </div>
+      <div class="amount-limits" *ngIf="selectedCorridor">
+        Min: {{ selectedCorridor.minAmount | currency:(selectedCorridor.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}
+        -
+        Max: {{ selectedCorridor.maxAmount | currency:(selectedCorridor.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}
+      </div>
+
+      <label class="field-label field-label--spaced">{{ 'SEND_MONEY.DELIVERY_METHOD' | translate }}</label>
+      <!-- Editable while no recipient is chosen -->
+      <select
+        *ngIf="!selectedBeneficiary"
+        class="fb-select"
+        [(ngModel)]="selectedDeliveryMethod"
+        (ngModelChange)="onDeliveryMethodChange()"
+      >
+        <option value="" disabled>{{ 'SEND_MONEY.SELECT_DELIVERY' | translate }}</option>
+        <option *ngFor="let method of deliveryMethods" [value]="method">
+          {{ getDeliveryLabel(method) }}
+        </option>
+      </select>
+      <!-- Read-only once recipient is locked in (recipients are bound to one delivery method) -->
+      <div *ngIf="selectedBeneficiary" class="delivery-locked">
+        <span class="delivery-locked__value">{{ getDeliveryLabel(selectedBeneficiary.deliveryMethod) }}</span>
+        <button type="button" class="delivery-locked__change" (click)="clearBeneficiary()">
+          Change recipient
+        </button>
+      </div>
+
+      <div *ngIf="loadingQuote" class="quote-loading">
+        <div class="skeleton-bar"></div>
+        <div class="skeleton-bar skeleton-bar--short"></div>
+      </div>
+
+      <div class="rate-card" *ngIf="quote && !loadingQuote">
+        <div class="rate-card__label">{{ 'SEND_MONEY.EXCHANGE_RATE' | translate }}</div>
+        <div class="rate-card__rate">
+          <span *ngIf="referralValid && referralBoostPct > 0 && quote._baseRate" class="rate-card__original" style="text-decoration:line-through;color:#9ca3af;font-size:0.85em;margin-right:6px;">
+            1 = {{ quote._baseRate | number:'1.4-4' }}
+          </span>
+          1 {{ selectedCorridor?.sendCurrency }} = {{ quote.appliedRate | number:'1.4-4' }} {{ selectedCorridor?.receiveCurrency }}
+          <span *ngIf="referralValid && referralBoostPct > 0" style="color:#059669;font-size:0.8em;margin-left:6px;">
+            (+{{ referralBoostPct }}%)
+          </span>
+        </div>
+
+        <div class="rate-card__row">
+          <span>{{ 'SEND_MONEY.TRANSFER_FEE' | translate }}</span>
+          <span class="rate-card__value">{{ quote.fee | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="rate-card__row" *ngIf="useWallet && walletAmountToUse > 0">
+          <span>{{ 'SEND_MONEY.SUBTOTAL' | translate }}</span>
+          <span class="rate-card__value">{{ quote.totalCost | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="rate-card__row" *ngIf="useWallet && walletAmountToUse > 0" style="color:#059669;">
+          <span>{{ 'SEND_MONEY.WALLET_CREDIT' | translate }}</span>
+          <span class="rate-card__value">-{{ walletAmountToUse | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="rate-card__row">
+          <span>{{ 'SEND_MONEY.TOTAL_PAY' | translate }}</span>
+          <span class="rate-card__value">{{ effectiveTotal | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+
+        <div class="rate-card__receive-label" style="margin-top:12px;">{{ 'SEND_MONEY.RECIPIENT_GETS' | translate }}</div>
+        <div class="amount-input amount-input--receive">
+          <input
+            type="number"
+            class="amount-input__field amount-input__field--green amount-input__field--left"
+            [(ngModel)]="receiveAmountInput"
+            (ngModelChange)="onReceiveAmountChange()"
+            placeholder="0.00"
+            min="0"
+          />
+          <span class="amount-input__badge amount-input__badge--green amount-input__badge--right">
+            <img *ngIf="selectedCorridor?.receiveCountry" [src]="selectedCorridor.receiveCountry | countryFlagSvg" class="amount-input__flag" alt="" onerror="this.style.display='none'" />
+            {{ selectedCorridor?.receiveCurrency }}
+          </span>
+        </div>
+        <div *ngIf="referralValid && referralBoostPct > 0 && quote._baseReceiveAmount" style="color:#059669;font-size:0.85em;text-align:center;margin-top:4px;">
+          (+{{ quote.receiveAmount - quote._baseReceiveAmount | number:'1.2-2' }} extra from referral!)
+        </div>
+
+        <div class="rate-lock">
+          <div class="rate-lock__bar">
+            <div class="rate-lock__fill" [style.width.%]="rateLockPercent"></div>
+          </div>
+          <div class="rate-lock__text">{{ 'SEND_MONEY.RATE_LOCKED' | translate }}</div>
+        </div>
+      </div>
+    </div>
+
+    <button
+      *ngIf="quote && !loadingQuote && !showRecipientPanel && !selectedBeneficiary"
+      class="fb-btn fb-btn--primary fb-btn--full"
+      (click)="openRecipientPanel()"
+    >
+      <ion-icon name="person-add-outline"></ion-icon>
+      {{ 'SEND_MONEY.SELECT_RECIPIENT' | translate }}
+    </button>
+  </section>
+
+  <!-- SECTION 3: Recipient Selection Panel -->
+  <section class="send-section" *ngIf="showRecipientPanel" #recipientSection>
+    <div class="recipient-panel">
+      <ion-searchbar
+        mode="ios"
+        [placeholder]="'SEND_MONEY.SEARCH_RECIPIENTS' | translate"
+        [(ngModel)]="beneficiarySearch"
+        (ionInput)="onBeneficiarySearchChange()"
+        [debounce]="300"
+        class="recipient-search"
+      ></ion-searchbar>
+
+      <ion-segment [(ngModel)]="beneficiaryFilter" (ionChange)="onBeneficiaryFilterChange(beneficiaryFilter)" class="recipient-segment">
+        <ion-segment-button value="all"><ion-label>{{ 'SEND_MONEY.ALL' | translate }}</ion-label></ion-segment-button>
+        <ion-segment-button value="favourites"><ion-label>{{ 'SEND_MONEY.FAVOURITES' | translate }}</ion-label></ion-segment-button>
+      </ion-segment>
+
+      <div class="recipient-list" *ngIf="filteredBeneficiaries.length > 0">
+        <div
+          *ngFor="let ben of filteredBeneficiaries"
+          class="recipient-item"
+          (click)="onBeneficiarySelect(ben)"
+        >
+          <div class="recipient-item__avatar">{{ getInitials(ben.fullName) }}</div>
+          <div class="recipient-item__info">
+            <div class="recipient-item__name">{{ ben.fullName }}</div>
+            <div class="recipient-item__detail">
+              <span>{{ ben.country }}</span>
+              <span *ngIf="ben.bankName"> &middot; {{ ben.bankName }}</span>
+              <span *ngIf="ben.accountNumber"> &middot; ****{{ ben.accountNumber.slice(-4) }}</span>
+            </div>
+          </div>
+          <div class="recipient-item__actions">
+            <ion-icon
+              [name]="ben.isFavourite ? 'heart' : 'heart-outline'"
+              [class.favourite]="ben.isFavourite"
+              (click)="toggleFavourite($event, ben)"
+            ></ion-icon>
+            <ion-icon name="trash-outline" class="delete-icon" (click)="deleteBeneficiary($event, ben)"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="recipient-empty" *ngIf="filteredBeneficiaries.length === 0">
+        <ion-icon name="people-outline"></ion-icon>
+        <p>{{ 'SEND_MONEY.NO_RECIPIENTS' | translate }}</p>
+      </div>
+
+      <button class="fb-btn fb-btn--primary fb-btn--full" (click)="goToAddRecipient()">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        {{ 'SEND_MONEY.ADD_NEW_RECIPIENT' | translate }}
+      </button>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Selected Recipient + Continue -->
+  <section class="send-section" *ngIf="selectedBeneficiary && !showRecipientPanel && currentStep !== 'review'">
+    <div class="selected-recipient-card">
+      <div class="selected-recipient-card__avatar">{{ getInitials(selectedBeneficiary.fullName) }}</div>
+      <div class="selected-recipient-card__info">
+        <div class="selected-recipient-card__name">{{ selectedBeneficiary.fullName }}</div>
+        <div class="selected-recipient-card__detail">
+          {{ getCountryName(selectedBeneficiary.country) }}
+          <span *ngIf="selectedBeneficiary.bankName"> &middot; {{ selectedBeneficiary.bankName }}</span>
+        </div>
+      </div>
+      <button class="change-btn" (click)="openRecipientPanel()">{{ 'SEND_MONEY.CHANGE' | translate }}</button>
+    </div>
+
+    <button class="fb-btn fb-btn--primary fb-btn--full" (click)="continueToReview()">
+      {{ 'SEND_MONEY.CONTINUE' | translate }}
+    </button>
+  </section>
+
+  <!-- SECTION 5: Review -->
+  <section class="send-section" *ngIf="currentStep === 'review'">
+    <h2 class="section-title">{{ 'SEND_MONEY.REVIEW_TITLE' | translate }}</h2>
+    <p class="section-subtitle">{{ 'SEND_MONEY.REVIEW_SUBTITLE' | translate }}</p>
+
+    <div class="review-card">
+      <!-- Recipient -->
+      <div class="review-section">
+        <h3 class="review-section__title">{{ 'SEND_MONEY.RECIPIENT_SECTION' | translate }}</h3>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.NAME' | translate }}</span>
+          <span class="review-row__value">{{ selectedBeneficiary?.fullName }}</span>
+        </div>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.COUNTRY' | translate }}</span>
+          <span class="review-row__value">{{ getCountryName(selectedBeneficiary?.country || '') }}</span>
+        </div>
+
+        <!-- Bank Deposit details -->
+        <ng-container *ngIf="selectedBeneficiary?.deliveryMethod === 'BANK_DEPOSIT'">
+          <div class="review-row" *ngIf="selectedBeneficiary?.bankName">
+            <span class="review-row__label">{{ 'SEND_MONEY.BANK' | translate }}</span>
+            <span class="review-row__value">{{ selectedBeneficiary?.bankName }}</span>
+          </div>
+          <div class="review-row" *ngIf="selectedBeneficiary?.accountNumber">
+            <span class="review-row__label">{{ 'SEND_MONEY.ACCOUNT_NUMBER' | translate }}</span>
+            <span class="review-row__value mono">****{{ selectedBeneficiary?.accountNumber?.slice(-4) }}</span>
+          </div>
+          <div class="review-row" *ngIf="selectedBeneficiary?.iban">
+            <span class="review-row__label">IBAN</span>
+            <span class="review-row__value mono">{{ selectedBeneficiary?.iban }}</span>
+          </div>
+          <div class="review-row" *ngIf="selectedBeneficiary?.swiftBic">
+            <span class="review-row__label">SWIFT / BIC</span>
+            <span class="review-row__value mono">{{ selectedBeneficiary?.swiftBic }}</span>
+          </div>
+          <div class="review-row" *ngIf="selectedBeneficiary?.sortCode">
+            <span class="review-row__label">Sort Code</span>
+            <span class="review-row__value mono">{{ selectedBeneficiary?.sortCode }}</span>
+          </div>
+        </ng-container>
+
+        <!-- Mobile Wallet details -->
+        <ng-container *ngIf="selectedBeneficiary?.deliveryMethod === 'MOBILE_WALLET'">
+          <div class="review-row" *ngIf="selectedBeneficiary?.mobileProvider">
+            <span class="review-row__label">{{ 'SEND_MONEY.WALLET_PROVIDER' | translate }}</span>
+            <span class="review-row__value">{{ selectedBeneficiary?.mobileProvider }}</span>
+          </div>
+          <div class="review-row" *ngIf="selectedBeneficiary?.mobileNumber">
+            <span class="review-row__label">{{ 'SEND_MONEY.MOBILE_NUMBER' | translate }}</span>
+            <span class="review-row__value mono">{{ selectedBeneficiary?.mobileNumber }}</span>
+          </div>
+        </ng-container>
+
+        <!-- Cash Pickup details -->
+        <ng-container *ngIf="selectedBeneficiary?.deliveryMethod === 'CASH_PICKUP'">
+          <div class="review-row" *ngIf="selectedBeneficiary?.bankName">
+            <span class="review-row__label">{{ 'SEND_MONEY.COLLECTION_POINT' | translate }}</span>
+            <span class="review-row__value">{{ selectedBeneficiary?.bankName }}</span>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Transfer Details -->
+      <div class="review-section" *ngIf="quote">
+        <h3 class="review-section__title">{{ 'SEND_MONEY.TRANSFER_DETAILS' | translate }}</h3>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.YOU_SEND_REVIEW' | translate }}</span>
+          <span class="review-row__value mono">{{ quote.sendAmount | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.EXCHANGE_RATE_REVIEW' | translate }}</span>
+          <span class="review-row__value mono">1 {{ selectedCorridor?.sendCurrency }} = {{ quote.appliedRate | number:'1.4-4' }} {{ selectedCorridor?.receiveCurrency }}</span>
+        </div>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.FEE_REVIEW' | translate }}</span>
+          <span class="review-row__value mono">{{ quote.fee | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="review-row" *ngIf="useWallet && walletAmountToUse > 0" style="color:#059669;">
+          <span class="review-row__label">{{ 'SEND_MONEY.WALLET_CREDIT' | translate }}</span>
+          <span class="review-row__value mono">-{{ walletAmountToUse | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="review-row review-row--total">
+          <span class="review-row__label">{{ 'SEND_MONEY.TOTAL_COST' | translate }}</span>
+          <span class="review-row__value mono">{{ effectiveTotal | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="review-row review-row--highlight">
+          <span class="review-row__label">{{ 'SEND_MONEY.RECIPIENT_GETS' | translate }}</span>
+          <span class="review-row__value mono">{{ quote.receiveAmount | currency:(selectedCorridor?.receiveCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- Delivery -->
+      <div class="review-section">
+        <h3 class="review-section__title">{{ 'SEND_MONEY.DELIVERY' | translate }}</h3>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.METHOD' | translate }}</span>
+          <span class="review-row__value">{{ getDeliveryLabel(selectedBeneficiary?.deliveryMethod || selectedDeliveryMethod) }}</span>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div class="review-section" id="payment-method-section">
+        <h3 class="review-section__title">Payment Method</h3>
+        <div class="payment-method-row">
+          <label class="payment-method-option payment-method-option--icon-only"
+                 [class.payment-method-option--active]="selectedPaymentMethod === 'OPEN_BANKING'"
+                 [class.payment-method-option--locked]="submitting || transactionCreated"
+                 (click)="(submitting || transactionCreated) ? null : (selectedPaymentMethod = 'OPEN_BANKING')"
+                 title="Pay by Bank">
+            <span class="payment-method-option__radio"></span>
+            <img src="https://docs.getvolume.com/before-selecing-bank-button-new.gif"
+                 class="payment-method-option__hero"
+                 alt="Pay by Bank"
+                 onerror="this.src='assets/payment-icons/volume.svg'" />
+          </label>
+          <label class="payment-method-option payment-method-option--icon-only"
+                 [class.payment-method-option--active]="selectedPaymentMethod === 'CARD'"
+                 [class.payment-method-option--locked]="submitting || transactionCreated"
+                 (click)="(submitting || transactionCreated) ? null : (selectedPaymentMethod = 'CARD')"
+                 title="Credit / Debit Card — Powered by Trust Payments">
+            <span class="payment-method-option__radio"></span>
+            <img src="assets/payment-icons/trust-payments-cards.png"
+                 class="payment-method-option__hero"
+                 alt="Credit / Debit Card — Trust Payments" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Referral Code -->
+      <div class="review-section" *ngIf="isFirstTransaction">
+        <h3 class="review-section__title">{{ 'SEND_MONEY.REFERRAL_SECTION' | translate }}</h3>
+        <div class="referral-input-row">
+          <input
+            type="text"
+            class="referral-input"
+            [(ngModel)]="referralCode"
+            (ngModelChange)="onReferralCodeChange()"
+            [placeholder]="'SEND_MONEY.REFERRAL_PLACEHOLDER' | translate"
+            maxlength="12"
+            [class.referral-input--valid]="referralValid === true"
+            [class.referral-input--invalid]="referralValid === false"
+          />
+          <div class="referral-status" *ngIf="referralValid === true">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            +{{ referralBoostPct }}% {{ 'SEND_MONEY.REFERRAL_VALID' | translate }}
+          </div>
+          <div class="referral-status referral-status--invalid" *ngIf="referralValid === false">
+            <ion-icon name="close-circle-outline"></ion-icon>
+            {{ 'SEND_MONEY.REFERRAL_INVALID' | translate }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Wallet -->
+      <div class="review-section" *ngIf="walletBalance > 0">
+        <h3 class="review-section__title">{{ 'SEND_MONEY.WALLET_SECTION' | translate }}</h3>
+        <div class="wallet-use-row">
+          <div class="wallet-use-row__info">
+            <div class="wallet-use-row__balance">{{ walletBalance | number:'1.2-2' }} GBP {{ 'SEND_MONEY.WALLET_AVAILABLE' | translate }}</div>
+            <div class="wallet-use-row__hint">{{ 'SEND_MONEY.WALLET_HINT' | translate }}</div>
+          </div>
+          <label class="wallet-toggle">
+            <input type="checkbox" [(ngModel)]="useWallet" (ngModelChange)="onUseWalletChange()" />
+            <span class="wallet-toggle__slider"></span>
+          </label>
+        </div>
+        <div class="wallet-amount-row" *ngIf="useWallet">
+          <span class="wallet-amount-row__label">{{ 'SEND_MONEY.WALLET_AMOUNT_USE' | translate }}</span>
+          <input
+            type="number"
+            class="wallet-amount-input"
+            [(ngModel)]="walletAmountToUse"
+            [max]="Math.min(walletBalance, sendAmount)"
+            min="0.01"
+            step="0.01"
+          />
+          <span class="wallet-amount-row__currency">GBP</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1: Confirm & Send (creates transaction as PENDING) -->
+    <div class="review-actions" *ngIf="!transactionCreated">
+      <button class="fb-btn fb-btn--outline" (click)="backFromReview()" [disabled]="submitting">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+        {{ 'SEND_MONEY.BACK' | translate }}
+      </button>
+      <button class="fb-btn fb-btn--primary" (click)="confirmSend()" [disabled]="submitting">
+        <ion-icon name="checkmark-circle-outline" *ngIf="!submitting"></ion-icon>
+        <ion-spinner name="crescent" *ngIf="submitting"
+                     style="width:16px;height:16px;margin-right:6px;"></ion-spinner>
+        {{ submitting ? ('SEND_MONEY.CREATING' | translate) : ('SEND_MONEY.CONFIRM_SEND' | translate) }}
+      </button>
+    </div>
+
+    <!-- Step 2: Volume Pay button — appears after transaction created (Pay by Bank) -->
+    <div id="volume-pay-section" *ngIf="transactionCreated && selectedPaymentMethod === 'OPEN_BANKING'" class="volume-pay-section">
+
+      <div class="volume-pay-section__created">
+        <ion-icon name="checkmark-circle-outline" class="volume-pay-section__tick"></ion-icon>
+        <div>
+          <div class="volume-pay-section__title">{{ 'SEND_MONEY.TXN_CREATED' | translate }}</div>
+          <div class="volume-pay-section__ref">Ref: {{ createdTxnRef }}</div>
+        </div>
+      </div>
+
+      <p class="volume-pay-section__hint">{{ 'SEND_MONEY.COMPLETE_PAYMENT' | translate }}</p>
+
+      <!-- Loading indicator while SDK initialises -->
+      <div *ngIf="!volumePayStarted" class="volume-pay-section__loading-wrap">
+        <ion-spinner name="crescent" style="width:20px;height:20px;vertical-align:middle;margin-right:8px;"></ion-spinner>
+        {{ 'SEND_MONEY.LOADING_SDK' | translate }}
+      </div>
+
+      <!-- Volume Pay SDK injects its "Pay by Bank App" button here automatically -->
+      <div id="volume-element-container" class="volume-element-container"></div>
+    </div>
+  </section>
+
+
+
+</ion-content>

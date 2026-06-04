@@ -1,0 +1,25 @@
+# Dependencies / build output
+node_modules/
+.angular/
+**/dist/
+**/www/
+**/target/
+
+# Binaries & archives (too large for git)
+*.jar
+*.war
+*.tar.gz
+*.zip
+
+# Large DB dumps / backups
+remitz_backup_*.sql
+*.dump
+
+# Static asset trees (served separately, not source)
+layla-static/
+**/kyc-uploads*/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db

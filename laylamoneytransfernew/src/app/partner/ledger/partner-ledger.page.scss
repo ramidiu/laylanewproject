@@ -1,0 +1,242 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.partner-ledger { max-width: 1200px; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0 0 $fb-space-6; }
+
+.ledger-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $fb-space-4;
+  margin-bottom: $fb-space-6;
+
+  @media (max-width: $fb-breakpoint-md) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary-item {
+  background: $fb-white;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-5;
+  box-shadow: $fb-shadow-card;
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-2;
+
+  &--credit { border-left: 4px solid $fb-success; }
+  &--debit { border-left: 4px solid $fb-danger; }
+  &--balance { border-left: 4px solid $fb-sky; }
+}
+
+.summary-label {
+  font-size: $fb-text-xs;
+  color: $fb-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: $fb-font-medium;
+}
+
+.summary-value {
+  font-size: $fb-text-xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+}
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $fb-space-4;
+  border-bottom: 1px solid $fb-gray-100;
+
+  .section-title {
+    margin: 0;
+    font-size: $fb-text-base;
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-900;
+  }
+}
+
+.entry-type {
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  padding: 2px 8px;
+  border-radius: $fb-radius-full;
+
+  &--credit {
+    background: $fb-success-bg;
+    color: $fb-success;
+  }
+
+  &--debit {
+    background: $fb-danger-bg;
+    color: $fb-danger;
+  }
+}
+
+.amount--credit { color: $fb-success; font-weight: $fb-font-semibold; }
+.amount--debit { color: $fb-danger; font-weight: $fb-font-semibold; }
+
+.empty-state {
+  text-align: center;
+  color: $fb-gray-400;
+  padding: $fb-space-8 !important;
+  font-size: $fb-text-sm;
+}
+
+// --- Admin Owes You Card ---
+.owes-card {
+  background: $fb-white;
+  border-radius: $fb-radius-lg;
+  box-shadow: $fb-shadow-card;
+  border-left: 4px solid $fb-danger;
+  padding: $fb-space-5 $fb-space-6;
+  margin-bottom: $fb-space-6;
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: $fb-space-1;
+  }
+
+  &__label {
+    font-size: $fb-text-xs;
+    font-weight: $fb-font-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $fb-gray-500;
+  }
+
+  &__amount {
+    font-size: $fb-text-3xl;
+    font-weight: $fb-font-bold;
+    font-family: $fb-font-mono;
+    color: $fb-danger;
+  }
+
+  &__sub {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    margin-top: $fb-space-1;
+  }
+}
+
+// --- Pending Settlements Section ---
+.pending-section {
+  background: $fb-white;
+  border-radius: $fb-radius-lg;
+  box-shadow: $fb-shadow-card;
+  border-left: 4px solid $fb-warning;
+  margin-bottom: $fb-space-6;
+  overflow: hidden;
+
+  &__header {
+    padding: $fb-space-4 $fb-space-5;
+    border-bottom: 1px solid $fb-gray-100;
+    display: flex;
+    align-items: baseline;
+    gap: $fb-space-3;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $fb-text-base;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-900;
+  }
+
+  &__subtitle {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+  }
+}
+
+.pending-list {
+  padding: $fb-space-3;
+}
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-4;
+  padding: $fb-space-3 $fb-space-4;
+  border-radius: $fb-radius-md;
+  border: 1px solid $fb-gray-100;
+  margin-bottom: $fb-space-2;
+
+  &:last-child { margin-bottom: 0; }
+  &:hover { background: $fb-gray-50; }
+
+  &__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__amount {
+    font-family: $fb-font-mono;
+    font-weight: $fb-font-bold;
+    font-size: $fb-text-base;
+    color: $fb-gray-900;
+  }
+
+  &__ref {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    font-family: $fb-font-mono;
+  }
+
+  &__date {
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+  }
+
+  &__status {
+    flex-shrink: 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-2;
+    flex-shrink: 0;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  padding: 2px 8px;
+  border-radius: $fb-radius-full;
+
+  &--pending { background: $fb-warning-bg; color: $fb-warning; }
+  &--approved { background: $fb-success-bg; color: $fb-success; }
+  &--rejected { background: $fb-danger-bg; color: $fb-danger; }
+}
+
+// --- Buttons ---
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $fb-space-2 $fb-space-4;
+  border: none;
+  border-radius: $fb-radius-md;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  font-family: $fb-font-body;
+  cursor: pointer;
+  transition: background 150ms ease, opacity 150ms ease;
+  white-space: nowrap;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &--sm { padding: $fb-space-1 $fb-space-3; font-size: $fb-text-xs; }
+  &--success { background: #10B981; color: $fb-white; &:hover:not(:disabled) { background: #0D9668; } }
+  &--danger { background: #EF4444; color: $fb-white; &:hover:not(:disabled) { background: #DC2626; } }
+}

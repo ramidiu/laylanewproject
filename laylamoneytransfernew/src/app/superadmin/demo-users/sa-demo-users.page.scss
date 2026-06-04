@@ -1,0 +1,62 @@
+.demo-users-page {
+  padding: 24px;
+
+  .page-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .page-title { margin: 0 0 4px; font-size: 24px; font-weight: 600; color: #1f2937; }
+  .page-subtitle { margin: 0; color: #6b7280; font-size: 14px; }
+  .page-actions { display: flex; gap: 8px; }
+
+  .panel {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
+  }
+  .empty { padding: 40px; text-align: center; color: #9ca3af; }
+
+  .stats-row {
+    display: flex; gap: 24px; padding: 16px 20px; border-bottom: 1px solid #f3f4f6;
+  }
+  .stat {
+    &__value { font-size: 28px; font-weight: 700; color: #111827; }
+    &__value--success { color: #059669; }
+    &__value--danger { color: #dc2626; }
+    &__label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  }
+
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    th { background: #f9fafb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+    .cell-primary { font-weight: 600; color: #111827; }
+    .cell-secondary { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  }
+
+  .expired-row { opacity: 0.6; }
+  .text-danger { color: #dc2626; font-weight: 600; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    &--primary { background: #dbeafe; color: #1e40af; }
+    &--success { background: #d1fae5; color: #065f46; }
+    &--danger { background: #fee2e2; color: #991b1b; }
+  }
+
+  .fb-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+    border-radius: 8px; border: 1px solid transparent; font-size: 13px;
+    font-weight: 500; cursor: pointer;
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &--ghost { background: #fff; border-color: #e5e7eb; color: #374151; &:hover { background: #f9fafb; } }
+    &--primary { background: #1B3A6B; color: #fff; border-color: #1B3A6B; &:hover { background: #15295a; } }
+    &--sm { padding: 5px 10px; font-size: 12px; }
+  }
+
+  @media (max-width: 768px) {
+    padding: 16px;
+    .stats-row { flex-wrap: wrap; gap: 16px; }
+    .panel { overflow-x: auto; }
+    .data-table { min-width: 700px; }
+  }
+}

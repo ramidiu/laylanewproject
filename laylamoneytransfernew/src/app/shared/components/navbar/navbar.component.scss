@@ -1,0 +1,56 @@
+@import '../../../../theme/remitzai-design-tokens';
+
+.fb-toolbar {
+  --background: #1B3A6B;
+  --color: #{$fb-white};
+  --min-height: 56px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    font-weight: $fb-font-semibold;
+    font-size: $fb-text-lg;
+  }
+
+  &__logo {
+    height: 28px;
+    width: auto;
+  }
+
+  &__notification-btn {
+    position: relative;
+  }
+
+  &__badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+    line-height: 16px;
+    padding: 0 4px;
+    background: $fb-danger;
+    color: $fb-white;
+    border-radius: $fb-radius-full;
+  }
+
+  &__avatar-btn {
+    --padding-start: 4px;
+    --padding-end: 4px;
+  }
+
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: $fb-sky;
+    color: $fb-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-bold;
+  }
+}

@@ -1,0 +1,77 @@
+<div class="demo-users-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Demo Access Users</h1>
+      <p class="page-subtitle">All users registered via the demo access page</p>
+    </div>
+    <div class="page-actions">
+      <button class="fb-btn fb-btn--ghost" (click)="load()">
+        <ion-icon name="refresh-outline"></ion-icon> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="panel" *ngIf="loading">
+    <div class="empty">Loading demo users...</div>
+  </div>
+
+  <div class="panel" *ngIf="!loading && demoUsers.length === 0">
+    <div class="empty">No demo access registrations yet.</div>
+  </div>
+
+  <div class="panel" *ngIf="!loading && demoUsers.length > 0">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat__value">{{ demoUsers.length }}</div>
+        <div class="stat__label">Total demos</div>
+      </div>
+      <div class="stat">
+        <div class="stat__value stat__value--success">{{ demoUsers.length - expiredCount }}</div>
+        <div class="stat__label">Active</div>
+      </div>
+      <div class="stat">
+        <div class="stat__value stat__value--danger">{{ expiredCount }}</div>
+        <div class="stat__label">Expired</div>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Country</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Expires</th>
+          <th>Time Left</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of demoUsers" [class.expired-row]="isExpired(u)">
+          <td>
+            <div class="cell-primary">{{ u.firstName }} {{ u.lastName }}</div>
+            <div class="cell-secondary">{{ u.email }}</div>
+            <div class="cell-secondary" *ngIf="u.phone">{{ u.phone }}</div>
+          </td>
+          <td>{{ u.country || '—' }}</td>
+          <td><span class="badge badge--primary">{{ u.roles }}</span></td>
+          <td>
+            <span class="badge" [class.badge--success]="!isExpired(u)" [class.badge--danger]="isExpired(u)">
+              {{ isExpired(u) ? 'Expired' : 'Active' }}
+            </span>
+          </td>
+          <td>{{ u.demoAccessExpiresAt | date:'medium' }}</td>
+          <td [class.text-danger]="isExpired(u)">{{ timeLeft(u) }}</td>
+          <td>{{ u.createdAt | date:'short' }}</td>
+          <td>
+            <button class="fb-btn fb-btn--primary fb-btn--sm" (click)="extend(u)">
+              <ion-icon name="time-outline"></ion-icon> Extend 24h
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

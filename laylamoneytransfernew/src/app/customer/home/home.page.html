@@ -1,0 +1,419 @@
+<ion-header>
+  <ion-toolbar class="home-toolbar">
+    <ion-title></ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="home-content">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Code added by Naresh: Veriff identity verification banners removed (module deleted) -->
+
+  <!-- ── Hero ── -->
+  <div class="home-hero">
+    <div class="home-hero__top">
+      <div class="home-hero__greeting">
+        <p class="home-hero__welcome">{{ greeting | translate }},</p>
+        <h1 class="home-hero__name">
+          <ng-container *ngIf="!loading">{{ greeting | translate }}, {{ fullName }}!</ng-container>
+          <span class="fb-skeleton fb-skeleton--title" *ngIf="loading"></span>
+        </h1>
+      </div>
+      <div class="home-hero__ctas">
+        <button class="fb-btn fb-btn--sky home-hero__send" (click)="goToSend()">
+          <ion-icon name="send-outline"></ion-icon>
+          {{ 'HOME.SEND_MONEY' | translate }}
+        </button>
+        <button class="fb-btn home-hero__invite" (click)="inviteFriend()">
+          <ion-icon name="person-add-outline"></ion-icon>
+          {{ 'HOME.INVITE_FRIENDS' | translate }}
+        </button>
+      </div>
+    </div>
+    <!-- Wallet balance inline -->
+    <div class="home-hero__wallet" *ngIf="wallet && !loading" (click)="goToWallet()" style="cursor:pointer">
+      <ion-icon name="wallet-outline"></ion-icon>
+      <span class="home-hero__wallet-label">{{ 'HOME.WALLET_BALANCE' | translate }}</span>
+      <span class="home-hero__wallet-amount">{{ wallet.currency }} {{ wallet.balance | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
+  <!-- ── Stats ── -->
+  <div class="stats-grid">
+    <div class="stat-card stat-card--navy">
+      <div class="stat-card__icon"><ion-icon name="trending-up-outline"></ion-icon></div>
+      <div class="stat-card__body">
+        <div class="stat-card__value fb-currency" *ngIf="!loading">{{ stats.totalSent | number:'1.0-0' }}</div>
+        <div class="fb-skeleton fb-skeleton--text" *ngIf="loading" style="width:80px"></div>
+        <div class="stat-card__label">{{ 'HOME.TOTAL_SENT' | translate }}</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--sky">
+      <div class="stat-card__icon"><ion-icon name="swap-horizontal-outline"></ion-icon></div>
+      <div class="stat-card__body">
+        <div class="stat-card__value" *ngIf="!loading">{{ stats.count }}</div>
+        <div class="fb-skeleton fb-skeleton--text" *ngIf="loading" style="width:40px"></div>
+        <div class="stat-card__label">{{ 'HOME.TRANSACTIONS' | translate }}</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--warning">
+      <div class="stat-card__icon"><ion-icon name="time-outline"></ion-icon></div>
+      <div class="stat-card__body">
+        <div class="stat-card__value" *ngIf="!loading">{{ stats.pending }}</div>
+        <div class="fb-skeleton fb-skeleton--text" *ngIf="loading" style="width:40px"></div>
+        <div class="stat-card__label">{{ 'HOME.PENDING' | translate }}</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--success">
+      <div class="stat-card__icon"><ion-icon name="people-outline"></ion-icon></div>
+      <div class="stat-card__body">
+        <div class="stat-card__value" *ngIf="!loading">{{ stats.recipients }}</div>
+        <div class="fb-skeleton fb-skeleton--text" *ngIf="loading" style="width:40px"></div>
+        <div class="stat-card__label">{{ 'HOME.RECIPIENTS' | translate }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Two-column layout: Beneficiaries + Transactions ── -->
+  <div class="home-two-col">
+
+    <!-- Recent Beneficiaries -->
+    <section class="home-section">
+      <div class="home-section__header">
+        <h2>{{ 'HOME.RECENT_BENEFICIARIES' | translate }}</h2>
+        <a routerLink="/home/beneficiaries">{{ 'HOME.SEE_ALL' | translate }}</a>
+      </div>
+
+      <div *ngIf="loading" class="quick-send-scroll">
+        <div class="fb-skeleton fb-skeleton--circle" *ngFor="let i of [1,2,3,4,5]" style="min-width:52px; margin-right:16px"></div>
+      </div>
+
+      <div class="quick-send-scroll" *ngIf="!loading">
+        <div class="quick-send-add" (click)="goToSend()">
+          <div class="quick-send-add__icon"><ion-icon name="add"></ion-icon></div>
+          <span>{{ 'HOME.NEW' | translate }}</span>
+        </div>
+        <div
+          class="quick-send-item"
+          *ngFor="let ben of beneficiaries.slice(0, 5)"
+          (click)="goToSend(ben.id)"
+        >
+          <div class="quick-send-item__avatar">{{ getInitials(ben.fullName) }}</div>
+          <span class="quick-send-item__name">{{ ben.fullName.split(' ')[0] }}</span>
+          <span class="quick-send-item__country">{{ ben.country }}</span>
+        </div>
+
+        <div class="quick-send-empty" *ngIf="beneficiaries.length === 0">
+          <p>{{ 'HOME.NO_BENEFICIARIES' | translate }}</p>
+        </div>
+      </div>
+
+      <!-- Live Rates (nested under beneficiaries column) -->
+      <div *ngIf="rates.length > 0" style="margin-top:20px">
+        <div class="home-section__header">
+          <h2>{{ 'HOME.LIVE_RATES' | translate }}</h2>
+        </div>
+        <div class="rates-grid">
+          <div class="rate-card" *ngFor="let rate of rates">
+            <div class="rate-card__pair">{{ rate.baseCurrency }}/{{ rate.targetCurrency }}</div>
+            <div class="rate-card__value fb-currency">{{ rate.rate | number:'1.2-4' }}</div>
+            <div class="rate-card__sub">{{ 'HOME.MID_MARKET' | translate }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Transactions -->
+    <section class="home-section">
+      <div class="home-section__header">
+        <h2>{{ 'HOME.RECENT_TRANSACTIONS' | translate }}</h2>
+        <a routerLink="/home/transactions">{{ 'HOME.VIEW_ALL' | translate }}</a>
+      </div>
+
+      <div *ngIf="loading" class="home-section__loading">
+        <div class="txn-skeleton" *ngFor="let i of [1,2,3,4]">
+          <div class="fb-skeleton fb-skeleton--circle" style="width:44px;height:44px;min-width:44px"></div>
+          <div style="flex:1;padding-left:12px">
+            <div class="fb-skeleton fb-skeleton--text" style="width:60%"></div>
+            <div class="fb-skeleton fb-skeleton--text" style="width:40%;margin-top:6px"></div>
+          </div>
+          <div style="width:80px;text-align:right">
+            <div class="fb-skeleton fb-skeleton--text"></div>
+            <div class="fb-skeleton fb-skeleton--text" style="margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-section__empty" *ngIf="!loading && recentTransactions.length === 0">
+        <ion-icon name="receipt-outline"></ion-icon>
+        <p>{{ 'HOME.NO_TRANSACTIONS' | translate }}</p>
+      </div>
+
+      <div class="txn-list" *ngIf="!loading && recentTransactions.length > 0">
+        <div
+          class="txn-item"
+          *ngFor="let txn of recentTransactions"
+          (click)="goToTransaction(txn.id)"
+        >
+          <div class="txn-item__avatar">{{ getInitials(txn.beneficiaryName) }}</div>
+
+          <div class="txn-item__info">
+            <div class="txn-item__name">{{ txn.beneficiaryName }}</div>
+            <div class="txn-item__ref">
+              <span class="fb-currency">{{ txn.referenceNumber }}</span>
+              <button
+                class="txn-item__copy"
+                [class.copied]="copiedRef === txn.referenceNumber"
+                (click)="copyReference(txn.referenceNumber, $event)"
+                title="Copy reference"
+              >
+                <ion-icon [name]="copiedRef === txn.referenceNumber ? 'checkmark-outline' : 'copy-outline'"></ion-icon>
+              </button>
+            </div>
+            <div class="txn-item__date">{{ txn.createdAt | date:'MMM d, y · h:mm a' }}</div>
+          </div>
+
+          <div class="txn-item__right">
+            <div class="txn-item__send fb-currency">-{{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}</div>
+            <div class="txn-item__receive fb-currency">+{{ txn.receiveAmount | number:'1.2-2' }} {{ txn.receiveCurrency }}</div>
+            <div class="txn-item__status-row">
+              <app-status-chip [status]="txn.status"></app-status-chip>
+              <button class="txn-item__receipt-btn" (click)="openReceipt(txn, $event)" title="View Receipt">
+                <ion-icon name="receipt-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="txn-view-all" *ngIf="allTransactions.length > 5">
+        <a routerLink="/home/transactions" class="txn-view-all__link">
+          View All {{ allTransactions.length }} Transactions
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ── Transaction Analytics ── -->
+  <section class="home-section" *ngIf="!loading && allTransactions.length > 0">
+    <div class="home-section__header">
+      <h2>{{ 'HOME.ANALYTICS' | translate }}</h2>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-card__title">{{ 'HOME.MONTHLY_VOLUME' | translate }}</div>
+      <div class="analytics-chart">
+        <div class="analytics-chart__bars">
+          <div class="bar-col" *ngFor="let m of monthlyData">
+            <div class="bar-col__wrap">
+              <span class="bar-col__value" *ngIf="m.amount > 0">{{ m.amount | number:'1.0-0' }}</span>
+              <div class="bar-col__bar" [style.height]="getBarHeight(m.amount)"
+                   [class.bar-col__bar--active]="m.amount > 0">
+              </div>
+            </div>
+            <div class="bar-col__label">{{ m.month }}</div>
+            <div class="bar-col__count" *ngIf="m.count > 0">{{ m.count }} txn{{ m.count !== 1 ? 's' : '' }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="analytics-totals">
+        <div class="analytics-totals__item">
+          <span class="analytics-totals__dot analytics-totals__dot--navy"></span>
+          <span>Total: {{ stats.totalSent | number:'1.0-0' }} {{ userProfile?.country ? '' : '' }}</span>
+        </div>
+        <div class="analytics-totals__item">
+          <span class="analytics-totals__dot analytics-totals__dot--success"></span>
+          <span>{{ stats.count }} total transfers</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <div class="home-bottom-spacer"></div>
+</ion-content>
+
+<!-- ══════════════════════════════════════
+     Referral Modal
+══════════════════════════════════════ -->
+<div
+  class="receipt-overlay"
+  [class.receipt-overlay--open]="showReferralModal"
+  (click)="closeReferralModal()"
+>
+  <div
+    class="receipt-modal referral-modal"
+    [class.receipt-modal--open]="showReferralModal"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="receipt-modal__header">
+      <h3>{{ 'HOME.REFERRAL_TITLE' | translate }}</h3>
+      <button class="receipt-modal__close" (click)="closeReferralModal()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="receipt-modal__body">
+      <div class="referral-hero">
+        <ion-icon name="gift-outline" class="referral-hero__icon"></ion-icon>
+        <h4>{{ 'HOME.REFERRAL_SHARE_EARN' | translate }}</h4>
+        <p>{{ 'HOME.REFERRAL_DESC' | translate }}</p>
+      </div>
+
+      <div class="referral-code-box" *ngIf="referralCode">
+        <div class="referral-code-box__label">{{ 'HOME.YOUR_REFERRAL_CODE' | translate }}</div>
+        <div class="referral-code-box__code fb-currency">{{ referralCode.code }}</div>
+        <div class="referral-code-box__used">Used {{ referralCode.usageCount }} time{{ referralCode.usageCount !== 1 ? 's' : '' }}</div>
+        <button
+          class="fb-btn fb-btn--secondary referral-code-box__copy"
+          (click)="copyReferralCode()"
+        >
+          <ion-icon [name]="referralCopied ? 'checkmark-outline' : 'copy-outline'"></ion-icon>
+          {{ referralCopied ? ('HOME.COPIED' | translate) : ('HOME.COPY_CODE' | translate) }}
+        </button>
+      </div>
+
+      <div class="referral-steps">
+        <div class="referral-step">
+          <span class="referral-step__num">1</span>
+          <span>{{ 'HOME.REFERRAL_STEP1' | translate }}</span>
+        </div>
+        <div class="referral-step">
+          <span class="referral-step__num">2</span>
+          <span>{{ 'HOME.REFERRAL_STEP2' | translate }}</span>
+        </div>
+        <div class="referral-step">
+          <span class="referral-step__num">3</span>
+          <span>{{ 'HOME.REFERRAL_STEP3' | translate }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="receipt-modal__actions">
+      <button class="fb-btn fb-btn--secondary" (click)="closeReferralModal()">{{ 'HOME.CLOSE' | translate }}</button>
+      <button class="fb-btn fb-btn--whatsapp" (click)="shareViaWhatsApp()">
+        <ion-icon name="logo-whatsapp"></ion-icon>
+        {{ 'HOME.SHARE_WHATSAPP' | translate }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     Receipt Modal
+══════════════════════════════════════ -->
+<div
+  class="receipt-overlay"
+  [class.receipt-overlay--open]="showReceiptModal"
+  (click)="closeReceipt()"
+>
+  <div
+    class="receipt-modal"
+    [class.receipt-modal--open]="showReceiptModal"
+    (click)="$event.stopPropagation()"
+    *ngIf="selectedTransaction"
+  >
+    <!-- Modal Header -->
+    <div class="receipt-modal__header">
+      <h3>{{ 'HOME.RECEIPT_TITLE' | translate }}</h3>
+      <button class="receipt-modal__close" (click)="closeReceipt()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="receipt-modal__body" id="receipt-printable">
+
+      <div class="receipt-brand">
+        <img src="assets/images/layla-logo.webp" alt="Layla" style="width:130px;height:auto" />
+        <app-status-chip [status]="selectedTransaction.status" style="margin-left:auto"></app-status-chip>
+      </div>
+
+      <div class="receipt-ref-box">
+        <div class="receipt-ref-box__label">{{ 'HOME.REFERENCE' | translate }}</div>
+        <div class="receipt-ref-box__value fb-currency">{{ selectedTransaction.referenceNumber }}</div>
+        <div class="receipt-ref-box__date">{{ selectedTransaction.createdAt | date:'EEEE, MMMM d, y · h:mm a' }}</div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <!-- Amount Transfer Visual -->
+      <div class="receipt-transfer">
+        <div class="receipt-transfer__side">
+          <div class="receipt-transfer__label">{{ 'HOME.YOU_SENT' | translate }}</div>
+          <div class="receipt-transfer__amount fb-currency">
+            {{ selectedTransaction.sendAmount | number:'1.2-2' }}
+            <span class="receipt-transfer__currency">{{ selectedTransaction.sendCurrency }}</span>
+          </div>
+        </div>
+        <div class="receipt-transfer__arrow">
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </div>
+        <div class="receipt-transfer__side receipt-transfer__side--receive">
+          <div class="receipt-transfer__label">{{ 'HOME.RECIPIENT_GETS' | translate }}</div>
+          <div class="receipt-transfer__amount receipt-transfer__amount--receive fb-currency">
+            {{ selectedTransaction.receiveAmount | number:'1.2-2' }}
+            <span class="receipt-transfer__currency">{{ selectedTransaction.receiveCurrency }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <!-- Detail Rows -->
+      <div class="receipt-details">
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-row__label">{{ 'HOME.RECIPIENT' | translate }}</span>
+          <span class="receipt-detail-row__value">{{ selectedTransaction.beneficiaryName }}</span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-row__label">{{ 'HOME.EXCHANGE_RATE' | translate }}</span>
+          <span class="receipt-detail-row__value fb-currency">
+            1 {{ selectedTransaction.sendCurrency }} = {{ selectedTransaction.appliedRate | number:'1.2-4' }} {{ selectedTransaction.receiveCurrency }}
+          </span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-row__label">{{ 'HOME.FEE' | translate }}</span>
+          <span class="receipt-detail-row__value fb-currency">
+            {{ selectedTransaction.feeAmount | number:'1.2-2' }} {{ selectedTransaction.sendCurrency }}
+          </span>
+        </div>
+        <div class="receipt-detail-row" *ngIf="selectedTransaction.walletAmountUsed" style="color:#059669">
+          <span class="receipt-detail-row__label">{{ 'HOME.WALLET_USED' | translate }}</span>
+          <span class="receipt-detail-row__value fb-currency">
+            -{{ selectedTransaction.walletAmountUsed | number:'1.2-2' }} {{ selectedTransaction.sendCurrency }}
+          </span>
+        </div>
+        <div class="receipt-detail-row receipt-detail-row--total">
+          <span class="receipt-detail-row__label">{{ 'HOME.TOTAL_DEBITED' | translate }}</span>
+          <span class="receipt-detail-row__value fb-currency">
+            {{ (selectedTransaction.totalDebitAmount - (selectedTransaction.walletAmountUsed || 0)) | number:'1.2-2' }} {{ selectedTransaction.sendCurrency }}
+          </span>
+        </div>
+        <div class="receipt-detail-row">
+          <span class="receipt-detail-row__label">{{ 'HOME.DELIVERY_METHOD' | translate }}</span>
+          <span class="receipt-detail-row__value">{{ selectedTransaction.deliveryMethod | titlecase }}</span>
+        </div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="receipt-footer-note">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>{{ 'HOME.SECURE_NOTE' | translate }}</span>
+      </div>
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="receipt-modal__actions">
+      <button class="fb-btn fb-btn--secondary" (click)="closeReceipt()">{{ 'HOME.CLOSE' | translate }}</button>
+      <button class="fb-btn fb-btn--primary" (click)="downloadReceipt()">
+        <ion-icon name="download-outline"></ion-icon>
+        {{ 'HOME.DOWNLOAD_PRINT' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

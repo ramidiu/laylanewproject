@@ -1,0 +1,111 @@
+<div class="ledger-page">
+  <h1 class="page-title">Ledger</h1>
+  <p class="page-subtitle">Platform financial records and partner balances</p>
+
+  <ion-segment [(ngModel)]="activeSegment" class="ledger-tabs">
+    <ion-segment-button value="platform"><ion-label>Platform Ledger</ion-label></ion-segment-button>
+    <ion-segment-button value="balances"><ion-label>Partner Balances</ion-label></ion-segment-button>
+  </ion-segment>
+
+  <!-- Platform Ledger -->
+  <div *ngIf="activeSegment === 'platform'" class="tab-content">
+    <div class="ledger-totals" *ngIf="!platformLoading && platformEntries.length > 0">
+      <div class="total-card total-card--credit">
+        <span class="total-label">Total Credits</span>
+        <span class="total-value">{{ getTotalCredits() | number:'1.2-2' }} USD</span>
+      </div>
+      <div class="total-card total-card--debit">
+        <span class="total-label">Total Debits</span>
+        <span class="total-value">{{ getTotalDebits() | number:'1.2-2' }} USD</span>
+      </div>
+      <div class="total-card total-card--balance">
+        <span class="total-label">Net Balance</span>
+        <span class="total-value">{{ getNetBalance() | number:'1.2-2' }} USD</span>
+      </div>
+    </div>
+
+    <div class="fb-card table-card">
+      <div *ngIf="platformLoading" class="table-loading">
+        <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5,6]"></div>
+      </div>
+
+      <div class="table-wrapper" *ngIf="!platformLoading">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Account</th>
+              <th>Type</th>
+              <th>Local Amount</th>
+              <th>USD Amount</th>
+              <th>Balance (USD)</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of platformEntries">
+              <td>{{ entry.createdAt | date:'MMM d, y HH:mm' }}</td>
+              <td>{{ entry.description }}</td>
+              <td><ion-badge color="tertiary">{{ entry.accountType }}</ion-badge></td>
+              <td>
+                <ion-badge [color]="getEntryTypeColor(entry.entryType)">{{ entry.entryType }}</ion-badge>
+              </td>
+              <td class="fb-currency" [class.credit]="entry.entryType === 'CREDIT'" [class.debit]="entry.entryType === 'DEBIT'">
+                {{ entry.entryType === 'CREDIT' ? '+' : '-' }}{{ entry.localAmount | number:'1.2-2' }} {{ entry.localCurrency }}
+              </td>
+              <td class="fb-currency">{{ entry.usdAmount | number:'1.4-4' }} USD</td>
+              <td class="fb-currency">{{ entry.balanceUsd | number:'1.4-4' }}</td>
+              <td class="ref-cell">{{ entry.txnDisplayId || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!platformLoading && platformEntries.length === 0" class="empty-state">
+        <ion-icon name="book-outline"></ion-icon>
+        <p>No ledger entries</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partner Balances -->
+  <div *ngIf="activeSegment === 'balances'" class="tab-content">
+    <div *ngIf="balancesLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div class="balances-grid" *ngIf="!balancesLoading">
+      <div class="fb-card balance-card" *ngFor="let partner of partnerBalances">
+        <div class="balance-card__header">
+          <div class="balance-card__name">{{ partner.partnerName || 'Partner #' + partner.partnerId }}</div>
+          <ion-badge [color]="partner.balance > 0 ? 'success' : partner.balance < 0 ? 'danger' : 'medium'">
+            {{ partner.balance > 0 ? 'Owed to Partner' : partner.balance < 0 ? 'Partner Owes' : 'Settled' }}
+          </ion-badge>
+        </div>
+        <div class="balance-card__amount" [class.positive]="partner.balance > 0" [class.negative]="partner.balance < 0">
+          {{ partner.currency || 'USD' }} {{ partner.balance | number:'1.2-2' }}
+        </div>
+        <div class="balance-card__details">
+          <div class="detail-row">
+            <span>Total Disbursed</span>
+            <span>{{ partner.totalDisbursed | number:'1.2-2' }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Total Settled</span>
+            <span>{{ partner.totalSettled | number:'1.2-2' }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Transaction Count</span>
+            <span>{{ partner.transactionCount || 0 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!balancesLoading && partnerBalances.length === 0" class="empty-state">
+      <ion-icon name="wallet-outline"></ion-icon>
+      <p>No partner balance data available</p>
+    </div>
+  </div>
+</div>

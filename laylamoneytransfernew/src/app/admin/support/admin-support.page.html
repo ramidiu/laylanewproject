@@ -1,0 +1,219 @@
+<div class="admin-support">
+  <!-- ===== TICKET LIST VIEW ===== -->
+  <ng-container *ngIf="!selectedTicket">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Support Tickets</h1>
+        <p class="page-subtitle">Manage and respond to customer support requests</p>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card stat-card--info">
+        <div class="stat-card__value">{{ stats.open }}</div>
+        <div class="stat-card__label">Open</div>
+      </div>
+      <div class="stat-card stat-card--warning">
+        <div class="stat-card__value">{{ stats.inProgress }}</div>
+        <div class="stat-card__label">In Progress</div>
+      </div>
+      <div class="stat-card stat-card--awaiting">
+        <div class="stat-card__value">{{ stats.awaitingCustomer }}</div>
+        <div class="stat-card__label">Awaiting Customer</div>
+      </div>
+      <div class="stat-card stat-card--success">
+        <div class="stat-card__value">{{ stats.resolved }}</div>
+        <div class="stat-card__label">Resolved</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-row">
+      <div class="filter-tabs">
+        <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'ALL'" (click)="setFilter('ALL')">All</button>
+        <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'OPEN'" (click)="setFilter('OPEN')">Open</button>
+        <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'IN_PROGRESS'" (click)="setFilter('IN_PROGRESS')">In Progress</button>
+        <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'AWAITING_CUSTOMER'" (click)="setFilter('AWAITING_CUSTOMER')">Awaiting Customer</button>
+        <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'RESOLVED'" (click)="setFilter('RESOLVED')">Resolved</button>
+        <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'CLOSED'" (click)="setFilter('CLOSED')">Closed</button>
+      </div>
+      <div class="priority-filter">
+        <select class="priority-select" [ngModel]="priorityFilter" (ngModelChange)="onPriorityChange($event)">
+          <option value="">All Priorities</option>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+          <option value="URGENT">Urgent</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && filteredTickets.length === 0" class="empty-state">
+      <div class="empty-state__icon">&#9993;</div>
+      <p class="empty-state__text">No support tickets found for this filter.</p>
+    </div>
+
+    <!-- Ticket Table -->
+    <div class="ticket-table-wrap" *ngIf="!loading && filteredTickets.length > 0">
+      <table class="ticket-table">
+        <thead>
+          <tr>
+            <th>Ticket #</th>
+            <th>Customer</th>
+            <th>Subject</th>
+            <th>Issue Type</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Last Activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ticket of filteredTickets" class="ticket-row" (click)="viewTicket(ticket)">
+            <td class="ticket-id">#{{ ticket.id }}</td>
+            <td class="ticket-customer">
+              <span class="customer-name">{{ ticket.customerName || ticket.userName || 'N/A' }}</span>
+              <span class="customer-email">{{ ticket.customerEmail || ticket.userEmail || '' }}</span>
+            </td>
+            <td class="ticket-subject">{{ ticket.subject }}</td>
+            <td class="ticket-type">{{ ticket.issueType || ticket.category || '-' }}</td>
+            <td>
+              <span class="priority-badge priority-badge--{{ getPriorityClass(ticket.priority) }}">
+                {{ ticket.priority || 'MEDIUM' }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge status-badge--{{ getStatusClass(ticket.status) }}">
+                {{ getStatusLabel(ticket.status) }}
+              </span>
+            </td>
+            <td class="ticket-date">{{ ticket.createdAt | date:'MMM d, y' }}</td>
+            <td class="ticket-date">{{ ticket.lastActivityAt || ticket.updatedAt | date:'MMM d, y HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <!-- ===== TICKET DETAIL VIEW ===== -->
+  <ng-container *ngIf="selectedTicket">
+    <div class="detail-header">
+      <button class="back-btn" (click)="backToList()">
+        &larr; Back to Tickets
+      </button>
+      <div class="detail-title-row">
+        <div>
+          <h1 class="page-title">Ticket #{{ selectedTicket.id }} &mdash; {{ selectedTicket.subject }}</h1>
+          <p class="page-subtitle">
+            {{ selectedTicket.customerName || selectedTicket.userName || '' }}
+            <span *ngIf="selectedTicket.customerEmail || selectedTicket.userEmail">
+              ({{ selectedTicket.customerEmail || selectedTicket.userEmail }})
+            </span>
+          </p>
+        </div>
+        <div class="detail-actions">
+          <span class="priority-badge priority-badge--{{ getPriorityClass(selectedTicket.priority) }}">
+            {{ selectedTicket.priority || 'MEDIUM' }}
+          </span>
+          <select class="status-select" [ngModel]="selectedTicket.status" (ngModelChange)="onStatusChange($event)">
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="AWAITING_CUSTOMER">Awaiting Customer</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="CLOSED">Closed</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticket Info Card -->
+    <div class="ticket-info-card">
+      <div class="info-item">
+        <span class="info-label">Issue Type</span>
+        <span class="info-value">{{ selectedTicket.issueType || selectedTicket.category || '-' }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Created</span>
+        <span class="info-value">{{ selectedTicket.createdAt | date:'MMM d, y HH:mm' }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Last Updated</span>
+        <span class="info-value">{{ selectedTicket.updatedAt | date:'MMM d, y HH:mm' }}</span>
+      </div>
+      <div class="info-item" *ngIf="selectedTicket.transactionRef">
+        <span class="info-label">Transaction Ref</span>
+        <span class="info-value">{{ selectedTicket.transactionRef }}</span>
+      </div>
+    </div>
+
+    <!-- Conversation Thread -->
+    <div class="conversation">
+      <h3 class="conversation__title">Conversation</h3>
+
+      <!-- All messages -->
+      <ng-container *ngIf="selectedTicket.messages?.length > 0">
+        <div *ngFor="let msg of selectedTicket.messages"
+             class="message"
+             [class.message--admin]="isAdminMessage(msg)"
+             [class.message--customer]="!isAdminMessage(msg)">
+          <div class="message__bubble">
+            <div class="message__sender">{{ msg.senderName || (isAdminMessage(msg) ? 'Admin' : 'Customer') }}</div>
+            <div class="message__text">{{ msg.message }}</div>
+            <div class="message__meta">
+              {{ msg.createdAt | date:'MMM d, y HH:mm' }}
+            </div>
+            <ng-container *ngIf="msg.attachments?.length">
+              <div class="message__attachment" *ngFor="let att of msg.attachments">
+                <a [href]="getAttachmentUrl(att)" target="_blank" class="attachment-link">
+                  <ion-icon name="attach-outline"></ion-icon>
+                  {{ att.fileName || 'View Attachment' }}
+                </a>
+                <img *ngIf="isImage(att)" [src]="getAttachmentUrl(att)" class="attachment-preview" />
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </ng-container>
+
+      <div *ngIf="!selectedTicket.messages?.length" class="empty-state">
+        <p class="empty-state__text">No messages in this ticket yet.</p>
+      </div>
+    </div>
+
+    <!-- Reply Box -->
+    <div class="reply-box" *ngIf="selectedTicket.status !== 'CLOSED'">
+      <h3 class="reply-box__title">Reply</h3>
+      <textarea
+        class="reply-textarea"
+        rows="4"
+        placeholder="Type your reply..."
+        [(ngModel)]="replyMessage"
+      ></textarea>
+      <div class="reply-actions">
+        <div class="file-upload">
+          <label class="file-label">
+            &#128206; Attach File
+            <input type="file" class="file-input" (change)="onFileSelected($event)" />
+          </label>
+          <span class="file-name" *ngIf="replyFile">
+            {{ replyFile.name }}
+            <button class="remove-file" (click)="removeFile()">&times;</button>
+          </span>
+        </div>
+        <button
+          class="send-btn"
+          [disabled]="!replyMessage.trim() || replyLoading"
+          (click)="onReply()">
+          {{ replyLoading ? 'Sending...' : 'Send Reply' }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</div>

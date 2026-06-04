@@ -1,0 +1,176 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.admin-txn { max-width: 1400px; }
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $fb-space-6;
+}
+
+.page-title {
+  font-size: $fb-text-2xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-1;
+}
+
+.page-subtitle {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  margin: 0;
+}
+
+.filters-bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: $fb-space-3;
+  margin-bottom: $fb-space-4;
+  align-items: center;
+
+  @media (max-width: $fb-breakpoint-lg) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: $fb-breakpoint-md) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.search-wrapper {
+  position: relative;
+
+  ion-icon {
+    position: absolute;
+    left: $fb-space-4;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $fb-gray-400;
+    z-index: 1;
+  }
+
+  .fb-input {
+    padding-left: 2.75rem;
+    width: 100%;
+  }
+}
+
+.filter-select {
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.filter-date {
+  min-width: 140px;
+}
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.table-loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.ref-cell { font-size: $fb-text-xs; white-space: nowrap; }
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+
+  ion-button {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    font-size: $fb-text-xs;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .action-label {
+    @media (max-width: $fb-breakpoint-md) {
+      display: none;
+    }
+  }
+}
+
+// Stats summary
+.stats-row {
+  display: flex;
+  gap: $fb-space-3;
+  margin-bottom: $fb-space-4;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $fb-space-3 $fb-space-5;
+  background: #f0f4f8;
+  border-radius: 8px;
+  min-width: 100px;
+  flex: 1;
+
+  .stat-value {
+    font-size: $fb-text-xl;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-900;
+  }
+
+  .stat-label {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    margin-top: 2px;
+  }
+
+  &--success {
+    background: #ecfdf5;
+    .stat-value { color: #059669; }
+  }
+
+  &--processing {
+    background: #eff6ff;
+    .stat-value { color: #2563eb; }
+  }
+
+  &--pending {
+    background: #fffbeb;
+    .stat-value { color: #d97706; }
+  }
+
+  &--danger {
+    background: #fef2f2;
+    .stat-value { color: #dc2626; }
+  }
+
+  &--cancelled {
+    background: #f5f5f5;
+    .stat-value { color: #6b7280; }
+  }
+
+  @media (max-width: $fb-breakpoint-md) {
+    min-width: 80px;
+    padding: $fb-space-2 $fb-space-3;
+
+    .stat-value { font-size: $fb-text-lg; }
+  }
+}
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-3;
+  padding: $fb-space-4;
+  border-top: 1px solid $fb-gray-100;
+}
+
+.pagination-btn { min-height: 36px; padding: $fb-space-2 $fb-space-3; }
+.pagination-info { font-size: $fb-text-sm; color: $fb-gray-500; }
+
+// Empty state
+.table-wrapper table tbody:empty::after {
+  content: 'No transactions found';
+  display: block;
+  text-align: center;
+  padding: $fb-space-8;
+  color: $fb-gray-400;
+}

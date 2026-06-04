@@ -1,0 +1,59 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">Transaction Operations</h1>
+      <p class="dashboard__subtitle">Live transaction pipeline and status breakdown</p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="dashboard__metrics">
+      <app-metric-card label="Created Today" [value]="createdToday | number" icon="create-outline" iconBg="#1B3571"></app-metric-card>
+      <app-metric-card label="Completed" [value]="completed | number" icon="checkmark-done-outline" iconBg="#059669"></app-metric-card>
+      <app-metric-card label="Failed" [value]="failed | number" icon="close-circle-outline" iconBg="#dc2626"></app-metric-card>
+      <app-metric-card label="On Hold" [value]="onHold | number" icon="pause-circle-outline" iconBg="#f59e0b"></app-metric-card>
+      <app-metric-card label="Processing" [value]="processing | number" icon="sync-outline" iconBg="#3b82f6"></app-metric-card>
+    </div>
+
+    <div class="dashboard__charts">
+      <app-chart-panel title="Status Pipeline" subtitle="Transaction status distribution">
+        <canvas baseChart [type]="statusChart.type" [data]="statusChart.data" [options]="statusChart.options" height="260"></canvas>
+      </app-chart-panel>
+    </div>
+
+    <div class="dashboard__table-panel">
+      <div class="dashboard__table-header">Recent Failed / Stuck Transactions</div>
+      <table class="dashboard__table" *ngIf="recentFailed.length > 0">
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Beneficiary</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of recentFailed">
+            <td class="mono">{{ t.referenceNumber }}</td>
+            <td>{{ t.beneficiaryName || '—' }}</td>
+            <td class="num num--bold">{{ t.sendAmount | number:'1.2-2' }} {{ t.sendCurrency }}</td>
+            <td>
+              <span class="dashboard__badge" [ngClass]="{
+                'dashboard__badge--danger': t.status === 'FAILED' || t.status === 'CANCELLED',
+                'dashboard__badge--warning': t.status === 'COMPLIANCE_HOLD'
+              }">{{ t.status }}</span>
+            </td>
+            <td>{{ t.createdAt | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dashboard__empty" *ngIf="recentFailed.length === 0">No failed or stuck transactions</div>
+    </div>
+  </ng-container>
+</div>

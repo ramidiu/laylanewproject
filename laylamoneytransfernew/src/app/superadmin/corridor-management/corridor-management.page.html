@@ -1,0 +1,448 @@
+<div class="corridor-mgmt">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Corridor Management</h1>
+      <p class="page-subtitle">Manage FX corridors, fee splits, and partner assignments</p>
+    </div>
+  </div>
+
+  <ion-segment [(ngModel)]="activeSegment" class="config-tabs">
+    <ion-segment-button value="corridors"><ion-label>FX Corridors</ion-label></ion-segment-button>
+    <ion-segment-button value="mappings"><ion-label>Partner Mappings</ion-label></ion-segment-button>
+    <ion-segment-button value="fees"><ion-label>Corridor Fees</ion-label></ion-segment-button>
+  </ion-segment>
+
+  <!-- ═══════════════ FX Corridors Tab ═══════════════ -->
+  <div *ngIf="activeSegment === 'corridors'" class="tab-content">
+    <div *ngIf="loading" class="table-loading">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+
+    <div class="fb-card table-card" *ngIf="!loading">
+      <div class="table-wrapper">
+        <table class="fb-table corridor-config-table">
+          <thead>
+            <tr>
+              <th>Corridor</th>
+              <th>Pay-In</th>
+              <th>Admin</th>
+              <th>Payout</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let c of mergedCorridors">
+              <!-- Main Row -->
+              <tr [class.row-expanded]="expandedCorridor === corridorKey(c)">
+                <td>
+                  <div class="corridor-badge">
+                    <span class="currency-tag">{{ c.fromCurrency }}</span>
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                    <span class="currency-tag">{{ c.toCurrency }}</span>
+                  </div>
+                  <div class="corridor-detail" *ngIf="c.sendCountry">{{ c.sendCountry }} &rarr; {{ c.receiveCountry }}</div>
+                </td>
+                <td>
+                  <span class="role-badge role-badge--payin" [class.role-badge--active]="hasPayinPartner(c)">
+                    <span class="role-badge__label">PAY-IN</span>
+                    <span class="role-badge__value">{{ getPayinLabel(c) }}</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="role-badge role-badge--admin">
+                    <span class="role-badge__label">ADMIN</span>
+                    <span class="role-badge__value">Remainder</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="role-badge role-badge--payout" [class.role-badge--active]="hasPayoutPartner(c)">
+                    <span class="role-badge__label">PAYOUT</span>
+                    <span class="role-badge__value">{{ getPayoutLabel(c) }}</span>
+                  </span>
+                </td>
+                <td>
+                  <button class="fb-btn fb-btn--sm" [class.fb-btn--primary]="expandedCorridor !== corridorKey(c)" [class.fb-btn--secondary]="expandedCorridor === corridorKey(c)" (click)="toggleConfigPanel(c)">
+                    <ion-icon [name]="expandedCorridor === corridorKey(c) ? 'close-outline' : 'settings-outline'"></ion-icon>
+                    {{ expandedCorridor === corridorKey(c) ? 'Close' : 'Configure' }}
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Expanded Config Panel Row -->
+              <tr *ngIf="expandedCorridor === corridorKey(c)" class="config-panel-row">
+                <td colspan="5">
+                  <div class="config-panel">
+                    <h3 class="config-panel__title">
+                      Fee Split Configuration: {{ c.fromCurrency }} &rarr; {{ c.toCurrency }}
+                    </h3>
+
+                    <div class="config-panel__grid">
+                      <!-- Pay-In Section -->
+                      <div class="config-section config-section--payin">
+                        <h4 class="config-section__heading">Pay-In Partner</h4>
+                        <div class="fb-field">
+                          <label class="fb-field__label">Partner</label>
+                          <select class="fb-input" [(ngModel)]="configForm.payinPartnerId">
+                            <option [ngValue]="null">None (Direct)</option>
+                            <option *ngFor="let p of payinPartners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+                          </select>
+                        </div>
+                        <div class="config-row">
+                          <div class="fb-field">
+                            <label class="fb-field__label">Share Type</label>
+                            <select class="fb-input" [(ngModel)]="configForm.payinShareType">
+                              <option value="PERCENTAGE">Percentage</option>
+                              <option value="FLAT">Flat</option>
+                            </select>
+                          </div>
+                          <div class="fb-field">
+                            <label class="fb-field__label">Share Value</label>
+                            <input type="number" class="fb-input" [(ngModel)]="configForm.payinShareValue" min="0" step="0.01" placeholder="0">
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Payout Section -->
+                      <div class="config-section config-section--payout">
+                        <h4 class="config-section__heading">Payout Partner</h4>
+                        <div class="fb-field">
+                          <label class="fb-field__label">Partner</label>
+                          <select class="fb-input" [(ngModel)]="configForm.payoutPartnerId">
+                            <option [ngValue]="null">None</option>
+                            <option *ngFor="let p of payoutPartners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+                          </select>
+                        </div>
+                        <div class="config-row">
+                          <div class="fb-field">
+                            <label class="fb-field__label">Share Type</label>
+                            <select class="fb-input" [(ngModel)]="configForm.payoutShareType">
+                              <option value="PERCENTAGE">Percentage</option>
+                              <option value="FLAT">Flat</option>
+                            </select>
+                          </div>
+                          <div class="fb-field">
+                            <label class="fb-field__label">Share Value</label>
+                            <input type="number" class="fb-input" [(ngModel)]="configForm.payoutShareValue" min="0" step="0.01" placeholder="0">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Fee Split Preview -->
+                    <div class="fee-preview">
+                      <div class="fee-preview__title">Fee Split Preview (on {{ getFeeSplitPreview(c).currency }} {{ getFeeSplitPreview(c).label }} fee)</div>
+                      <div class="fee-preview__items">
+                        <div class="fee-preview__item fee-preview__item--payin">
+                          <span class="fee-preview__label">Pay-In</span>
+                          <span class="fee-preview__amount">{{ getFeeSplitPreview(c).currency }} {{ getFeeSplitPreview(c).payin }}</span>
+                        </div>
+                        <div class="fee-preview__divider">+</div>
+                        <div class="fee-preview__item fee-preview__item--admin">
+                          <span class="fee-preview__label">Admin</span>
+                          <span class="fee-preview__amount">{{ getFeeSplitPreview(c).currency }} {{ getFeeSplitPreview(c).admin }}</span>
+                        </div>
+                        <div class="fee-preview__divider">+</div>
+                        <div class="fee-preview__item fee-preview__item--payout">
+                          <span class="fee-preview__label">Payout</span>
+                          <span class="fee-preview__amount">{{ getFeeSplitPreview(c).currency }} {{ getFeeSplitPreview(c).payout }}</span>
+                        </div>
+                        <div class="fee-preview__divider">=</div>
+                        <div class="fee-preview__item fee-preview__item--total">
+                          <span class="fee-preview__label">Total</span>
+                          <span class="fee-preview__amount">{{ getFeeSplitPreview(c).currency }} {{ getFeeSplitPreview(c).total }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="config-panel__actions">
+                      <button class="fb-btn fb-btn--primary" [disabled]="savingConfig" (click)="saveCorridorConfig(c)">
+                        <ion-icon name="checkmark-outline"></ion-icon>
+                        {{ savingConfig ? 'Saving...' : 'Save Configuration' }}
+                      </button>
+                      <button class="fb-btn fb-btn--secondary" (click)="cancelConfig()">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="mergedCorridors.length === 0" class="empty-state">
+        <ion-icon name="globe-outline"></ion-icon>
+        <p>No FX corridors configured</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ Partner Mappings Tab ═══════════════ -->
+  <div *ngIf="activeSegment === 'mappings'" class="tab-content">
+    <div class="tab-header">
+      <button class="fb-btn fb-btn--primary" (click)="showAddForm = !showAddForm">
+        <ion-icon name="add-outline"></ion-icon>
+        Add Mapping
+      </button>
+    </div>
+
+    <!-- Add Form -->
+    <div class="fb-card add-form-card" *ngIf="showAddForm">
+      <h3 class="section-title">New Corridor-Partner Mapping</h3>
+      <div class="form-grid">
+        <div class="fb-field">
+          <label class="fb-field__label">From Currency (Source)</label>
+          <select class="fb-input" [(ngModel)]="newMapping.fromCurrency">
+            <option value="">Select</option>
+            <option *ngFor="let c of sendCurrencies" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">To Currency (Destination)</label>
+          <select class="fb-input" [(ngModel)]="newMapping.toCurrency" (ngModelChange)="onToCurrencyChange()">
+            <option value="">Select</option>
+            <option *ngFor="let c of receiveCurrencies" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Pay-In Partner (collects {{ newMapping.fromCurrency || 'source' }})</label>
+          <select class="fb-input" [(ngModel)]="newMapping.payinPartnerId">
+            <option [ngValue]="null">None (Direct)</option>
+            <option *ngFor="let p of payinPartners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+          </select>
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Payout Partner (delivers {{ newMapping.toCurrency || 'destination' }})</label>
+          <select class="fb-input" [(ngModel)]="newMapping.partnerId">
+            <option [ngValue]="null">Select Partner</option>
+            <option *ngFor="let p of filteredPartners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="fb-btn fb-btn--primary" [disabled]="!newMapping.fromCurrency || !newMapping.toCurrency" (click)="addMapping()">Create Mapping</button>
+        <button class="fb-btn fb-btn--secondary" (click)="showAddForm = false">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Mappings Table -->
+    <div class="fb-card table-card">
+      <div class="table-wrapper" *ngIf="mappingsFromConfigs.length > 0">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Corridor</th>
+              <th>Pay-In Partner</th>
+              <th>Payout Partner</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let mapping of mappingsFromConfigs">
+              <!-- Display Row -->
+              <tr *ngIf="editingMappingId !== mapping.id">
+                <td>
+                  <div class="corridor-badge">
+                    <span class="currency-tag">{{ mapping.fromCurrency }}</span>
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                    <span class="currency-tag">{{ mapping.toCurrency }}</span>
+                  </div>
+                </td>
+                <td>{{ mapping.payinPartnerName || 'Direct' }}</td>
+                <td>{{ mapping.payoutPartnerName || 'None' }}</td>
+                <td>
+                  <span class="status-badge" [class.status-badge--active]="mapping.isActive" [class.status-badge--inactive]="!mapping.isActive">
+                    {{ mapping.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="action-btn action-btn--primary action-btn--sm" (click)="startEditMapping(mapping)">
+                      <ion-icon name="create-outline"></ion-icon> Edit
+                    </button>
+                    <button class="action-btn action-btn--danger action-btn--sm" (click)="deleteMapping(mapping)">
+                      <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <!-- Edit Row -->
+              <tr *ngIf="editingMappingId === mapping.id" class="row-editing">
+                <td>
+                  <div class="corridor-badge">
+                    <span class="currency-tag">{{ mapping.fromCurrency }}</span>
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                    <span class="currency-tag">{{ mapping.toCurrency }}</span>
+                  </div>
+                </td>
+                <td>
+                  <select class="fb-input fb-input--inline" [(ngModel)]="editMappingForm.payinPartnerId">
+                    <option [ngValue]="null">None (Direct)</option>
+                    <option *ngFor="let p of payinPartners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+                  </select>
+                </td>
+                <td>
+                  <select class="fb-input fb-input--inline" [(ngModel)]="editMappingForm.payoutPartnerId">
+                    <option [ngValue]="null">None</option>
+                    <option *ngFor="let p of payoutPartners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+                  </select>
+                </td>
+                <td>
+                  <span class="status-badge status-badge--active">Active</span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="action-btn action-btn--success action-btn--sm" (click)="saveEditMapping(mapping)">
+                      <ion-icon name="checkmark-outline"></ion-icon> Save
+                    </button>
+                    <button class="action-btn action-btn--grey action-btn--sm" (click)="cancelEditMapping()">
+                      <ion-icon name="close-outline"></ion-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="mappingsFromConfigs.length === 0" class="empty-state">
+        <ion-icon name="git-network-outline"></ion-icon>
+        <p>No partner mappings configured</p>
+        <span>Use the FX Corridors tab to assign partners to corridors</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ Corridor Fees Tab ═══════════════ -->
+  <!-- Code added by Naresh: removed Add Fee button — fee grid is now fully dynamic.
+       Rows auto-appear from active corridors × active payout types in Transfer Config.
+       Admin only edits fee values on existing rows. -->
+  <div *ngIf="activeSegment === 'fees'" class="tab-content">
+
+    <!-- Fees Table (dynamic: corridors × active payout types) -->
+    <div class="fb-card table-card">
+      <div class="table-wrapper" *ngIf="filteredCorridorFees.length > 0">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Corridor</th>
+              <th>Delivery Method</th>
+              <th>Fee Type</th>
+              <th>Fee Amount</th>
+              <th>Currency</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let fee of filteredCorridorFees; trackBy: trackByFee">
+              <!-- Display Row -->
+              <tr *ngIf="editingFeeId !== (fee.id ?? fee.corridorId + '-' + fee.deliveryMethod)">
+                <td>
+                  <div class="corridor-badge" *ngIf="getCorridorCurrencies(fee.corridorId) as curr">
+                    <span class="currency-tag">{{ curr.send }}</span>
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                    <span class="currency-tag">{{ curr.receive }}</span>
+                  </div>
+                  <span *ngIf="!getCorridorCurrencies(fee.corridorId)">Corridor #{{ fee.corridorId }}</span>
+                </td>
+                <td>{{ formatDeliveryMethod(fee.deliveryMethod) }}</td>
+                <td><span class="fee-type-badge fee-type-badge--{{ fee.feeType | lowercase }}">{{ formatFeeType(fee.feeType) }}</span></td>
+                <td class="fee-amount" *ngIf="!isTieredFee(fee)">{{ getFeeAmountDisplay(fee) }}</td>
+                <td *ngIf="isTieredFee(fee)"><div class="tier-summary">{{ formatTierRules(fee.tierRules) }}</div></td>
+                <td><span class="currency-tag currency-tag--sm">{{ fee.currency || 'GBP' }}</span></td>
+                <td>
+                  <span *ngIf="!fee._placeholder" class="status-dot" [class.status-dot--active]="fee.isActive" [class.status-dot--inactive]="!fee.isActive">{{ fee.isActive ? 'Active' : 'Inactive' }}</span>
+                  <span *ngIf="fee._placeholder" class="status-dot status-dot--inactive">Not configured</span>
+                </td>
+                <td class="actions-cell">
+                  <button class="action-btn action-btn--primary action-btn--sm" (click)="startEditFee(fee)">
+                    <ion-icon name="create-outline"></ion-icon> {{ fee._placeholder ? 'Configure' : 'Edit' }}
+                  </button>
+                  <!-- Code added by Naresh: hide Delete for auto-generated placeholder rows -->
+                  <button *ngIf="!fee._placeholder" class="action-btn action-btn--danger action-btn--sm" (click)="deleteFee(fee)">
+                    <ion-icon name="trash-outline"></ion-icon> Delete
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Inline Edit Row -->
+              <tr *ngIf="editingFeeId === (fee.id ?? fee.corridorId + '-' + fee.deliveryMethod)" class="row-editing">
+                <td>
+                  <div class="corridor-badge" *ngIf="getCorridorCurrencies(fee.corridorId) as curr">
+                    <span class="currency-tag">{{ curr.send }}</span>
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                    <span class="currency-tag">{{ curr.receive }}</span>
+                  </div>
+                </td>
+                <!-- Code added by Naresh: delivery method is read-only (driven by Transfer Config, not editable) -->
+                <td>{{ formatDeliveryMethod(editFeeForm.deliveryMethod) }}</td>
+                <td>
+                  <select class="fb-input fb-input--inline" [(ngModel)]="editFeeForm.feeType" (ngModelChange)="onEditFeeTypeChange($event)">
+                    <option value="FLAT">Flat Fee</option>
+                    <option value="PERCENTAGE">Percentage</option>
+                    <option value="TIERED">Tiered</option>
+                  </select>
+                </td>
+                <td>
+                  <input *ngIf="editFeeForm.feeType === 'FLAT'" type="number" class="fb-input fb-input--inline" [(ngModel)]="editFeeForm.flatFee" min="0" step="0.01">
+                  <input *ngIf="editFeeForm.feeType === 'PERCENTAGE'" type="number" class="fb-input fb-input--inline" [(ngModel)]="editFeeForm.percentageFee" min="0" step="0.01">
+                  <span *ngIf="editFeeForm.feeType === 'TIERED'" class="tier-inline-hint">See tiers below</span>
+                </td>
+                <td>
+                  <input type="text" class="fb-input fb-input--inline" [(ngModel)]="editFeeForm.currency" maxlength="3" style="width: 60px;">
+                </td>
+                <td></td>
+                <td class="actions-cell">
+                  <button class="action-btn action-btn--success action-btn--sm" (click)="saveEditFee(fee)">
+                    <ion-icon name="checkmark-outline"></ion-icon> Save
+                  </button>
+                  <button class="action-btn action-btn--danger action-btn--sm" (click)="cancelEditFee()">
+                    <ion-icon name="close-outline"></ion-icon> Cancel
+                  </button>
+                </td>
+              </tr>
+              <!-- Tier Rules Editor Row (for edit mode) -->
+              <tr *ngIf="editingFeeId === (fee.id ?? fee.corridorId + '-' + fee.deliveryMethod) && editFeeForm.feeType === 'TIERED'" class="tier-editor-row">
+                <td colspan="7">
+                  <div class="tier-rules-editor">
+                    <h4 class="tier-rules-editor__title">Tier Rules</h4>
+                    <div class="tier-row" *ngFor="let tier of tierRules; let i = index">
+                      <div class="tier-row__fields">
+                        <input class="fb-input fb-input--inline tier-input" placeholder="Min Amount" [(ngModel)]="tier.minAmount" type="number" min="0" step="0.01" />
+                        <span class="tier-row__separator">to</span>
+                        <input class="fb-input fb-input--inline tier-input" placeholder="Max (empty=unlimited)" [(ngModel)]="tier.maxAmount" type="number" min="0" step="0.01" />
+                        <select class="fb-input fb-input--inline tier-select" [(ngModel)]="tier.type">
+                          <option value="flat">Flat Fee</option>
+                          <option value="percentage">Percentage</option>
+                        </select>
+                        <input *ngIf="tier.type === 'flat'" class="fb-input fb-input--inline tier-input" placeholder="Fee Amount" [(ngModel)]="tier.flatFee" type="number" step="0.01" />
+                        <input *ngIf="tier.type === 'percentage'" class="fb-input fb-input--inline tier-input" placeholder="%" [(ngModel)]="tier.percentageFee" type="number" step="0.01" />
+                        <button class="action-btn action-btn--danger action-btn--sm" (click)="removeTier(i, 'edit')">
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                      </div>
+                    </div>
+                    <button class="action-btn action-btn--primary action-btn--sm" (click)="addTier('edit')">
+                      <ion-icon name="add-outline"></ion-icon> Add Tier
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="filteredCorridorFees.length === 0" class="empty-state">
+        <ion-icon name="cash-outline"></ion-icon>
+        <p>No corridor fees configured</p>
+        <span>Add fee configurations for your corridors and delivery methods</span>
+      </div>
+    </div>
+  </div>
+</div>

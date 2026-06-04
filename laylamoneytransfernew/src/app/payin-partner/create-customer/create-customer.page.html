@@ -1,0 +1,100 @@
+<div class="create-customer-page">
+  <div class="page-header">
+    <button class="back-btn" (click)="router.navigate(['/payin-partner/dashboard'])">
+      <ion-icon name="arrow-back-outline"></ion-icon>
+    </button>
+    <div>
+      <h1 class="page-title">Create Customer</h1>
+      <p class="page-subtitle">Register a new customer via PayIn partner</p>
+    </div>
+  </div>
+
+  <div class="fb-card form-card">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-grid">
+
+        <div class="fb-field">
+          <label class="fb-field__label">First Name <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('firstName')"
+                 formControlName="firstName" placeholder="John" />
+          <span class="fb-field__error" *ngIf="isInvalid('firstName')">First name is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Last Name <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('lastName')"
+                 formControlName="lastName" placeholder="Doe" />
+          <span class="fb-field__error" *ngIf="isInvalid('lastName')">Last name is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Email <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('email')"
+                 formControlName="email" type="email" placeholder="john@example.com" />
+          <span class="fb-field__error" *ngIf="isInvalid('email')">Valid email is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Phone <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('phone')"
+                 formControlName="phone" placeholder="+441234567890" />
+          <span class="fb-field__error" *ngIf="isInvalid('phone')">Phone is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Date of Birth <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('dob')"
+                 formControlName="dob" type="date" />
+          <span class="fb-field__error" *ngIf="isInvalid('dob')">Date of birth is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Nationality <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('nationality')"
+                 formControlName="nationality" placeholder="British" />
+          <span class="fb-field__error" *ngIf="isInvalid('nationality')">Nationality is required</span>
+        </div>
+
+        <div class="fb-field fb-field--full">
+          <label class="fb-field__label">Address Line 1 <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('addressLine1')"
+                 formControlName="addressLine1" placeholder="10 Downing Street" />
+          <span class="fb-field__error" *ngIf="isInvalid('addressLine1')">Address is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">City <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('city')"
+                 formControlName="city" placeholder="London" />
+          <span class="fb-field__error" *ngIf="isInvalid('city')">City is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Country <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('country')"
+                 formControlName="country" placeholder="GB" />
+          <span class="fb-field__error" *ngIf="isInvalid('country')">Country is required</span>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">Postal Code <span class="required">*</span></label>
+          <input class="fb-input" [class.fb-input--error]="isInvalid('postalCode')"
+                 formControlName="postalCode" placeholder="SW1A 2AA" />
+          <span class="fb-field__error" *ngIf="isInvalid('postalCode')">Postal code is required</span>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="fb-btn fb-btn--primary" [disabled]="loading">
+          <ion-icon name="person-add-outline" *ngIf="!loading"></ion-icon>
+          <ion-spinner name="crescent" *ngIf="loading" style="width:18px;height:18px;"></ion-spinner>
+          {{ loading ? 'Creating...' : 'Create Customer' }}
+        </button>
+        <button type="button" class="fb-btn fb-btn--secondary" (click)="router.navigate(['/payin-partner/dashboard'])">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

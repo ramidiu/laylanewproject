@@ -1,0 +1,182 @@
+.audit-page {
+  padding: 24px;
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    &__actions {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .page-title {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .page-subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+  }
+
+  .filters-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    padding: 8px 14px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+
+    &:hover { background: #f9fafb; }
+
+    &--active {
+      background: #1B3A6B;
+      color: #fff;
+      border-color: #1B3A6B;
+    }
+  }
+
+  .filter-selects {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+
+  .fb-select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    color: #374151;
+  }
+
+  .audit-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f9fafb;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .cell-primary {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .cell-secondary {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .mono { font-family: ui-monospace, monospace; }
+    .source { font-family: ui-monospace, monospace; font-size: 11px; color: #4b5563; }
+    .reason {
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #374151;
+    }
+  }
+
+  .empty-row {
+    padding: 24px;
+    text-align: center;
+    color: #6b7280;
+  }
+
+  .pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid #f3f4f6;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+
+    &--danger { background: #fee2e2; color: #991b1b; }
+    &--warning { background: #fef3c7; color: #92400e; }
+    &--primary { background: #dbeafe; color: #1e40af; }
+    &--success { background: #d1fae5; color: #065f46; }
+    &--medium { background: #e5e7eb; color: #374151; }
+  }
+
+  .fb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #fff;
+    color: #374151;
+
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    &--ghost {
+      background: #fff;
+      border-color: #e5e7eb;
+      &:hover:not(:disabled) { background: #f9fafb; }
+    }
+  }
+}

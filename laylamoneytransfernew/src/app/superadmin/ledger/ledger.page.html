@@ -1,0 +1,341 @@
+<div class="ledger-page">
+  <h1 class="page-title">Ledger</h1>
+  <p class="page-subtitle">Platform financial records and partner balances</p>
+
+  <ion-segment [(ngModel)]="activeSegment" class="ledger-tabs">
+    <ion-segment-button value="platform"><ion-label>Platform Ledger</ion-label></ion-segment-button>
+    <ion-segment-button value="balances"><ion-label>Partner Balances</ion-label></ion-segment-button>
+  </ion-segment>
+
+  <!-- Platform Ledger -->
+  <div *ngIf="activeSegment === 'platform'" class="tab-content">
+    <!-- Totals Summary -->
+    <div class="ledger-totals" *ngIf="!platformLoading && platformEntries.length > 0">
+      <div class="total-card total-card--credit">
+        <span class="total-label">Total Credits</span>
+        <span class="total-value">{{ getTotalCredits() | number:'1.2-2' }} USD</span>
+      </div>
+      <div class="total-card total-card--debit">
+        <span class="total-label">Total Debits</span>
+        <span class="total-value">{{ getTotalDebits() | number:'1.2-2' }} USD</span>
+      </div>
+      <div class="total-card total-card--balance">
+        <span class="total-label">Net Balance</span>
+        <span class="total-value">{{ getNetBalance() | number:'1.2-2' }} USD</span>
+      </div>
+    </div>
+
+    <!-- Outstanding Payables -->
+    <div class="settlement-section settlement-section--payables" *ngIf="!balancesLoading">
+      <div class="settlement-section__header">
+        <h3 class="settlement-section__title">Outstanding Payables</h3>
+        <span class="settlement-section__subtitle">What Admin Owes Payout Partners</span>
+      </div>
+      <div class="settlement-table-wrapper">
+        <table class="settlement-table">
+          <thead>
+            <tr>
+              <th>Partner</th>
+              <th>Payout Count</th>
+              <th>Balance</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let partner of partnerBalances">
+              <td class="partner-name-cell">{{ partner.partnerName || 'Partner #' + partner.partnerId }}</td>
+              <td>{{ partner.transactionCount || 0 }}</td>
+              <td>
+                <span class="balance-amount"
+                  [class.balance-owes]="partner.balance > 0"
+                  [class.balance-settled]="partner.balance === 0"
+                  [class.balance-prefunded]="partner.balance < 0">
+                  <ng-container *ngIf="partner.balance > 0">{{ partner.balance | number:'1.2-2' }} USD</ng-container>
+                  <ng-container *ngIf="partner.balance === 0">Settled</ng-container>
+                  <ng-container *ngIf="partner.balance < 0">Prefunded {{ (partner.balance * -1) | number:'1.2-2' }} USD</ng-container>
+                </span>
+              </td>
+              <td>
+                <button class="btn btn--navy btn--sm" (click)="openPayForm(partner)">Pay / Prefund</button>
+              </td>
+            </tr>
+            <tr *ngIf="partnerBalances.length === 0">
+              <td colspan="4" class="empty-state">No payout partner balances</td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="partnerBalances.length > 0">
+            <tr class="total-row">
+              <td colspan="2"><strong>Total Outstanding</strong></td>
+              <td>
+                <strong class="balance-amount balance-owes">{{ getTotalOutstandingPayables() | number:'1.2-2' }} USD</strong>
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Outstanding Receivables -->
+    <div class="settlement-section settlement-section--receivables" *ngIf="!payinBalancesLoading">
+      <div class="settlement-section__header">
+        <h3 class="settlement-section__title">Outstanding Receivables</h3>
+        <span class="settlement-section__subtitle">What Pay-In Partners Owe Admin</span>
+      </div>
+      <div class="settlement-table-wrapper">
+        <table class="settlement-table">
+          <thead>
+            <tr>
+              <th>Partner</th>
+              <th>Collection Count</th>
+              <th>Balance</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let partner of payinBalances">
+              <td class="partner-name-cell">{{ partner.partnerName || 'Partner #' + partner.partnerId }}</td>
+              <td>{{ partner.transactionCount || 0 }}</td>
+              <td>
+                <span class="balance-amount"
+                  [class.balance-receivable]="partner.balance > 0"
+                  [class.balance-settled-grey]="partner.balance === 0">
+                  <ng-container *ngIf="partner.balance > 0">{{ partner.balance | number:'1.2-2' }} USD</ng-container>
+                  <ng-container *ngIf="partner.balance === 0">Settled</ng-container>
+                  <ng-container *ngIf="partner.balance < 0">Overpaid {{ (partner.balance * -1) | number:'1.2-2' }} USD</ng-container>
+                </span>
+              </td>
+              <td>
+                <button class="btn btn--success btn--sm" (click)="openReceiveForm(partner)" *ngIf="partner.balance > 0">Receive</button>
+              </td>
+            </tr>
+            <tr *ngIf="payinBalances.length === 0">
+              <td colspan="4" class="empty-state">No pay-in partner balances</td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="payinBalances.length > 0">
+            <tr class="total-row">
+              <td colspan="2"><strong>Total Receivable</strong></td>
+              <td>
+                <strong class="balance-amount balance-receivable">{{ getTotalOutstandingReceivables() | number:'1.2-2' }} USD</strong>
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pay Partner Form -->
+    <div class="settlement-form-card" *ngIf="showPayForm && payFormPartner">
+      <div class="settlement-form-card__header settlement-form-card__header--navy">
+        <h3>Pay {{ payFormPartner.partnerName || 'Partner #' + payFormPartner.partnerId }}</h3>
+        <span class="outstanding-label">Outstanding: <strong class="balance-owes">{{ payFormPartner.balance | number:'1.2-2' }} USD</strong></span>
+      </div>
+      <div class="settlement-form-card__body">
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <div class="amount-input-row">
+            <input type="number" class="form-input" [(ngModel)]="payFormAmount" placeholder="0.00" min="0" step="0.01" />
+            <button class="btn btn--outline btn--sm" (click)="setPayFullAmount()">Full Amount</button>
+            <button class="btn btn--outline btn--sm" (click)="setPayHalfAmount()">Half</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Reference</label>
+          <input type="text" class="form-input" [(ngModel)]="payFormReference" placeholder="Bank transfer reference" />
+        </div>
+        <div class="form-summary" *ngIf="payFormAmount">
+          <div class="form-summary__row">
+            <span>Amount</span>
+            <span class="mono-value">{{ payFormAmount | number:'1.2-2' }} USD</span>
+          </div>
+          <div class="form-summary__row">
+            <span>Outstanding Before</span>
+            <span class="mono-value">{{ payFormPartner.balance | number:'1.2-2' }} USD</span>
+          </div>
+          <div class="form-summary__row">
+            <span>Outstanding After</span>
+            <span class="mono-value">{{ getPayOutstandingAfter() | number:'1.2-2' }} USD</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--outline" (click)="closePayForm()">Cancel</button>
+          <button class="btn btn--navy" (click)="submitPayForm()" [disabled]="payFormSubmitting || !payFormAmount || !payFormReference">
+            {{ payFormSubmitting ? 'Processing...' : 'Settle' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receive Payment Form -->
+    <div class="settlement-form-card" *ngIf="showReceiveForm && receiveFormPartner">
+      <div class="settlement-form-card__header settlement-form-card__header--success">
+        <h3>Receive from {{ receiveFormPartner.partnerName || 'Partner #' + receiveFormPartner.partnerId }}</h3>
+        <span class="outstanding-label">Owes: <strong class="balance-receivable">{{ receiveFormPartner.balance | number:'1.2-2' }} USD</strong></span>
+      </div>
+      <div class="settlement-form-card__body">
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <div class="amount-input-row">
+            <input type="number" class="form-input" [(ngModel)]="receiveFormAmount" placeholder="0.00" min="0" step="0.01" />
+            <button class="btn btn--outline btn--sm" (click)="setReceiveFullAmount()">Full Amount</button>
+            <button class="btn btn--outline btn--sm" (click)="setReceiveHalfAmount()">Half</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Reference</label>
+          <input type="text" class="form-input" [(ngModel)]="receiveFormReference" placeholder="Bank transfer reference" />
+        </div>
+        <div class="form-summary" *ngIf="receiveFormAmount">
+          <div class="form-summary__row">
+            <span>Amount</span>
+            <span class="mono-value">{{ receiveFormAmount | number:'1.2-2' }} USD</span>
+          </div>
+          <div class="form-summary__row">
+            <span>Outstanding Before</span>
+            <span class="mono-value">{{ receiveFormPartner.balance | number:'1.2-2' }} USD</span>
+          </div>
+          <div class="form-summary__row">
+            <span>Outstanding After</span>
+            <span class="mono-value">{{ getReceiveOutstandingAfter() | number:'1.2-2' }} USD</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--outline" (click)="closeReceiveForm()">Cancel</button>
+          <button class="btn btn--success" (click)="submitReceiveForm()" [disabled]="receiveFormSubmitting || !receiveFormAmount || !receiveFormReference">
+            {{ receiveFormSubmitting ? 'Processing...' : 'Receive $' + (receiveFormAmount | number:'1.2-2') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Settlements -->
+    <div class="settlement-section settlement-section--pending" *ngIf="!pendingSettlementsLoading && pendingSettlements.length > 0">
+      <div class="settlement-section__header">
+        <h3 class="settlement-section__title">Pending Settlements</h3>
+        <span class="settlement-section__subtitle">Awaiting approval or confirmation</span>
+      </div>
+      <div class="settlement-table-wrapper">
+        <table class="settlement-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Reference</th>
+              <th>Initiator</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of pendingSettlements">
+              <td>
+                <span class="type-badge"
+                  [class.type-badge--payin]="s.type === 'PAYIN_TO_ADMIN'"
+                  [class.type-badge--payout]="s.type === 'ADMIN_TO_PAYOUT'">
+                  {{ s.type === 'PAYIN_TO_ADMIN' ? 'Pay-In to Admin' : 'Admin to Payout' }}
+                </span>
+              </td>
+              <td class="mono-value">{{ s.amount | number:'1.2-2' }} {{ s.currency || 'USD' }}</td>
+              <td>{{ s.reference || '-' }}</td>
+              <td>{{ s.initiatorName || s.initiator || '-' }}</td>
+              <td>{{ s.createdAt | date:'MMM d, y HH:mm' }}</td>
+              <td>
+                <div class="action-buttons" *ngIf="s.type === 'PAYIN_TO_ADMIN'">
+                  <button class="btn btn--success btn--sm" (click)="approveSettlement(s.id)">Approve</button>
+                  <button class="btn btn--danger btn--sm" (click)="rejectSettlement(s.id)">Reject</button>
+                </div>
+                <span class="awaiting-badge" *ngIf="s.type === 'ADMIN_TO_PAYOUT'">Awaiting partner</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="fb-card table-card">
+      <div *ngIf="platformLoading" class="table-loading">
+        <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5,6]"></div>
+      </div>
+
+      <div class="table-wrapper" *ngIf="!platformLoading">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Account</th>
+              <th>Type</th>
+              <th>Local Amount</th>
+              <th>USD Amount</th>
+              <th>Balance (USD)</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of platformEntries">
+              <td>{{ entry.createdAt | date:'MMM d, y HH:mm' }}</td>
+              <td>{{ entry.description }}</td>
+              <td><ion-badge color="tertiary">{{ entry.accountType }}</ion-badge></td>
+              <td>
+                <ion-badge [color]="getEntryTypeColor(entry.entryType)">{{ entry.entryType }}</ion-badge>
+              </td>
+              <td class="fb-currency" [class.credit]="entry.entryType === 'CREDIT'" [class.debit]="entry.entryType === 'DEBIT'">
+                {{ entry.entryType === 'CREDIT' ? '+' : '-' }}{{ entry.localAmount | number:'1.2-2' }} {{ entry.localCurrency }}
+              </td>
+              <td class="fb-currency">{{ entry.usdAmount | number:'1.4-4' }} USD</td>
+              <td class="fb-currency">{{ entry.balanceUsd | number:'1.4-4' }}</td>
+              <td class="ref-cell">{{ entry.txnDisplayId || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!platformLoading && platformEntries.length === 0" class="empty-state">
+        <ion-icon name="book-outline"></ion-icon>
+        <p>No ledger entries</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partner Balances -->
+  <div *ngIf="activeSegment === 'balances'" class="tab-content">
+    <div *ngIf="balancesLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div class="balances-grid" *ngIf="!balancesLoading">
+      <div class="fb-card balance-card" *ngFor="let partner of partnerBalances">
+        <div class="balance-card__header">
+          <div class="balance-card__name">{{ partner.partnerName || 'Partner #' + partner.partnerId }}</div>
+          <ion-badge [color]="partner.balance > 0 ? 'success' : partner.balance < 0 ? 'danger' : 'medium'">
+            {{ partner.balance > 0 ? 'Owed to Partner' : partner.balance < 0 ? 'Partner Owes' : 'Settled' }}
+          </ion-badge>
+        </div>
+        <div class="balance-card__amount" [class.positive]="partner.balance > 0" [class.negative]="partner.balance < 0">
+          {{ partner.currency || 'USD' }} {{ partner.balance | number:'1.2-2' }}
+        </div>
+        <div class="balance-card__details">
+          <div class="detail-row">
+            <span>Total Disbursed</span>
+            <span>{{ partner.totalDisbursed | number:'1.2-2' }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Total Settled</span>
+            <span>{{ partner.totalSettled | number:'1.2-2' }}</span>
+          </div>
+          <div class="detail-row">
+            <span>Transaction Count</span>
+            <span>{{ partner.transactionCount || 0 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!balancesLoading && partnerBalances.length === 0" class="empty-state">
+      <ion-icon name="wallet-outline"></ion-icon>
+      <p>No partner balance data available</p>
+    </div>
+  </div>
+</div>

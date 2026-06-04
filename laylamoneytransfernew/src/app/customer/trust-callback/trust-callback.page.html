@@ -1,0 +1,115 @@
+<ion-content class="tc-content">
+  <div class="tc-wrap">
+
+    <!-- Loading -->
+    <ng-container *ngIf="isLoading">
+      <ion-spinner name="crescent" style="width:48px;height:48px;color:#1B3A6B;margin-bottom:16px;"></ion-spinner>
+      <p class="tc-subtitle">Confirming your payment&hellip;</p>
+    </ng-container>
+
+    <ng-container *ngIf="!isLoading">
+
+      <!-- Status Icon -->
+      <div class="tc-icon" [ngClass]="isSuccess ? 'tc-icon--success' : 'tc-icon--error'">
+        <ion-icon [name]="isSuccess ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+      </div>
+
+      <!-- Title -->
+      <h1 class="tc-title">{{ isSuccess ? 'Payment Successful!' : 'Payment Failed' }}</h1>
+      <p class="tc-subtitle">
+        {{ isSuccess
+          ? 'Your card payment was processed. Your transfer is now being submitted.'
+          : 'Your card payment could not be completed. Please try again or use a different payment method.' }}
+      </p>
+
+      <!-- Summary Card (success only) -->
+      <div class="tc-card" *ngIf="isSuccess">
+
+        <div class="tc-transfer">
+          <div class="tc-transfer__side">
+            <span class="tc-transfer__label">You sent</span>
+            <span class="tc-transfer__amount">{{ sendCurrency }} {{ sendAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="tc-transfer__arrow">
+            <ion-icon name="arrow-forward"></ion-icon>
+          </div>
+          <div class="tc-transfer__side tc-transfer__side--receive">
+            <span class="tc-transfer__label">Recipient gets</span>
+            <span class="tc-transfer__amount tc-transfer__amount--receive">
+              {{ receiveCurrency }} {{ receiveAmount | number:'1.2-2' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="tc-divider"></div>
+
+        <div class="tc-row" *ngIf="recipientName">
+          <span class="tc-row__label">
+            <ion-icon name="person-outline"></ion-icon> Recipient
+          </span>
+          <span class="tc-row__value">{{ recipientName }}</span>
+        </div>
+
+        <div class="tc-row" *ngIf="fee > 0">
+          <span class="tc-row__label">
+            <ion-icon name="receipt-outline"></ion-icon> Fee
+          </span>
+          <span class="tc-row__value">{{ sendCurrency }} {{ fee | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="tc-row" *ngIf="exchangeRate > 0">
+          <span class="tc-row__label">
+            <ion-icon name="swap-horizontal-outline"></ion-icon> Exchange rate
+          </span>
+          <span class="tc-row__value">1 {{ sendCurrency }} = {{ exchangeRate | number:'1.4-4' }} {{ receiveCurrency }}</span>
+        </div>
+
+        <div class="tc-row" *ngIf="txnRef">
+          <span class="tc-row__label">
+            <ion-icon name="document-text-outline"></ion-icon> Reference
+          </span>
+          <span class="tc-row__value tc-row__value--ref">{{ txnRef }}</span>
+        </div>
+
+        <div class="tc-row" *ngIf="orderReference">
+          <span class="tc-row__label">
+            <ion-icon name="card-outline"></ion-icon> Order Ref
+          </span>
+          <span class="tc-row__value tc-row__value--ref">{{ orderReference }}</span>
+        </div>
+
+        <div class="tc-status tc-status--success">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          FUNDS RECEIVED
+        </div>
+
+      </div>
+
+      <!-- Actions -->
+      <div class="tc-actions">
+        <ng-container *ngIf="isSuccess">
+          <button class="tc-btn tc-btn--primary" (click)="goToTransactions()">
+            <ion-icon name="list-outline"></ion-icon>
+            View Transactions
+          </button>
+          <button class="tc-btn tc-btn--outline" (click)="goToHome()">
+            <ion-icon name="home-outline"></ion-icon>
+            Go to Dashboard
+          </button>
+        </ng-container>
+        <ng-container *ngIf="!isSuccess">
+          <button class="tc-btn tc-btn--primary" (click)="tryAgain()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            Try Again
+          </button>
+          <button class="tc-btn tc-btn--outline" (click)="goToHome()">
+            <ion-icon name="home-outline"></ion-icon>
+            Go to Dashboard
+          </button>
+        </ng-container>
+      </div>
+
+    </ng-container>
+
+  </div>
+</ion-content>

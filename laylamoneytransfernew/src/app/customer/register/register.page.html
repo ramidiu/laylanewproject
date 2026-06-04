@@ -1,0 +1,155 @@
+<ion-content class="register-content">
+  <div class="register-container">
+    <!-- Logo -->
+    <div class="register-logo">
+      <img src="assets/images/layla-logo.webp" alt="Layla" style="width:220px;height:auto;margin-bottom:16px" />
+      <h1 class="register-logo__title">{{ 'REGISTER.TITLE' | translate }}</h1>
+      <p class="register-logo__subtitle">{{ 'REGISTER.SUBTITLE' | translate }}</p>
+    </div>
+
+    <!-- Register Form -->
+    <div class="register-card">
+      <form [formGroup]="registerForm" (ngSubmit)="$event.preventDefault()">
+
+        <!-- First Name -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'REGISTER.FIRST_NAME' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="firstName" [placeholder]="'REGISTER.FIRST_NAME' | translate" />
+          <div class="fb-field__error" *ngIf="registerForm.get('firstName')?.touched && registerForm.get('firstName')?.invalid">
+            {{ 'REGISTER.FIRST_NAME_ERROR' | translate }}
+          </div>
+        </div>
+
+        <!-- Last Name -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'REGISTER.LAST_NAME' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="lastName" [placeholder]="'REGISTER.LAST_NAME' | translate" />
+          <div class="fb-field__error" *ngIf="registerForm.get('lastName')?.touched && registerForm.get('lastName')?.invalid">
+            {{ 'REGISTER.LAST_NAME_ERROR' | translate }}
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'REGISTER.EMAIL' | translate }}</label>
+          <input type="email" class="fb-input" formControlName="email" [placeholder]="'AUTH.EMAIL_PLACEHOLDER' | translate"
+            [class.fb-input--error]="registerForm.get('email')?.touched && registerForm.get('email')?.invalid" />
+          <div class="fb-field__error" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.hasError('required')">
+            {{ 'REGISTER.EMAIL_REQUIRED' | translate }}
+          </div>
+          <div class="fb-field__error" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.hasError('email')">
+            {{ 'COMMON.INVALID_EMAIL' | translate }}
+          </div>
+          <div class="fb-field__error" *ngIf="registerForm.get('email')?.hasError('emailExists')">
+            This email is already registered. <a href="/login" style="color:#1B3571;font-weight:600">{{ 'AUTH.SIGN_IN' | translate }}?</a>
+          </div>
+        </div>
+
+        <!-- Country of Residence (UK only) -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'REGISTER.COUNTRY' | translate }}</label>
+          <div class="fb-input" style="display:flex;align-items:center;gap:8px;background:#f5f5f5;cursor:default;">
+            <span>🇬🇧</span>
+            <span>United Kingdom</span>
+          </div>
+        </div>
+
+        <!-- Phone -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'REGISTER.PHONE' | translate }}</label>
+          <div class="fb-field__input-wrapper fb-field__phone-wrapper">
+            <div class="fb-field__dial-code" *ngIf="selectedCountry">
+              <img [src]="selectedCountry.code | countryFlagUrl:24" width="20" height="15" style="border-radius:2px;vertical-align:middle;margin-right:6px" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'" />
+              <span class="fb-field__dial-flag" style="display:none">{{ selectedCountry.flag }}</span>
+              <span>{{ selectedCountry.dialCode }}</span>
+            </div>
+            <input
+              type="tel"
+              class="fb-input"
+              [class.fb-input--with-dial]="selectedCountry"
+              formControlName="phone"
+              [placeholder]="'Enter ' + phoneDigitsLabel"
+              [maxlength]="phoneDigits"
+              inputmode="numeric"
+            />
+          </div>
+          <div class="fb-field__error" *ngIf="registerForm.get('phone')?.touched && registerForm.get('phone')?.invalid">
+            {{ 'REGISTER.PHONE_ERROR' | translate }}
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'AUTH.PASSWORD' | translate }}</label>
+          <div class="fb-field__input-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="fb-input"
+              formControlName="password"
+              [placeholder]="'REGISTER.PASSWORD_HINT' | translate"
+            />
+            <ion-icon
+              [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"
+              class="fb-field__toggle"
+              (click)="showPassword = !showPassword"
+            ></ion-icon>
+          </div>
+          <div class="password-strength" *ngIf="registerForm.get('password')?.value">
+            <div class="password-strength__bar">
+              <div class="password-strength__fill"
+                [style.width.%]="passwordStrength * 25"
+                [ngClass]="{'weak':passwordStrength===1,'fair':passwordStrength===2,'good':passwordStrength===3,'strong':passwordStrength===4}">
+              </div>
+            </div>
+            <span class="password-strength__label"
+              [ngClass]="{'weak':passwordStrength===1,'fair':passwordStrength===2,'good':passwordStrength===3,'strong':passwordStrength===4}">
+              {{ passwordStrengthLabel }}
+            </span>
+          </div>
+          <div class="fb-field__error" *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.hasError('weakPassword')">
+            {{ 'REGISTER.PASSWORD_WEAK_ERROR' | translate }}
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'REGISTER.CONFIRM_PASSWORD' | translate }}</label>
+          <div class="fb-field__input-wrapper">
+            <input
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              class="fb-input"
+              formControlName="confirmPassword"
+              [placeholder]="'REGISTER.CONFIRM_PASSWORD' | translate"
+            />
+            <ion-icon
+              [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'"
+              class="fb-field__toggle"
+              (click)="showConfirmPassword = !showConfirmPassword"
+            ></ion-icon>
+          </div>
+          <div class="fb-field__error" *ngIf="registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.hasError('passwordMismatch')">
+            {{ 'COMMON.PASSWORDS_MISMATCH' | translate }}
+          </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="register-card__terms">
+          <label class="terms-label">
+            <input type="checkbox" formControlName="agreeTerms" class="terms-checkbox" />
+            <span>{{ 'REGISTER.TERMS' | translate }}</span>
+          </label>
+        </div>
+
+        <button type="button" class="register-submit-btn" [disabled]="submitting" (click)="onRegister()">
+          <ion-icon name="person-add-outline"></ion-icon>
+          {{ submitting ? ('REGISTER.CREATING' | translate) : ('REGISTER.SUBMIT' | translate) }}
+        </button>
+      </form>
+
+      <div class="register-card__login">
+        {{ 'AUTH.ALREADY_HAVE' | translate }}
+        <a href="/login">{{ 'REGISTER.SIGN_IN' | translate }}</a>
+      </div>
+    </div>
+  </div>
+</ion-content>

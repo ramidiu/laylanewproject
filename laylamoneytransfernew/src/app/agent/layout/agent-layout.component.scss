@@ -1,0 +1,102 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.agent-layout {
+  display: flex;
+  min-height: 100vh;
+  background: $fb-gray-50;
+}
+
+.agent-sidenav {
+  width: 260px;
+  background: $fb-navy;
+  color: $fb-white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+
+  &__header {
+    padding: $fb-space-4;
+    border-bottom: 1px solid rgba($fb-white, 0.1);
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    font-size: $fb-text-lg;
+    font-weight: $fb-font-bold;
+    margin-bottom: $fb-space-1;
+    ion-icon { font-size: 28px; color: $fb-sky; }
+  }
+
+  &__role {
+    font-size: $fb-text-xs;
+    color: rgba($fb-white, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__nav {
+    flex: 1;
+    padding: $fb-space-3;
+    display: flex;
+    flex-direction: column;
+    gap: $fb-space-1;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+    padding: $fb-space-3;
+    border-radius: $fb-radius-md;
+    color: rgba($fb-white, 0.7);
+    text-decoration: none;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    cursor: pointer;
+    transition: all $fb-transition-fast;
+
+    ion-icon { font-size: 20px; }
+    &:hover { background: rgba($fb-white, 0.1); color: $fb-white; }
+    &.active { background: rgba($fb-sky, 0.2); color: $fb-white; border-left: 3px solid $fb-sky; }
+  }
+
+  &__footer {
+    padding: $fb-space-3;
+    border-top: 1px solid rgba($fb-white, 0.1);
+  }
+}
+
+.agent-main {
+  flex: 1;
+  margin-left: 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-toolbar {
+  background: $fb-white;
+  border-bottom: 1px solid $fb-gray-100;
+  display: flex;
+  justify-content: flex-end;
+  padding: $fb-space-3 $fb-space-6;
+  min-height: 56px;
+
+  &__right { display: flex; align-items: center; gap: $fb-space-2; }
+  &__avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: $fb-sky; color: $fb-white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: $fb-text-sm; font-weight: $fb-font-bold;
+  }
+  &__name { font-size: $fb-text-sm; font-weight: $fb-font-medium; color: $fb-gray-700; }
+}
+
+.agent-content {
+  flex: 1;
+  padding: $fb-space-6;
+}

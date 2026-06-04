@@ -1,0 +1,68 @@
+<div class="admin-layout" [class.collapsed]="sidenavCollapsed" [class.mobile-open]="mobileMenuOpen">
+  <div class="admin-backdrop" *ngIf="mobileMenuOpen" (click)="closeMobileMenu()"></div>
+  <!-- Sidenav -->
+  <aside class="admin-sidenav">
+    <div class="admin-sidenav__header">
+      <div class="admin-sidenav__logo">
+        <img src="assets/images/layla-logo.webp" alt="Layla" [style.width]="sidenavCollapsed ? '40px' : '150px'" style="height:auto;" />
+      </div>
+      <button class="admin-sidenav__toggle" (click)="toggleSidenav()">
+        <ion-icon [name]="sidenavCollapsed ? 'chevron-forward' : 'chevron-back'"></ion-icon>
+      </button>
+    </div>
+
+    <nav class="admin-sidenav__nav">
+      <div class="admin-sidenav__group" *ngFor="let group of menuGroups">
+        <div class="admin-sidenav__group-label" *ngIf="!sidenavCollapsed">{{ group.label }}</div>
+        <div class="admin-sidenav__group-divider" *ngIf="sidenavCollapsed"></div>
+        <a
+          *ngFor="let item of group.items"
+          [routerLink]="item.route"
+          class="admin-sidenav__item"
+          [class.active]="isActive(item.route)"
+          (click)="onNavClick()"
+        >
+          <ion-icon [name]="item.icon"></ion-icon>
+          <span *ngIf="!sidenavCollapsed">{{ item.label }}</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="admin-sidenav__footer">
+      <a class="admin-sidenav__item" (click)="logout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+        <span *ngIf="!sidenavCollapsed">Sign Out</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-main">
+    <header class="admin-toolbar">
+      <div class="admin-toolbar__left">
+        <button class="admin-toolbar__menu-btn" (click)="toggleMobileMenu()">
+          <ion-icon name="menu-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="admin-toolbar__right">
+        <button class="admin-toolbar__lang-btn" (click)="toggleLanguage()" title="Switch Language">
+          <span class="lang-label">{{ isRtl ? 'EN' : 'عر' }}</span>
+        </button>
+        <button class="admin-toolbar__notification-btn" (click)="openNotifications()">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span class="admin-toolbar__notification-badge" *ngIf="notificationCount > 0">
+            {{ notificationCount > 99 ? '99+' : notificationCount }}
+          </span>
+        </button>
+        <div class="admin-toolbar__user">
+          <div class="admin-toolbar__avatar">{{ initials }}</div>
+          <span class="admin-toolbar__username">{{ userName }}</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

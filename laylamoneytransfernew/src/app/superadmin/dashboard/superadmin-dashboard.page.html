@@ -1,0 +1,69 @@
+<div class="sa-dashboard">
+  <h1 class="page-title">Super Admin Dashboard</h1>
+  <p class="page-subtitle">Platform overview and quick actions</p>
+
+  <div class="quick-cards-grid">
+    <a
+      *ngFor="let card of cards"
+      class="quick-card"
+      [class]="'quick-card quick-card--' + card.color"
+      [routerLink]="card.route"
+    >
+      <div class="quick-card__icon">
+        <ion-icon [name]="card.icon"></ion-icon>
+      </div>
+      <div class="quick-card__info">
+        <span class="quick-card__count">{{ card.count }}</span>
+        <span class="quick-card__label">{{ card.label }}</span>
+      </div>
+      <ion-icon name="chevron-forward-outline" class="quick-card__arrow"></ion-icon>
+    </a>
+  </div>
+
+  <!-- Recent Activity Section -->
+  <div class="sa-dashboard__grid" *ngIf="isSuperAdmin">
+    <div class="fb-card activity-card">
+      <h3 class="card-title">System Status</h3>
+      <div class="status-list">
+        <div class="status-item">
+          <ion-icon name="checkmark-circle" class="status-icon status-icon--ok"></ion-icon>
+          <span class="status-label">Transaction Service</span>
+          <ion-badge color="success">Online</ion-badge>
+        </div>
+        <div class="status-item">
+          <ion-icon name="checkmark-circle" class="status-icon status-icon--ok"></ion-icon>
+          <span class="status-label">FX Rate Feed</span>
+          <ion-badge color="success">Online</ion-badge>
+        </div>
+        <div class="status-item">
+          <ion-icon name="checkmark-circle" class="status-icon status-icon--ok"></ion-icon>
+          <span class="status-label">Compliance Engine</span>
+          <ion-badge color="success">Online</ion-badge>
+        </div>
+        <div class="status-item">
+          <ion-icon name="checkmark-circle" class="status-icon status-icon--ok"></ion-icon>
+          <span class="status-label">Notification Service</span>
+          <ion-badge color="success">Online</ion-badge>
+        </div>
+      </div>
+    </div>
+
+    <div class="fb-card activity-card">
+      <h3 class="card-title">Quick Links</h3>
+      <div class="quick-links">
+        <a class="quick-link" routerLink="/superadmin/audit-logs">
+          <ion-icon name="document-text-outline"></ion-icon>
+          <span>View Audit Logs</span>
+        </a>
+        <a class="quick-link" routerLink="/superadmin/email-templates">
+          <ion-icon name="mail-outline"></ion-icon>
+          <span>Email Templates</span>
+        </a>
+        <a class="quick-link" routerLink="/superadmin/fx">
+          <ion-icon name="trending-up-outline"></ion-icon>
+          <span>Manage FX Rates</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

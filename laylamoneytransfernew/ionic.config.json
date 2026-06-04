@@ -1,0 +1,7 @@
+{
+  "name": "remitzai-ui",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

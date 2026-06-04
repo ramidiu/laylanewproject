@@ -1,0 +1,425 @@
+<ion-content class="kyc-content">
+  <div class="kyc-container">
+    <!-- Header -->
+    <div class="kyc-header">
+      <div class="kyc-header__icon">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+      </div>
+      <h1 class="kyc-header__title">{{ 'KYC.TITLE' | translate }}</h1>
+      <p class="kyc-header__subtitle">{{ 'KYC.SUBTITLE' | translate }}</p>
+    </div>
+
+    <!-- Loading State -->
+    <div class="kyc-card" *ngIf="loadingStatus">
+      <div class="kyc-loading">
+        <ion-icon name="hourglass-outline"></ion-icon>
+        <p>{{ 'KYC.CHECKING_STATUS' | translate }}</p>
+      </div>
+    </div>
+
+    <!-- ===================== DOCUMENTS ALREADY SUBMITTED ===================== -->
+    <div class="kyc-card" *ngIf="!loadingStatus && kycStatus !== 'NOT_SUBMITTED'">
+
+      <!-- Pending Approval Banner -->
+      <div class="kyc-status-banner kyc-status-banner--pending" *ngIf="kycStatus === 'PENDING'">
+        <ion-icon name="time-outline"></ion-icon>
+        <div>
+          <h3>{{ 'KYC.DOCS_AWAITING' | translate }}</h3>
+          <p>{{ 'KYC.DOCS_AWAITING_DESC' | translate }}</p>
+        </div>
+      </div>
+
+      <!-- Verified Banner -->
+      <div class="kyc-status-banner kyc-status-banner--verified" *ngIf="kycStatus === 'VERIFIED'">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        <div>
+          <h3>{{ 'KYC.IDENTITY_VERIFIED' | translate }}</h3>
+          <p>{{ 'KYC.IDENTITY_VERIFIED_DESC' | translate }}</p>
+        </div>
+      </div>
+
+      <!-- Rejected Banner -->
+      <div class="kyc-status-banner kyc-status-banner--rejected" *ngIf="kycStatus === 'REJECTED'">
+        <ion-icon name="alert-circle"></ion-icon>
+        <div>
+          <h3>{{ 'KYC.VERIFICATION_REJECTED' | translate }}</h3>
+          <p>{{ 'KYC.REJECTION_DESC' | translate }}</p>
+        </div>
+      </div>
+
+      <!-- Submitted Documents List -->
+      <div class="kyc-docs-section" *ngIf="existingDocuments.length > 0">
+        <h3 class="kyc-docs-section__title">{{ 'KYC.SUBMITTED_DOCS' | translate }}</h3>
+
+        <div class="kyc-doc-card" *ngFor="let doc of existingDocuments">
+          <div class="kyc-doc-card__header">
+            <div class="kyc-doc-card__type">
+              <ion-icon name="document-text-outline"></ion-icon>
+              <span>{{ getDocTypeLabel(doc.documentType) }}</span>
+            </div>
+            <span class="kyc-doc-status kyc-doc-status--{{ getStatusColor(doc.status) }}">
+              {{ doc.status }}
+            </span>
+          </div>
+
+          <div class="kyc-doc-card__details" *ngIf="doc.documentNumber || doc.issueDate || doc.expiryDate">
+            <div class="kyc-doc-detail" *ngIf="doc.documentNumber">
+              <span class="kyc-doc-detail__label">{{ 'KYC.DOC_NUMBER' | translate }}</span>
+              <span class="kyc-doc-detail__value">{{ doc.documentNumber }}</span>
+            </div>
+            <div class="kyc-doc-detail" *ngIf="doc.issueDate">
+              <span class="kyc-doc-detail__label">{{ 'KYC.ISSUE_DATE' | translate }}</span>
+              <span class="kyc-doc-detail__value">{{ doc.issueDate | date:'dd MMM yyyy' }}</span>
+            </div>
+            <div class="kyc-doc-detail" *ngIf="doc.expiryDate">
+              <span class="kyc-doc-detail__label">{{ 'KYC.EXPIRY_DATE' | translate }}</span>
+              <span class="kyc-doc-detail__value">{{ doc.expiryDate | date:'dd MMM yyyy' }}</span>
+            </div>
+          </div>
+
+          <div class="kyc-doc-card__preview">
+            <img [src]="getDocPreviewUrl(doc)" alt="Document" class="kyc-doc-preview-img" (error)="$event.target.style.display='none'" />
+          </div>
+
+          <!-- Rejection reason -->
+          <div class="kyc-doc-card__rejection" *ngIf="doc.status === 'REJECTED' && doc.rejectionReason">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>{{ 'KYC.REASON' | translate }}: {{ doc.rejectionReason }}</span>
+          </div>
+
+          <div class="kyc-doc-card__meta">
+            <span>{{ 'KYC.UPLOADED' | translate }}: {{ doc.createdAt | date:'dd MMM yyyy, HH:mm' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Re-submit / Upload new documents -->
+      <div class="kyc-actions">
+        <button type="button" class="kyc-submit-btn" (click)="showUploadForm()">
+          <ion-icon name="cloud-upload-outline"></ion-icon>
+          {{ (kycStatus === 'REJECTED' ? 'KYC.RESUBMIT' : 'KYC.UPLOAD_NEW') | translate }}
+        </button>
+        <button type="button" class="kyc-skip-btn" routerLink="/home/dashboard">
+          {{ 'KYC.BACK_TO_DASHBOARD' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ===================== UPLOAD FORM (not submitted yet) ===================== -->
+    <div class="kyc-card" *ngIf="!loadingStatus && kycStatus === 'NOT_SUBMITTED'">
+
+      <!-- Back button when uploading new docs -->
+      <div *ngIf="uploadOnly" style="margin-bottom:16px;">
+        <button type="button" class="kyc-skip-btn" (click)="cancelUpload()" style="padding:8px 16px;font-size:14px;">
+          <ion-icon name="arrow-back-outline" style="margin-right:4px;"></ion-icon>
+          {{ 'KYC.BACK_TO_DOCS' | translate }}
+        </button>
+      </div>
+
+      <!-- Section 1: Personal Details (only for first-time submission) -->
+      <div class="kyc-section" *ngIf="!uploadOnly">
+        <div class="kyc-section__header">
+          <div class="kyc-section__number">1</div>
+          <div>
+            <h2 class="kyc-section__title">{{ 'KYC.PERSONAL_DETAILS' | translate }}</h2>
+            <p class="kyc-section__desc">{{ 'KYC.PERSONAL_DETAILS_DESC' | translate }}</p>
+          </div>
+        </div>
+
+        <form [formGroup]="personalForm">
+          <div class="kyc-form-row">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'KYC.DATE_OF_BIRTH' | translate }} *</label>
+              <input type="date" class="fb-input" formControlName="dateOfBirth" [max]="maxDobDate" />
+              <div class="fb-field__error" *ngIf="personalForm.get('dateOfBirth')?.touched && personalForm.get('dateOfBirth')?.hasError('required')">
+                {{ 'KYC.DOB_REQUIRED' | translate }}
+              </div>
+              <div class="fb-field__error" *ngIf="personalForm.get('dateOfBirth')?.touched && personalForm.get('dateOfBirth')?.hasError('futureDate')">
+                {{ 'KYC.DOB_FUTURE' | translate }}
+              </div>
+              <div class="fb-field__error" *ngIf="personalForm.get('dateOfBirth')?.touched && personalForm.get('dateOfBirth')?.hasError('minAge')">
+                {{ 'KYC.DOB_MIN_AGE' | translate }}
+              </div>
+            </div>
+
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'KYC.GENDER' | translate }} *</label>
+              <select class="fb-input fb-select" formControlName="gender">
+                <option value="" disabled>{{ 'KYC.SELECT_GENDER' | translate }}</option>
+                <option *ngFor="let g of genderOptions" [value]="g.value">{{ g.label }}</option>
+              </select>
+              <div class="fb-field__error" *ngIf="personalForm.get('gender')?.touched && personalForm.get('gender')?.invalid">
+                {{ 'KYC.GENDER_REQUIRED' | translate }}
+              </div>
+            </div>
+          </div>
+
+          <div class="kyc-form-row">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'KYC.NATIONALITY' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="nationality"
+                [placeholder]="'KYC.NATIONALITY_PLACEHOLDER' | translate" />
+              <div class="fb-field__error" *ngIf="personalForm.get('nationality')?.touched && personalForm.get('nationality')?.invalid">
+                {{ 'KYC.NATIONALITY_REQUIRED' | translate }}
+              </div>
+            </div>
+
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'KYC.OCCUPATION' | translate }} *</label>
+              <select class="fb-input fb-select" formControlName="occupation">
+                <option value="" disabled>{{ 'KYC.SELECT_OCCUPATION' | translate }}</option>
+                <option *ngFor="let occ of occupationOptions" [value]="occ">{{ occ }}</option>
+              </select>
+              <div class="fb-field__error" *ngIf="personalForm.get('occupation')?.touched && personalForm.get('occupation')?.invalid">
+                {{ 'KYC.OCCUPATION_REQUIRED' | translate }}
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Section 2: Address Details (only for first-time submission) -->
+      <div class="kyc-section" *ngIf="!uploadOnly">
+        <div class="kyc-section__header">
+          <div class="kyc-section__number">2</div>
+          <div>
+            <h2 class="kyc-section__title">{{ 'KYC.ADDRESS_DETAILS' | translate }}</h2>
+            <p class="kyc-section__desc">{{ 'KYC.ADDRESS_DESC' | translate }}</p>
+          </div>
+        </div>
+
+        <form [formGroup]="addressForm">
+
+          <!-- UK Address Lookup -->
+          <ng-container *ngIf="isUKUser">
+            <div class="addr-section">
+              <div class="addr-section__header">
+                <ion-icon name="location-outline"></ion-icon>
+                Find your UK address
+              </div>
+
+              <div class="fb-field">
+                <label class="fb-field__label">Search address</label>
+                <div class="addr-search-wrap">
+                  <ion-icon name="search-outline" class="addr-search-icon"></ion-icon>
+                  <input
+                    type="text"
+                    class="fb-input addr-search-input"
+                    [value]="addrSearchQuery"
+                    (input)="onAddrInput($event)"
+                    placeholder="Type postcode or street…"
+                    autocomplete="off"
+                  />
+                  <ion-spinner *ngIf="addrLoading" name="crescent" class="addr-spinner"></ion-spinner>
+                  <ion-icon
+                    *ngIf="addrSearchQuery && !addrLoading"
+                    name="close-circle-outline"
+                    class="addr-clear-icon"
+                    (click)="clearAddr()"
+                  ></ion-icon>
+                </div>
+              </div>
+
+              <div class="addr-suggestions" *ngIf="addrShowList && addrSuggestions.length > 0">
+                <div class="addr-suggestion" *ngFor="let s of addrSuggestions" (click)="pickAddr(s)">
+                  <ion-icon name="location-outline"></ion-icon>
+                  <span class="addr-suggestion__text">{{ s.addressText }}</span>
+                  <span class="addr-suggestion__badge" *ngIf="s.entries > 1">{{ s.entries }}</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'KYC.ADDRESS_LINE_1' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="addressLine1"
+              [placeholder]="'KYC.ADDRESS_PLACEHOLDER' | translate" />
+            <div class="fb-field__error" *ngIf="addressForm.get('addressLine1')?.touched && addressForm.get('addressLine1')?.invalid">
+              {{ 'KYC.ADDRESS_REQUIRED' | translate }}
+            </div>
+          </div>
+
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'KYC.ADDRESS_LINE_2' | translate }}</label>
+            <input type="text" class="fb-input" formControlName="addressLine2"
+              [placeholder]="'KYC.ADDRESS_LINE_2_PLACEHOLDER' | translate" />
+          </div>
+
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'KYC.CITY' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="city"
+              [placeholder]="'KYC.CITY_PLACEHOLDER' | translate" />
+            <div class="fb-field__error" *ngIf="addressForm.get('city')?.touched && addressForm.get('city')?.invalid">
+              {{ 'KYC.CITY_REQUIRED' | translate }}
+            </div>
+          </div>
+
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'KYC.POSTCODE' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="postcode"
+              [placeholder]="'KYC.POSTCODE_PLACEHOLDER' | translate" style="max-width:200px" />
+            <div class="fb-field__error" *ngIf="addressForm.get('postcode')?.touched && addressForm.get('postcode')?.invalid">
+              {{ 'KYC.POSTCODE_REQUIRED' | translate }}
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Section 3: Identity Proof -->
+      <div class="kyc-section">
+        <div class="kyc-section__header">
+          <div class="kyc-section__number">{{ uploadOnly ? '1' : '3' }}</div>
+          <div>
+            <h2 class="kyc-section__title">{{ 'KYC.IDENTITY_PROOF' | translate }}</h2>
+            <p class="kyc-section__desc">{{ 'KYC.IDENTITY_PROOF_DESC' | translate }}</p>
+          </div>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'KYC.DOC_TYPE' | translate }}</label>
+          <select class="fb-input fb-select" (change)="onIdentityDocTypeChange($event)">
+            <option value="" disabled selected>{{ 'KYC.SELECT_DOC_TYPE' | translate }}</option>
+            <option *ngFor="let doc of identityDocTypes" [value]="doc.id">{{ doc.name }}</option>
+          </select>
+        </div>
+
+        <div class="fb-field__error" *ngIf="formSubmitAttempted && !selectedIdentityDocType">
+          {{ 'KYC.DOC_TYPE_REQUIRED' | translate }}
+        </div>
+
+        <ng-container *ngIf="selectedIdentityDocType">
+          <div class="fb-field" *ngIf="selectedIdentityDocType.hasIdNumber">
+            <label class="fb-field__label">{{ selectedIdentityDocType.idNumberLabel || ('KYC.DOC_NUMBER' | translate) }} *</label>
+            <input type="text" class="fb-input" [(ngModel)]="identityDocNumber" [placeholder]="selectedIdentityDocType.idNumberFormat || ''" />
+            <div class="fb-field__error" *ngIf="formSubmitAttempted && !identityDocNumber.trim()">
+              {{ 'KYC.DOC_NUMBER' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+            </div>
+          </div>
+
+          <div class="kyc-form-row" *ngIf="selectedIdentityDocType.hasIssueDate || selectedIdentityDocType.hasExpiry">
+            <div class="fb-field" *ngIf="selectedIdentityDocType.hasIssueDate">
+              <label class="fb-field__label">{{ 'KYC.ISSUE_DATE' | translate }} *</label>
+              <input type="date" class="fb-input" [(ngModel)]="identityIssueDate" [max]="todayDate" (change)="validateIdentityDates()" />
+              <div class="fb-field__error" *ngIf="identityErrors['issueDate']">{{ identityErrors['issueDate'] }}</div>
+              <div class="fb-field__error" *ngIf="formSubmitAttempted && !identityIssueDate && selectedIdentityDocType.hasIssueDate">
+                {{ 'KYC.ISSUE_DATE' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+              </div>
+            </div>
+            <div class="fb-field" *ngIf="selectedIdentityDocType.hasExpiry">
+              <label class="fb-field__label">{{ 'KYC.EXPIRY_DATE' | translate }} *</label>
+              <input type="date" class="fb-input" [(ngModel)]="identityExpiryDate" [min]="todayDate" (change)="validateIdentityDates()" />
+              <div class="fb-field__error" *ngIf="identityErrors['expiryDate']">{{ identityErrors['expiryDate'] }}</div>
+              <div class="fb-field__error" *ngIf="formSubmitAttempted && !identityExpiryDate && selectedIdentityDocType.hasExpiry">
+                {{ 'KYC.EXPIRY_DATE' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Identity images: only when Veriff is not configured -->
+          <ng-container *ngIf="!veriffAvailable">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'KYC.FRONT_SIDE' | translate }} *</label>
+              <div class="kyc-upload" (click)="identityFrontInput.click()" [class.kyc-upload--error]="formSubmitAttempted && !identityFrontFile">
+                <input #identityFrontInput type="file" accept="image/*,.pdf" hidden (change)="onIdentityFrontSelected($event)" />
+                <div class="kyc-upload__content" *ngIf="!identityFrontFileName">
+                  <ion-icon name="cloud-upload-outline" class="kyc-upload__icon"></ion-icon>
+                  <span class="kyc-upload__text">{{ 'KYC.CLICK_UPLOAD_FRONT' | translate }}</span>
+                  <span class="kyc-upload__hint">{{ 'KYC.UPLOAD_HINT' | translate }}</span>
+                </div>
+                <div class="kyc-upload__file" *ngIf="identityFrontFileName">
+                  <ion-icon name="document-outline"></ion-icon>
+                  <span>{{ identityFrontFileName }}</span>
+                  <ion-icon name="checkmark-circle" class="kyc-upload__check"></ion-icon>
+                </div>
+              </div>
+              <div class="fb-field__error" *ngIf="formSubmitAttempted && !identityFrontFile">
+                {{ 'KYC.FRONT_REQUIRED' | translate }}
+              </div>
+            </div>
+
+            <div class="fb-field" *ngIf="selectedIdentityDocType.sides === 2">
+              <label class="fb-field__label">{{ 'KYC.BACK_SIDE' | translate }} *</label>
+              <div class="kyc-upload" (click)="identityBackInput.click()" [class.kyc-upload--error]="formSubmitAttempted && !identityBackFile">
+                <input #identityBackInput type="file" accept="image/*,.pdf" hidden (change)="onIdentityBackSelected($event)" />
+                <div class="kyc-upload__content" *ngIf="!identityBackFileName">
+                  <ion-icon name="cloud-upload-outline" class="kyc-upload__icon"></ion-icon>
+                  <span class="kyc-upload__text">{{ 'KYC.CLICK_UPLOAD_BACK' | translate }}</span>
+                  <span class="kyc-upload__hint">{{ 'KYC.UPLOAD_HINT' | translate }}</span>
+                </div>
+                <div class="kyc-upload__file" *ngIf="identityBackFileName">
+                  <ion-icon name="document-outline"></ion-icon>
+                  <span>{{ identityBackFileName }}</span>
+                  <ion-icon name="checkmark-circle" class="kyc-upload__check"></ion-icon>
+                </div>
+              </div>
+              <div class="fb-field__error" *ngIf="formSubmitAttempted && !identityBackFile">
+                {{ 'KYC.BACK_REQUIRED' | translate }}
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- When Veriff is available -->
+          <div class="kyc-veriff-note" *ngIf="veriffAvailable">
+            <ion-icon name="camera-outline"></ion-icon>
+            <p>Your document photos will be captured securely in the next step on the Veriff verification platform.</p>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Section 4: Address Proof -->
+      <div class="kyc-section">
+        <div class="kyc-section__header">
+          <div class="kyc-section__number">{{ uploadOnly ? '2' : '4' }}</div>
+          <div>
+            <h2 class="kyc-section__title">{{ 'KYC.ADDRESS_PROOF' | translate }}</h2>
+            <p class="kyc-section__desc">{{ 'KYC.ADDRESS_PROOF_DESC' | translate }}</p>
+          </div>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'KYC.DOC_TYPE' | translate }}</label>
+          <select class="fb-input fb-select" (change)="onAddressDocTypeChange($event)">
+            <option value="" disabled selected>{{ 'KYC.SELECT_DOC_TYPE' | translate }}</option>
+            <option *ngFor="let doc of addressDocTypes" [value]="doc.id">{{ doc.name }}</option>
+          </select>
+        </div>
+
+        <div class="fb-field__error" *ngIf="formSubmitAttempted && !selectedAddressDocType">
+          {{ 'KYC.ADDRESS_DOC_REQUIRED' | translate }}
+        </div>
+
+        <div class="fb-field" *ngIf="selectedAddressDocType">
+          <label class="fb-field__label">{{ 'KYC.UPLOAD_DOC' | translate }} *</label>
+          <div class="kyc-upload" (click)="addressInput.click()" [class.kyc-upload--error]="formSubmitAttempted && !addressFile">
+            <input #addressInput type="file" accept="image/*,.pdf" hidden (change)="onAddressFileSelected($event)" />
+            <div class="kyc-upload__content" *ngIf="!addressFileName">
+              <ion-icon name="cloud-upload-outline" class="kyc-upload__icon"></ion-icon>
+              <span class="kyc-upload__text">{{ 'KYC.CLICK_UPLOAD' | translate }}</span>
+              <span class="kyc-upload__hint">{{ 'KYC.UPLOAD_HINT' | translate }}</span>
+            </div>
+            <div class="kyc-upload__file" *ngIf="addressFileName">
+              <ion-icon name="document-outline"></ion-icon>
+              <span>{{ addressFileName }}</span>
+              <ion-icon name="checkmark-circle" class="kyc-upload__check"></ion-icon>
+            </div>
+          </div>
+          <div class="fb-field__error" *ngIf="formSubmitAttempted && !addressFile">
+            {{ 'KYC.ADDRESS_FILE_REQUIRED' | translate }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="kyc-actions">
+        <button type="button" class="kyc-submit-btn" [disabled]="!isDocUploadValid || submitting" (click)="uploadOnly ? onUploadDocumentsOnly() : onSubmitKyc()">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          {{ submitting ? ('KYC.SUBMITTING' | translate) : (uploadOnly ? ('KYC.UPLOAD_DOCUMENTS' | translate) : ('KYC.SUBMIT_KYC' | translate)) }}
+        </button>
+
+        <button *ngIf="uploadOnly" type="button" class="kyc-skip-btn" (click)="cancelUpload()">
+          {{ 'KYC.CANCEL' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ion-content>

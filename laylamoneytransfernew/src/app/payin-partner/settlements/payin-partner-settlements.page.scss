@@ -1,0 +1,172 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.payin-settlements { max-width: 1200px; }
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $fb-space-6;
+  flex-wrap: wrap;
+  gap: $fb-space-4;
+}
+
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $fb-space-4;
+  border-bottom: 1px solid $fb-gray-100;
+
+  &__count {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    font-size: $fb-text-sm;
+    color: $fb-gray-600;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  color: $fb-gray-400;
+  padding: $fb-space-8 !important;
+  font-size: $fb-text-sm;
+}
+
+// Modal
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $fb-space-4;
+}
+
+.modal-content {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: $fb-shadow-xl;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $fb-space-5 $fb-space-6;
+  border-bottom: 1px solid $fb-gray-100;
+}
+
+.modal-title {
+  font-size: $fb-text-lg;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $fb-space-2;
+  border-radius: $fb-radius-md;
+  color: $fb-gray-400;
+
+  ion-icon { font-size: 24px; }
+  &:hover { background: $fb-gray-100; color: $fb-gray-600; }
+}
+
+.modal-body {
+  padding: $fb-space-6;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $fb-space-3;
+  padding: $fb-space-4 $fb-space-6;
+  border-top: 1px solid $fb-gray-100;
+}
+
+.form-group {
+  margin-bottom: $fb-space-4;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.form-label {
+  display: block;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-medium;
+  color: $fb-gray-700;
+  margin-bottom: $fb-space-2;
+}
+
+.form-input {
+  width: 100%;
+  padding: $fb-space-3;
+  border: 1px solid $fb-gray-300;
+  border-radius: $fb-radius-md;
+  font-size: $fb-text-sm;
+  font-family: $fb-font-body;
+  color: $fb-gray-900;
+  background: $fb-white;
+  transition: border-color $fb-transition-fast;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $fb-sky;
+    box-shadow: 0 0 0 3px rgba($fb-sky, 0.15);
+  }
+
+  &::placeholder {
+    color: $fb-gray-400;
+  }
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+// --- Settlement Status Badges ---
+.settlement-status {
+  display: inline-block;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  padding: 2px 10px;
+  border-radius: $fb-radius-full;
+
+  &--pending {
+    background: $fb-warning-bg;
+    color: $fb-warning;
+  }
+
+  &--approved, &--completed {
+    background: $fb-success-bg;
+    color: $fb-success;
+  }
+
+  &--rejected {
+    background: $fb-danger-bg;
+    color: $fb-danger;
+  }
+}

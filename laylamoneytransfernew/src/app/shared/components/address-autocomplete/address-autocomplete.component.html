@@ -1,0 +1,28 @@
+<div class="addr-ac">
+  <div class="addr-search-wrap">
+    <ion-icon name="search-outline" class="addr-search-icon"></ion-icon>
+    <input
+      type="text"
+      class="fb-input addr-search-input"
+      [value]="query"
+      (input)="onInput($event)"
+      [placeholder]="placeholder"
+      autocomplete="off"
+    />
+    <ion-spinner *ngIf="loading" name="crescent" class="addr-spinner"></ion-spinner>
+    <ion-icon
+      *ngIf="query && !loading"
+      name="close-circle-outline"
+      class="addr-clear-icon"
+      (click)="clear()"
+    ></ion-icon>
+  </div>
+
+  <div class="addr-suggestions" *ngIf="showList && suggestions.length > 0">
+    <div class="addr-suggestion" *ngFor="let s of suggestions" (click)="pick(s)">
+      <ion-icon name="location-outline"></ion-icon>
+      <span class="addr-suggestion__text">{{ s.addressText }}</span>
+      <span class="addr-suggestion__badge" *ngIf="s.entries > 1">{{ s.entries }}</span>
+    </div>
+  </div>
+</div>

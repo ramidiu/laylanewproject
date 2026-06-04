@@ -1,0 +1,73 @@
+.volume-pay-content {
+  --background: var(--fb-bg-secondary, #f5f5f5);
+}
+
+.volume-pay-loading,
+.volume-pay-container {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.volume-pay-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--ion-color-primary, #1B3A6B);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    ion-icon {
+      font-size: 24px;
+      color: white;
+    }
+  }
+
+  &__label {
+    font-size: 12px;
+    color: var(--fb-text-secondary, #666);
+    margin-bottom: 4px;
+  }
+
+  &__amount {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--fb-text-primary, #1B3A6B);
+  }
+
+  &__recipient {
+    font-size: 13px;
+    color: var(--fb-text-secondary, #666);
+    margin-top: 2px;
+  }
+}
+
+.volume-sdk-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 200px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+  #volume-element-container {
+    min-height: 150px;
+  }
+}
+
+.volume-pay-cancel {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}

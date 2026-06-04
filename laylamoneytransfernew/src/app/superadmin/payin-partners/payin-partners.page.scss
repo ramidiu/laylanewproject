@@ -1,0 +1,51 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.partners-page { max-width: 1200px; }
+
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: $fb-space-6;
+}
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }
+.section-title { font-size: $fb-text-base; font-weight: $fb-font-semibold; color: $fb-gray-900; margin: 0 0 $fb-space-4; }
+
+.add-form-card { padding: $fb-space-6; margin-bottom: $fb-space-4; }
+
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: $fb-space-4;
+  @media (max-width: $fb-breakpoint-md) { grid-template-columns: 1fr; }
+}
+
+.fb-field { margin-bottom: $fb-space-3; }
+.fb-field__label { display: block; font-size: $fb-text-sm; font-weight: $fb-font-medium; color: $fb-gray-700; margin-bottom: $fb-space-1; }
+
+.form-actions { display: flex; gap: $fb-space-3; margin-top: $fb-space-4; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.table-loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+.action-buttons { display: flex; gap: 2px; }
+.partner-name { font-weight: $fb-font-medium; }
+
+.empty-state {
+  text-align: center; padding: $fb-space-10; color: $fb-gray-400;
+  ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
+  p { margin: 0; font-size: $fb-text-sm; }
+}
+
+.action-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.action-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px;
+  border: none; border-radius: 6px; font-size: 11px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; color: white; transition: opacity 0.2s;
+  ion-icon { font-size: 14px; }
+  &:hover { opacity: 0.85; }
+  &--success { background: #10B981; }
+  &--warning { background: #F59E0B; color: #1a1a1a; }
+  &--login { background: #7c3aed; }
+}
+.status-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  &--active { background: #ecfdf5; color: #059669; }
+  &--inactive { background: #f3f4f6; color: #6b7280; }
+}

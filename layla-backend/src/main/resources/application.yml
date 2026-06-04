@@ -1,0 +1,186 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: layla-money-transfer
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/remitz?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:mysql}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false
+    out-of-order: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  mail:
+    host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+    port: ${MAIL_PORT:2525}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  async:
+    executor:
+      core-pool-size: 5
+      max-pool-size: 20
+      queue-capacity: 100
+
+app:
+  mfa:
+    enforce-staff: ${MFA_ENFORCE_STAFF:false}
+  jwt:
+    secret: ${JWT_SECRET:forexbridge-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
+    access-token-expiration-ms: 3600000
+    refresh-token-expiration-ms: 604800000
+    mfa-token-expiration-ms: 300000
+  security:
+    max-login-attempts: 5
+    lockout-duration-minutes: 30
+    max-concurrent-sessions: 3
+    password-history-count: 5
+  kyc:
+    upload-dir: ${KYC_UPLOAD_DIR:./kyc-uploads}
+    max-file-size: 10485760
+    max-file-size-mb: 10
+    allowed-extensions: jpg,jpeg,png,pdf
+  # Code added by Naresh: Veriff / Amal / Volume modules removed — related config blocks deleted
+  fx:
+    exchange-rates-api:
+      api-key: ${EXCHANGE_RATES_API_KEY:4b6992bd8fae644c14a7d8e1bff86c69}
+      base-url: https://v6.exchangerate-api.com/v6
+    rate-fetch-interval-ms: 86400000
+    quote-lock-ttl-seconds: 60
+    cache-ttl-seconds: 300
+    stale-rate-threshold-seconds: 90000
+  compliance:
+    screening-threshold: 85
+    opensanctions:
+      enabled: true
+      batch-size: 500
+      cron: "0 0 3 * * *"
+  notification:
+    email:
+      from: ${NOTIFICATION_EMAIL_FROM:noreply@remitz.co.uk}
+      provider: smtp
+    sms:
+      provider: twilio
+    retry:
+      max-attempts: 3
+      delay-ms: 5000
+  frontend-url: ${FRONTEND_URL:https://layla.money}
+
+smarty:
+  api-key: ${SMARTY_API_KEY:263059090356787893}
+  referer: ${SMARTY_REFERER:https://laylamoneytransfer.co.uk}
+
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from-email: ${RESEND_FROM:Layla Money Transfer <info@laylamoneytransfer.co.uk>}
+
+brevo:
+  api-key: ${BREVO_API_KEY:}
+  from-name: ${BREVO_FROM_NAME:Layla Money Transfer}
+  from-email: ${BREVO_FROM_EMAIL:info@laylamoneytransfer.co.uk}
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:}
+  auth-token: ${TWILIO_AUTH_TOKEN:}
+  from-number: ${TWILIO_FROM_NUMBER:}
+
+brand:
+  name: ${BRAND_NAME:Layla Money Transfer}
+  tagline: ${BRAND_TAGLINE:FAST. SAFE. AFFORDABLE.}
+  address: ${BRAND_ADDRESS:193 Seven Sisters Road, Finsbury Park, London N4 3NG}
+  support-email: ${BRAND_SUPPORT_EMAIL:support@laylamoneytransfer.com}
+  # Hosted https URL for the email logo. Leave blank to derive from app.frontend-url
+  # (<frontend>/assets/images/email-logo.png). NEVER inline as base64 — Gmail strips
+  # data: URIs and a large inline logo breaches Gmail's 102KB clip limit.
+  logo-url: ${BRAND_LOGO_URL:}
+
+# Code added by Naresh: Phase 1 foundation for Kuber Financial PayTo pay-in integration.
+# Secrets (merchantId, deviceId) are read from env so they stay out of the repo.
+volume:
+  enabled: ${VOLUME_ENABLED:true}
+  applicationId: ${VOLUME_APPLICATION_ID:30f61de5-013a-405a-9ae2-e01ae02036e2}
+  paymentUrl: ${VOLUME_PAYMENT_URL:https://api.volumepay.io/api/paymentintents/link}
+  paymentStatusUrl: ${VOLUME_PAYMENT_STATUS_URL:https://api.volumepay.io/api/paymentintents/}
+  pemUrl: ${VOLUME_PEM_URL:https://api.volumepay.io/.well-known/signature/pem}
+  environment: ${VOLUME_ENVIRONMENT:SANDBOX}
+  jsUrl: ${VOLUME_JS_URL:https://js.volumepay.io}
+
+remit-one:
+  username: ${REMIT_ONE_USERNAME:}
+  password: ${REMIT_ONE_PASSWORD:}
+  pin: ${REMIT_ONE_PIN:}
+  url: ${REMIT_ONE_URL:https://remitby.remitone.com/universalsecurities/ws/compliance/insertTransactionForCompliance}
+  agent-name: ${REMIT_ONE_AGENT_NAME:Universal Securities}
+  enabled: ${REMIT_ONE_ENABLED:false}
+
+usi:
+  enabled: ${USI_ENABLED:false}
+  url: ${USI_URL:}
+  username: ${USI_USERNAME:}
+  password: ${USI_PASSWORD:}
+  pin: ${USI_PIN:}
+  agent-name: ${USI_AGENT_NAME:Layla London}
+  status-poll-interval-ms: ${USI_STATUS_POLL_INTERVAL_MS:300000}
+
+kuber:
+  enabled: ${KUBER_ENABLED:true}
+  baseUrl: ${KUBER_BASE_URL:https://backend.kuberfinancial.com.au/api/payments}
+  merchantId: ${KUBER_MERCHANT_ID:}
+  deviceId: ${KUBER_DEVICE_ID:}
+  connectTimeout: ${KUBER_CONNECT_TIMEOUT_MS:10000}
+  readTimeout: ${KUBER_READ_TIMEOUT_MS:15000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    mail:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.remitz: INFO
+    org.springframework.security: WARN

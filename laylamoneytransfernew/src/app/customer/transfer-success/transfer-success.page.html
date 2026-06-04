@@ -1,0 +1,69 @@
+<ion-content class="success-content">
+  <div class="success-container">
+    <!-- Animated checkmark -->
+    <div class="success-icon">
+      <div class="success-icon__circle">
+        <ion-icon name="checkmark-outline"></ion-icon>
+      </div>
+    </div>
+
+    <h1 class="success-title">{{ 'TRANSFER_SUCCESS.TITLE' | translate }}</h1>
+    <p class="success-subtitle">{{ 'SEND_MONEY.SUCCESS_MSG' | translate }}</p>
+
+    <!-- Transfer details card -->
+    <div class="success-card">
+      <div class="success-card__ref">
+        <span class="success-card__ref-label">{{ 'TRANSFER_SUCCESS.REFERENCE' | translate }}</span>
+        <span class="success-card__ref-value">{{ referenceNumber }}</span>
+      </div>
+
+      <div class="success-card__divider"></div>
+
+      <div class="success-card__row">
+        <div class="success-card__detail">
+          <span class="success-card__label">{{ 'SEND_MONEY.YOU_SEND' | translate }}</span>
+          <span class="success-card__value">{{ sendAmount }} {{ sendCurrency }}</span>
+        </div>
+        <div class="success-card__arrow">
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </div>
+        <div class="success-card__detail">
+          <span class="success-card__label">{{ 'SEND_MONEY.RECIPIENT_GETS' | translate }}</span>
+          <span class="success-card__value success-card__value--highlight">{{ receiveAmount }} {{ receiveCurrency }}</span>
+        </div>
+      </div>
+
+      <div class="success-card__divider"></div>
+
+      <div class="success-card__info" *ngIf="recipientName">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>{{ recipientName }}</span>
+      </div>
+
+      <div class="success-card__info" *ngIf="fee">
+        <ion-icon name="cash-outline"></ion-icon>
+        <span>{{ 'SEND_MONEY.FEE' | translate }}: {{ fee }} {{ sendCurrency }}</span>
+      </div>
+
+      <div class="success-card__status">
+        <div class="success-card__status-dot"></div>
+        <span>{{ 'TRANSACTIONS.STATUS.PROCESSING' | translate }}</span>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="success-actions">
+      <button class="success-btn success-btn--primary" (click)="goToTransactions()">
+        <ion-icon name="receipt-outline"></ion-icon>
+        {{ 'TRANSFER_SUCCESS.VIEW_TRANSACTIONS' | translate }}
+      </button>
+      <button class="success-btn success-btn--secondary" (click)="sendAnother()">
+        <ion-icon name="send-outline"></ion-icon>
+        {{ 'TRANSFER_SUCCESS.SEND_ANOTHER' | translate }}
+      </button>
+      <button class="success-btn success-btn--link" (click)="goToDashboard()">
+        {{ 'COMMON.BACK' | translate }}
+      </button>
+    </div>
+  </div>
+</ion-content>

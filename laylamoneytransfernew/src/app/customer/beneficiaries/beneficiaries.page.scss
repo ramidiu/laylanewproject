@@ -1,0 +1,343 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.ben-content {
+  --background: #{$fb-gray-50};
+}
+
+.ben-container {
+  padding: $fb-space-4;
+}
+
+ion-segment {
+  margin: $fb-space-3 0 $fb-space-4;
+}
+
+.ben-loading {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-3;
+  margin-top: $fb-space-4;
+}
+
+.ben-empty {
+  text-align: center;
+  padding: $fb-space-16 $fb-space-4;
+  color: $fb-gray-400;
+
+  ion-icon { font-size: 56px; margin-bottom: $fb-space-4; }
+  h3 { color: $fb-gray-600; margin: 0 0 $fb-space-1; }
+  p { font-size: $fb-text-sm; margin: 0; }
+}
+
+.ben-card {
+  --background: #{$fb-white};
+  border-radius: $fb-radius-lg !important;
+  box-shadow: $fb-shadow-card !important;
+  margin: 0 0 $fb-space-3 0 !important;
+
+  ion-card-content {
+    padding: $fb-space-3 $fb-space-4 !important;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+  }
+
+  &__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: $fb-sky-pale;
+    color: $fb-navy;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $fb-font-bold;
+    font-size: $fb-text-sm;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-900;
+    font-size: $fb-text-base;
+  }
+
+  &__detail {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    margin-top: 2px;
+  }
+
+  &__account {
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+    font-family: $fb-font-mono;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0;
+  }
+}
+
+// Add form
+.add-form {
+  margin-bottom: $fb-space-4;
+
+  &__card {
+    background: $fb-white;
+    border-radius: $fb-radius-xl;
+    box-shadow: $fb-shadow-lg;
+    padding: $fb-space-6;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $fb-space-4;
+
+    h2 {
+      font-size: $fb-text-xl;
+      font-weight: $fb-font-bold;
+      color: $fb-gray-900;
+      margin: 0;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-3;
+    margin-top: $fb-space-6;
+
+    .fb-btn { flex: 1; }
+  }
+}
+
+.fb-field {
+  margin-bottom: $fb-space-4;
+
+  &__label {
+    display: block;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-700;
+    margin-bottom: $fb-space-1;
+  }
+}
+
+.add-btn-container {
+  padding: $fb-space-4 0;
+}
+
+.add-btn {
+  width: 100%;
+}
+
+.fb-ion-select {
+  background: $fb-white;
+  border: 1.5px solid $fb-gray-200;
+  border-radius: $fb-radius-md;
+  padding: $fb-space-3 $fb-space-4;
+  min-height: 48px;
+  width: 100%;
+  font-size: $fb-text-base;
+}
+
+.fb-native-select {
+  appearance: auto;
+  background: $fb-white;
+  cursor: pointer;
+  &:focus {
+    outline: 2px solid var(--ion-color-primary, #1B3A6B);
+    outline-offset: -2px;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Edit Recipient Modal
+// ─────────────────────────────────────────────
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+
+  &--open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.edit-modal {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  box-shadow: $fb-shadow-lg;
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(24px);
+  transition: transform 0.25s ease;
+
+  &--open {
+    transform: translateY(0);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $fb-space-5 $fb-space-5 $fb-space-3;
+    border-bottom: 1px solid $fb-gray-100;
+
+    h3 {
+      margin: 0;
+      font-size: $fb-text-xl;
+      font-weight: $fb-font-bold;
+      color: $fb-navy;
+    }
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $fb-gray-500;
+    font-size: 24px;
+    padding: $fb-space-1;
+    border-radius: $fb-radius-md;
+
+    &:hover { background: $fb-gray-100; }
+  }
+
+  &__body {
+    padding: $fb-space-5;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-3;
+    padding: $fb-space-4 $fb-space-5;
+    border-top: 1px solid $fb-gray-100;
+
+    .fb-btn { flex: 1; }
+  }
+}
+
+.fb-phone-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+
+  .fb-dial-code {
+    display: flex;
+    align-items: center;
+    padding: 0 $fb-space-3;
+    background: $fb-gray-100;
+    border: 1.5px solid $fb-gray-200;
+    border-right: none;
+    border-radius: $fb-radius-md 0 0 $fb-radius-md;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-700;
+    white-space: nowrap;
+    min-width: 52px;
+    justify-content: center;
+  }
+
+  .fb-input--phone {
+    flex: 1;
+    border-radius: 0 $fb-radius-md $fb-radius-md 0 !important;
+  }
+}
+
+.fb-field-section-header {
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-bold;
+  color: $fb-white;
+  background: $fb-navy;
+  border-radius: $fb-radius-sm;
+  padding: $fb-space-2 $fb-space-3;
+  margin: $fb-space-4 0 $fb-space-3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+// Validation styles
+.fb-field__error {
+  font-size: $fb-text-xs;
+  color: $fb-danger;
+  margin-top: $fb-space-1;
+}
+
+.fb-field__hint {
+  font-size: $fb-text-xs;
+  color: $fb-gray-500;
+  margin-top: $fb-space-1;
+}
+
+.fb-input--error {
+  border-color: $fb-danger !important;
+  &:focus { box-shadow: 0 0 0 3px rgba($fb-danger, 0.15) !important; }
+}
+
+// Read-only country pill (flag + currency code) shown after "Save Recipient" preselects a country
+.country-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: $fb-gray-50;
+  border: 1px solid $fb-gray-200;
+  border-radius: 8px;
+  font-family: $fb-font-mono;
+  font-weight: $fb-font-bold;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: $fb-gray-900;
+
+  &__flag {
+    width: 22px;
+    height: 16px;
+    object-fit: cover;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__code {
+    line-height: 1;
+  }
+}
+
+// Two-up row for paired fields (Bank State / Bank City)
+.fb-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}

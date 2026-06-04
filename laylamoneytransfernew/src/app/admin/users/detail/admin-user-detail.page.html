@@ -1,0 +1,132 @@
+<div class="user-detail" *ngIf="user">
+  <div class="page-header">
+    <ion-button fill="clear" routerLink="/admin/users" color="primary">
+      <ion-icon name="arrow-back" slot="start"></ion-icon>
+      Back to Users
+    </ion-button>
+  </div>
+
+  <!-- User Profile Section -->
+  <div class="fb-card user-profile-card">
+    <div class="user-profile">
+      <div class="user-profile__avatar">
+        {{ user.firstName[0] }}{{ user.lastName[0] }}
+      </div>
+      <div class="user-profile__info">
+        <h2>{{ user.firstName }} {{ user.lastName }}</h2>
+        <p>{{ user.email }}</p>
+        <div class="user-profile__badges">
+          <app-status-chip [status]="user.status"></app-status-chip>
+          <ion-badge color="primary">{{ user.kycTier }}</ion-badge>
+        </div>
+      </div>
+      <div class="user-profile__actions">
+        <ion-button *ngIf="user.status === 'ACTIVE'" fill="outline" color="warning" (click)="suspendUser()">
+          <ion-icon name="pause-circle-outline" slot="start"></ion-icon>
+          Suspend
+        </ion-button>
+        <ion-button *ngIf="user.status === 'SUSPENDED'" fill="outline" color="success" (click)="activateUser()">
+          <ion-icon name="play-circle-outline" slot="start"></ion-icon>
+          Activate
+        </ion-button>
+      </div>
+    </div>
+    <div class="user-details-grid">
+      <div class="detail-item">
+        <span class="detail-item__label">Phone</span>
+        <span class="detail-item__value">{{ user.phone }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-item__label">Country</span>
+        <span class="detail-item__value">{{ user.countryCode }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-item__label">MFA</span>
+        <span class="detail-item__value">{{ user.mfaEnabled ? 'Enabled' : 'Disabled' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-item__label">Registered</span>
+        <span class="detail-item__value">{{ user.createdAt | date:'MMM d, y HH:mm' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk Score -->
+  <div class="fb-card">
+    <h3 class="section-title">Risk Score</h3>
+    <div *ngIf="riskLoading" class="empty-section"><p>Calculating risk score…</p></div>
+    <div *ngIf="!riskLoading && !riskScore" class="empty-section"><p>Risk score unavailable.</p></div>
+    <div *ngIf="!riskLoading && riskScore" class="risk-card">
+      <div class="risk-card__summary">
+        <ion-badge [color]="riskColor(riskScore.riskScore)" class="risk-card__level">{{ riskScore.riskScore }}</ion-badge>
+        <div class="risk-card__points">
+          <span class="detail-item__label">Risk points</span>
+          <span class="detail-item__value">{{ riskScore.riskPoints }}</span>
+        </div>
+        <div class="risk-card__override" *ngIf="riskScore.overridden">
+          <ion-badge color="tertiary">Overridden</ion-badge>
+        </div>
+      </div>
+      <div class="risk-card__breakdown">
+        <div class="detail-item" *ngFor="let entry of breakdownEntries()">
+          <span class="detail-item__label">{{ entry.key }}</span>
+          <span class="detail-item__value">{{ entry.value }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KYC Documents -->
+  <div class="fb-card">
+    <h3 class="section-title">KYC Documents</h3>
+    <div *ngIf="documents.length === 0" class="empty-section">
+      <p>No documents submitted</p>
+    </div>
+    <div class="doc-list">
+      <div class="doc-item" *ngFor="let doc of documents">
+        <div class="doc-item__info">
+          <ion-icon name="document-outline"></ion-icon>
+          <div>
+            <div class="doc-item__type">{{ doc.documentType | titlecase }}</div>
+            <div class="doc-item__date">{{ doc.uploadedAt | date:'MMM d, y' }}</div>
+          </div>
+        </div>
+        <app-status-chip [status]="doc.status"></app-status-chip>
+        <div class="doc-item__actions" *ngIf="doc.status === 'PENDING'">
+          <ion-button fill="solid" color="success" size="small" (click)="approveDocument(doc)">
+            <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button fill="solid" color="danger" size="small" (click)="rejectDocument(doc)">
+            <ion-icon name="close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction History -->
+  <div class="fb-card">
+    <h3 class="section-title">Recent Transactions</h3>
+    <div *ngIf="transactions.length === 0" class="empty-section">
+      <p>No transactions found</p>
+    </div>
+    <table class="fb-table" *ngIf="transactions.length > 0">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let txn of transactions">
+          <td class="fb-currency">{{ txn.referenceNumber }}</td>
+          <td class="fb-currency">{{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}</td>
+          <td><app-status-chip [status]="txn.status"></app-status-chip></td>
+          <td>{{ txn.createdAt | date:'MMM d, y' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

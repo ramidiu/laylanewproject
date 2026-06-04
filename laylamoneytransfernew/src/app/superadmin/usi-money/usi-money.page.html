@@ -1,0 +1,134 @@
+<div class="usi-page">
+  <div class="usi-header">
+    <div>
+      <h2 class="usi-title">USI Money — Payout Console</h2>
+      <p class="usi-sub">Send Layla transactions to USI Money. Lifecycle: <strong>Create → Confirm → Status</strong>. Status auto-polls every 5 min.</p>
+    </div>
+    <div class="usi-header-actions">
+      <button class="fb-btn fb-btn--secondary" (click)="load()" [disabled]="loading">
+        <ion-icon name="refresh-outline"></ion-icon> {{ loading ? 'Loading…' : 'Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Sticky banner: shows the USI reference returned by the most recent create/confirm. -->
+  <div class="usi-ref-banner" *ngIf="lastConfirmedRef">
+    <div class="usi-ref-banner__inner">
+      <ion-icon name="checkmark-circle" class="usi-ref-banner__icon"></ion-icon>
+      <div class="usi-ref-banner__body">
+        <div class="usi-ref-banner__title">
+          USI Money reference for <strong>{{ lastConfirmedRef.laylaRef }}</strong>
+          <span class="usi-ref-banner__status" *ngIf="lastConfirmedRef.usiStatus">· {{ lastConfirmedRef.usiStatus }}</span>
+        </div>
+        <input
+          type="text"
+          class="usi-ref-banner__field"
+          readonly
+          [value]="lastConfirmedRef.usiRef"
+          (click)="$any($event.target).select()"
+          aria-label="USI Money reference number" />
+      </div>
+      <button class="fb-btn fb-btn--primary" (click)="copyRef(lastConfirmedRef.usiRef)">
+        <ion-icon name="copy-outline"></ion-icon> Copy
+      </button>
+      <button class="usi-ref-banner__close" (click)="dismissRefBanner()" aria-label="Dismiss">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="usi-filters">
+    <input class="fb-input" type="text" placeholder="Search by ref / sender / country" [(ngModel)]="searchQuery" (ngModelChange)="applyFilter()" />
+    <select class="fb-input" [(ngModel)]="statusFilter" (ngModelChange)="load()">
+      <option value="all">All statuses</option>
+      <option value="new">New (not yet on USI)</option>
+      <option value="initiated">Initiated</option>
+      <option value="sent for pay">Sent for Pay</option>
+      <option value="paid">Paid</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+  </div>
+
+  <!-- Bulk actions bar -->
+  <div class="usi-bulk-bar" *ngIf="selected.size > 0">
+    <span>{{ selected.size }} selected</span>
+    <button class="fb-btn fb-btn--primary"  (click)="bulkRun('CREATE')">Bulk Create on USI</button>
+    <button class="fb-btn fb-btn--primary"  (click)="bulkRun('CONFIRM')">Bulk Confirm</button>
+    <button class="fb-btn fb-btn--secondary" (click)="bulkRun('CHECK_STATUS')">Bulk Refresh Status</button>
+    <button class="fb-btn fb-btn--ghost"     (click)="selected.clear()">Clear</button>
+  </div>
+
+  <!-- Table -->
+  <div class="fb-card usi-table-card" *ngIf="!loading">
+    <table class="fb-table usi-table" *ngIf="filtered.length > 0">
+      <thead>
+        <tr>
+          <th style="width:24px;"></th>
+          <th>Ref</th>
+          <th>Sender</th>
+          <th>Country</th>
+          <th>Send</th>
+          <th>Receive</th>
+          <th>Layla Status</th>
+          <th>USI Status</th>
+          <th>USI Ref</th>
+          <th class="usi-actions-col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filtered" [class.usi-row--done]="r.nextAction === 'DONE'">
+          <td><input type="checkbox" [checked]="selected.has(r.referenceNumber)" (change)="toggleSelect(r.referenceNumber)" /></td>
+          <td class="usi-mono">{{ r.referenceNumber }}</td>
+          <td>
+            <div>{{ r.senderName || '—' }}</div>
+            <div class="usi-sub-line">{{ r.senderEmail }}</div>
+          </td>
+          <td>{{ r.destinationCountry || '—' }}</td>
+          <td class="usi-mono">{{ r.sendAmount | number:'1.2-2' }} {{ r.sendCurrency }}</td>
+          <td class="usi-mono">{{ r.receiveAmount | number:'1.2-2' }} {{ r.receiveCurrency }}</td>
+          <td><span class="status-badge">{{ r.laylaStatus }}</span></td>
+          <td>
+            <span [class]="badgeClass(r.usiStatus)">{{ r.usiStatus || 'NEW' }}</span>
+            <div class="usi-error" *ngIf="r.usiErrorMessage">{{ r.usiErrorMessage }}</div>
+          </td>
+          <td class="usi-mono">
+            <ng-container *ngIf="usiRef(r) as ref; else noUsiRef">
+              <span class="usi-ref-pill" (click)="copyRef(ref)" title="Click to copy">
+                {{ ref }}
+                <ion-icon name="copy-outline"></ion-icon>
+              </span>
+              <div *ngIf="r.usiReferenceNumber && r.usiPaymentToken && r.usiReferenceNumber !== r.usiPaymentToken"
+                   class="usi-sub-line">
+                {{ r.usiReferenceNumber }}
+              </div>
+            </ng-container>
+            <ng-template #noUsiRef>
+              <span *ngIf="r.usiTransSessionId" class="usi-sub-line">Session: {{ r.usiTransSessionId }}</span>
+              <span *ngIf="!r.usiTransSessionId">—</span>
+            </ng-template>
+          </td>
+          <td class="usi-actions-col">
+            <button class="fb-btn fb-btn--sm fb-btn--primary"
+                    [disabled]="r.nextAction === 'DONE' || busy[r.referenceNumber]"
+                    (click)="doAction(r)">
+              <ion-icon name="arrow-forward-outline" *ngIf="!busy[r.referenceNumber]"></ion-icon>
+              <ion-spinner name="crescent" *ngIf="busy[r.referenceNumber]" style="width:14px;height:14px;"></ion-spinner>
+              {{ actionLabel(r.nextAction) }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="usi-empty" *ngIf="filtered.length === 0">
+      <ion-icon name="document-text-outline" class="usi-empty__icon"></ion-icon>
+      <p>No USI-eligible transactions for the current filter.</p>
+    </div>
+  </div>
+
+  <div class="usi-loading" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <span>Loading USI transactions…</span>
+  </div>
+</div>

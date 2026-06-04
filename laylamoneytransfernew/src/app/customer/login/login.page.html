@@ -1,0 +1,142 @@
+<ion-content class="login-content" [fullscreen]="true">
+  <div class="login-container">
+    <!-- Language Toggle -->
+    <div class="login-lang-toggle">
+      <button class="lang-btn" (click)="toggleLanguage()">
+        {{ isRtl ? 'English' : 'العربية' }}
+      </button>
+    </div>
+    <!-- Logo -->
+    <div class="login-logo">
+      <img src="assets/images/layla-logo.webp" alt="Layla Money Transfer" style="width:220px;height:auto;object-fit:contain" />
+      <p class="login-tagline">{{ 'APP.TAGLINE' | translate }}</p>
+    </div>
+
+    <!-- Login Form -->
+    <div class="login-card" *ngIf="!showMfa">
+      <h2 class="login-card__heading">{{ 'AUTH.WELCOME_BACK' | translate }}</h2>
+      <p class="login-card__subheading">{{ 'AUTH.SIGN_IN_SUBTITLE' | translate }}</p>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'AUTH.EMAIL' | translate }}</label>
+          <div class="fb-field__input-wrapper">
+            <ion-icon name="mail-outline" class="fb-field__icon"></ion-icon>
+            <input
+              type="email"
+              class="fb-input fb-input--with-icon"
+              formControlName="email"
+              [placeholder]="'AUTH.EMAIL_PLACEHOLDER' | translate"
+              autocomplete="email"
+            />
+          </div>
+          <div class="fb-field__error" *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.invalid">
+            {{ 'COMMON.INVALID_EMAIL' | translate }}
+          </div>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'AUTH.PASSWORD' | translate }}</label>
+          <div class="fb-field__input-wrapper">
+            <ion-icon name="lock-closed-outline" class="fb-field__icon"></ion-icon>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="fb-input fb-input--with-icon"
+              formControlName="password"
+              [placeholder]="'AUTH.PASSWORD_PLACEHOLDER' | translate"
+              autocomplete="current-password"
+            />
+            <ion-icon
+              [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"
+              class="fb-field__toggle"
+              (click)="togglePassword()"
+            ></ion-icon>
+          </div>
+          <div class="fb-field__error" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid">
+            {{ 'COMMON.INVALID_PASSWORD' | translate }}
+          </div>
+        </div>
+
+        <!-- Login error message -->
+        <div class="login-error" *ngIf="loginError">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <span>{{ loginError }}</span>
+        </div>
+
+        <div class="login-card__forgot">
+          <a href="/forgot-password">{{ 'AUTH.FORGOT_PASSWORD' | translate }}</a>
+        </div>
+
+        <button
+          type="submit"
+          class="fb-btn fb-btn--primary login-card__submit"
+          [class.fb-btn--disabled]="loginForm.invalid"
+          [disabled]="loginForm.invalid"
+        >
+          {{ 'AUTH.SIGN_IN' | translate }}
+        </button>
+      </form>
+
+      <div class="login-card__divider">
+        <span>{{ 'COMMON.OR' | translate }}</span>
+      </div>
+
+      <div class="login-card__register">
+        {{ 'AUTH.NO_ACCOUNT' | translate }}
+        <a href="/register" class="login-card__register-link">{{ 'AUTH.SIGN_UP' | translate }}</a>
+      </div>
+    </div>
+
+    <!-- MFA Verification -->
+    <div class="login-card" *ngIf="showMfa">
+      <div class="login-card__mfa-icon">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+      </div>
+      <h2 class="login-card__heading">{{ 'AUTH.MFA_TITLE' | translate }}</h2>
+      <p class="login-card__subheading">{{ 'AUTH.MFA_SUBTITLE' | translate }}</p>
+
+      <form [formGroup]="mfaForm" (ngSubmit)="onVerifyMfa()">
+        <div class="fb-field">
+          <input
+            type="text"
+            class="fb-input mfa-input"
+            formControlName="code"
+            [placeholder]="'AUTH.MFA_PLACEHOLDER' | translate"
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="fb-btn fb-btn--primary login-card__submit"
+          [class.fb-btn--disabled]="mfaForm.invalid"
+          [disabled]="mfaForm.invalid"
+        >
+          {{ 'AUTH.VERIFY' | translate }}
+        </button>
+      </form>
+
+      <div class="login-card__register">
+        <a (click)="showMfa = false" style="cursor: pointer">{{ 'AUTH.BACK_TO_LOGIN' | translate }}</a>
+      </div>
+    </div>
+
+    <!-- Trust Badges -->
+    <div class="fb-trust-badges">
+      <div class="badge">
+        <ion-icon name="lock-closed"></ion-icon>
+        <span>{{ 'TRUST.ENCRYPTION' | translate }}</span>
+      </div>
+      <div class="badge">
+        <ion-icon name="shield-checkmark"></ion-icon>
+        <span>{{ 'TRUST.REGULATED' | translate }}</span>
+      </div>
+      <div class="badge">
+        <ion-icon name="card"></ion-icon>
+        <span>{{ 'TRUST.PCI' | translate }}</span>
+      </div>
+    </div>
+  </div>
+</ion-content>

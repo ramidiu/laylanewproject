@@ -1,0 +1,147 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.security-settings { max-width: 900px; }
+
+.page-header { margin-bottom: $fb-space-6; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }
+
+.loading-state { display: flex; flex-direction: column; gap: $fb-space-3; padding: $fb-space-6; }
+
+.settings-section {
+  margin-bottom: $fb-space-5;
+  padding: 0;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $fb-space-5 $fb-space-5 $fb-space-3;
+  border-bottom: 1px solid $fb-gray-100;
+}
+
+.section-title {
+  font-size: $fb-text-lg;
+  font-weight: $fb-font-semibold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-1;
+  display: flex;
+  align-items: center;
+  gap: $fb-space-2;
+
+  ion-icon {
+    color: $fb-navy;
+    font-size: 1.3em;
+  }
+}
+
+.section-desc {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  margin: 0;
+}
+
+.settings-grid {
+  padding: 0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $fb-space-4 $fb-space-5;
+  border-bottom: 1px solid $fb-gray-50;
+  gap: $fb-space-4;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover { background: $fb-gray-50; }
+
+  @media (max-width: $fb-breakpoint-sm) {
+    flex-direction: column;
+  }
+}
+
+.setting-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-label {
+  display: block;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  color: $fb-gray-800;
+  margin-bottom: $fb-space-1;
+}
+
+.setting-desc {
+  display: block;
+  font-size: $fb-text-xs;
+  color: $fb-gray-400;
+  line-height: 1.4;
+}
+
+.setting-control {
+  flex-shrink: 0;
+  min-width: 220px;
+
+  @media (max-width: $fb-breakpoint-sm) {
+    min-width: 100%;
+  }
+}
+
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-2;
+}
+
+.toggle-label {
+  font-size: $fb-text-sm;
+  color: $fb-gray-600;
+  font-weight: $fb-font-medium;
+}
+
+.setting-number {
+  width: 120px;
+  text-align: right;
+
+  @media (max-width: $fb-breakpoint-sm) {
+    width: 100%;
+  }
+}
+
+.setting-textarea {
+  width: 100%;
+  min-width: 280px;
+  font-family: $fb-font-mono;
+  font-size: $fb-text-xs;
+  line-height: 1.5;
+  resize: vertical;
+
+  @media (max-width: $fb-breakpoint-sm) {
+    min-width: 100%;
+  }
+}
+
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-2;
+  padding: $fb-space-3 $fb-space-4;
+  background: $fb-info-bg;
+  border: 1px solid rgba($fb-info, 0.2);
+  border-radius: $fb-radius-md;
+  font-size: $fb-text-sm;
+  color: $fb-gray-600;
+  margin-bottom: $fb-space-6;
+
+  ion-icon {
+    color: $fb-info;
+    font-size: 1.2em;
+    flex-shrink: 0;
+  }
+}

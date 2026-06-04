@@ -1,0 +1,160 @@
+<div class="admin-notifications sa-notifications">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Notifications</h1>
+      <p class="page-subtitle">Send in-app notifications to users or broadcast to everyone</p>
+    </div>
+  </div>
+
+  <div class="notifications-grid">
+    <!-- Compose card -->
+    <div class="card">
+      <div class="card__header">
+        <h2 class="card__title">Send Notification</h2>
+      </div>
+      <div class="card__body">
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input
+            class="form-input"
+            type="text"
+            [(ngModel)]="title"
+            placeholder="Notification title"
+            maxlength="255"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea
+            class="form-textarea"
+            [(ngModel)]="message"
+            placeholder="Message body"
+            rows="4"
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" [(ngModel)]="type">
+            <option *ngFor="let t of types" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Recipients</label>
+          <div class="target-tabs">
+            <button
+              type="button"
+              class="target-tab"
+              [class.target-tab--active]="targetType === 'ALL'"
+              (click)="onTargetChange('ALL')"
+            >
+              All Active Users
+            </button>
+            <button
+              type="button"
+              class="target-tab"
+              [class.target-tab--active]="targetType === 'USERS'"
+              (click)="onTargetChange('USERS')"
+            >
+              Specific Users
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="targetType === 'USERS'">
+          <label class="form-label">Add users</label>
+          <div class="user-search">
+            <input
+              class="form-input"
+              type="text"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="searchUsers()"
+              placeholder="Search by name or email..."
+            />
+            <div class="user-search__results" *ngIf="searchResults.length > 0">
+              <button
+                type="button"
+                class="user-search__result"
+                *ngFor="let r of searchResults"
+                (click)="addRecipient(r)"
+              >
+                <span class="user-search__label">{{ r.label }}</span>
+                <span class="user-search__email">{{ r.email }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="selected-recipients" *ngIf="selectedRecipients.length > 0">
+            <div class="recipient-chip" *ngFor="let r of selectedRecipients">
+              <span>{{ r.label }}</span>
+              <button type="button" class="recipient-chip__remove" (click)="removeRecipient(r.id)">×</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="!canSend()"
+            (click)="send()"
+          >
+            <ion-icon name="send-outline"></ion-icon>
+            <span>{{ sending ? 'Sending...' : 'Send Notification' }}</span>
+          </button>
+        </div>
+
+        <div class="alert alert--success" *ngIf="successMessage">{{ successMessage }}</div>
+        <div class="alert alert--error" *ngIf="errorMessage">{{ errorMessage }}</div>
+      </div>
+    </div>
+
+    <!-- Log card -->
+    <div class="card">
+      <div class="card__header">
+        <h2 class="card__title">Recent Sent Notifications</h2>
+        <button type="button" class="btn btn--ghost" (click)="loadLog()">
+          <ion-icon name="refresh-outline"></ion-icon>
+          <span>Refresh</span>
+        </button>
+      </div>
+      <div class="card__body">
+        <div class="log-empty" *ngIf="!logLoading && logEntries.length === 0">
+          No notifications sent yet.
+        </div>
+        <div class="log-loading" *ngIf="logLoading">Loading…</div>
+        <table class="log-table" *ngIf="!logLoading && logEntries.length > 0">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Type</th>
+              <th>User</th>
+              <th>Read</th>
+              <th>Sent</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of logEntries">
+              <td>
+                <div class="log-title">{{ entry.title }}</div>
+                <div class="log-message">{{ entry.message }}</div>
+              </td>
+              <td>
+                <span class="chip">{{ entry.type }}</span>
+              </td>
+              <td>#{{ entry.userId }}</td>
+              <td>
+                <span class="status" [class.status--delivered]="entry.isRead" [class.status--pending]="!entry.isRead">
+                  {{ entry.isRead ? 'READ' : 'UNREAD' }}
+                </span>
+              </td>
+              <td>{{ entry.createdAt | date:'short' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

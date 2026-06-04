@@ -1,0 +1,192 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.referral-content {
+  --background: #{$fb-gray-50};
+}
+
+.referral-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $fb-space-6;
+  padding-top: $fb-space-8;
+}
+
+.referral-header {
+  text-align: center;
+  margin-bottom: $fb-space-6;
+
+  &__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: $fb-radius-full;
+    background: $fb-gradient-navy;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto $fb-space-3;
+    ion-icon { font-size: 28px; color: $fb-white; }
+  }
+
+  &__title {
+    font-size: $fb-text-2xl;
+    font-weight: $fb-font-bold;
+    color: $fb-navy;
+    margin: 0 0 $fb-space-2;
+  }
+
+  &__subtitle {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    margin: 0;
+  }
+}
+
+.referral-card {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  box-shadow: $fb-shadow-lg;
+  padding: $fb-space-6;
+  width: 100%;
+  max-width: 520px;
+}
+
+.referral-steps {
+  margin-bottom: $fb-space-6;
+  padding-bottom: $fb-space-5;
+  border-bottom: 1px solid $fb-gray-100;
+
+  &__title {
+    font-size: $fb-text-base;
+    font-weight: 700;
+    color: $fb-gray-900;
+    margin: 0 0 $fb-space-4;
+  }
+}
+
+.referral-step {
+  display: flex;
+  align-items: flex-start;
+  gap: $fb-space-3;
+  margin-bottom: $fb-space-3;
+
+  &:last-child { margin-bottom: 0; }
+
+  &__num {
+    width: 28px;
+    height: 28px;
+    border-radius: $fb-radius-full;
+    background: $fb-navy;
+    color: $fb-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong { font-size: 14px; color: $fb-gray-800; }
+    span { font-size: 13px; color: $fb-gray-500; }
+  }
+}
+
+.referral-code-section {
+  margin-bottom: $fb-space-5;
+}
+
+.referral-code-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: $fb-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: $fb-space-2;
+}
+
+.referral-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: $fb-gray-50;
+  border: 2px dashed $fb-gray-200;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-4;
+}
+
+.referral-code-value {
+  font-family: $fb-font-mono;
+  font-size: $fb-text-2xl;
+  font-weight: 700;
+  color: $fb-navy;
+  letter-spacing: 0.1em;
+}
+
+.referral-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: $fb-navy;
+  color: $fb-white;
+  border: none;
+  border-radius: $fb-radius-md;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  ion-icon { font-size: 16px; }
+  &:hover { background: darken($fb-navy, 8%); }
+}
+
+.referral-share {
+  &__label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: $fb-gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: $fb-space-2;
+  }
+
+  &__buttons {
+    display: flex;
+    gap: $fb-space-3;
+  }
+}
+
+.referral-share-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: $fb-radius-lg;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  justify-content: center;
+  transition: opacity 0.2s;
+
+  ion-icon { font-size: 20px; }
+  &:hover { opacity: 0.9; }
+
+  &--whatsapp {
+    background: #25D366;
+    color: white;
+  }
+
+  &--email {
+    background: $fb-navy;
+    color: white;
+  }
+}

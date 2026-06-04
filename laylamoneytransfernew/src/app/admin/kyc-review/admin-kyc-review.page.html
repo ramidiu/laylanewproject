@@ -1,0 +1,156 @@
+<div class="kyc-review">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">KYC Review</h1>
+      <p class="page-subtitle">Review and approve user identity documents</p>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card stat-card--info">
+      <div class="stat-card__value">{{ stats.partial }}</div>
+      <div class="stat-card__label">Partial</div>
+    </div>
+    <div class="stat-card stat-card--warning">
+      <div class="stat-card__value">{{ stats.pending }}</div>
+      <div class="stat-card__label">Pending</div>
+    </div>
+    <div class="stat-card stat-card--success">
+      <div class="stat-card__value">{{ stats.verified }}</div>
+      <div class="stat-card__label">Verified</div>
+    </div>
+    <div class="stat-card stat-card--danger">
+      <div class="stat-card__value">{{ stats.rejected }}</div>
+      <div class="stat-card__label">Rejected</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs">
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'ALL'" (click)="setFilter('ALL')">All</button>
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'PARTIAL'" (click)="setFilter('PARTIAL')">Partial</button>
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'PENDING'" (click)="setFilter('PENDING')">Pending</button>
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'VERIFIED'" (click)="setFilter('VERIFIED')">Verified</button>
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'REJECTED'" (click)="setFilter('REJECTED')">Rejected</button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && filteredEntries.length === 0" class="empty-state">
+    <ion-icon name="document-text-outline" class="empty-state__icon"></ion-icon>
+    <p class="empty-state__text">No KYC submissions found for this filter.</p>
+  </div>
+
+  <!-- User Cards -->
+  <div class="kyc-cards" *ngIf="!loading && filteredEntries.length > 0">
+    <div class="kyc-card" *ngFor="let entry of filteredEntries">
+      <!-- Card Header -->
+      <div class="kyc-card__header" (click)="toggleExpand(entry)">
+        <div class="kyc-card__user-info">
+          <div class="user-avatar-sm">{{ entry.user.firstName?.[0] || '?' }}{{ entry.user.lastName?.[0] || '?' }}</div>
+          <div class="kyc-card__user-details">
+            <span class="kyc-card__name">
+              {{ entry.user.firstName }} {{ entry.user.lastName }}
+              <span class="kyc-card__user-id">#{{ entry.user.id }}</span>
+            </span>
+            <span class="kyc-card__email">{{ entry.user.email }}</span>
+          </div>
+        </div>
+        <div class="kyc-card__meta">
+          <span class="status-badge status-badge--{{ getStatusClass(entry.kycStatus?.overallStatus) }}">
+            {{ getStatusLabel(entry.kycStatus?.overallStatus) }}
+          </span>
+          <button
+            *ngIf="entry.openComplianceAlerts && entry.openComplianceAlerts > 0"
+            class="compliance-badge"
+            (click)="openComplianceForUser(entry); $event.stopPropagation()"
+            title="Open compliance queue for this customer"
+          >
+            <ion-icon name="warning-outline"></ion-icon>
+            Compliance: {{ entry.openComplianceAlerts }} open
+          </button>
+          <span class="tier-badge">{{ entry.user.kycTier || 'NONE' }}</span>
+          <span class="kyc-card__date" *ngIf="entry.user.updatedAt">{{ entry.user.updatedAt | date:'MMM d, y' }}</span>
+          <button class="expand-btn" [class.expand-btn--open]="entry.expanded">
+            <ion-icon name="chevron-down-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Expanded Documents -->
+      <div class="kyc-card__body" *ngIf="entry.expanded">
+        <div *ngIf="entry.loadingDocs" class="docs-loading">
+          <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2]"></div>
+        </div>
+
+        <div *ngIf="!entry.loadingDocs && entry.documents.length === 0" class="docs-empty">
+          No documents uploaded yet.
+        </div>
+
+        <div class="docs-list" *ngIf="!entry.loadingDocs && entry.documents.length > 0">
+          <div class="doc-row" *ngFor="let doc of entry.documents">
+            <div class="doc-row__header">
+              <span class="doc-row__type">{{ formatDocType(doc.documentType) }}</span>
+              <span class="status-badge status-badge--{{ getDocStatusClass(doc.status) }}">{{ doc.status }}</span>
+              <span class="doc-row__date">{{ doc.uploadedAt || doc.createdAt | date:'MMM d, y HH:mm' }}</span>
+            </div>
+            <div class="doc-row__details" *ngIf="doc.documentNumber || doc.issueDate || doc.expiryDate">
+              <div class="doc-detail" *ngIf="doc.documentNumber">
+                <span class="doc-detail__label">Document Number</span>
+                <span class="doc-detail__value">{{ doc.documentNumber }}</span>
+              </div>
+              <div class="doc-detail" *ngIf="doc.issueDate">
+                <span class="doc-detail__label">Issue Date</span>
+                <span class="doc-detail__value">{{ doc.issueDate | date:'MMM d, y' }}</span>
+              </div>
+              <div class="doc-detail" *ngIf="doc.expiryDate">
+                <span class="doc-detail__label">Expiry Date</span>
+                <span class="doc-detail__value">{{ doc.expiryDate | date:'MMM d, y' }}</span>
+              </div>
+            </div>
+            <div class="doc-row__preview" *ngIf="doc.previewUrl">
+              <img
+                *ngIf="doc.isImage"
+                [src]="doc.previewUrl"
+                alt="Document preview"
+                class="doc-preview-img"
+                (click)="openPreview(doc)"
+                (error)="doc.isImage = false"
+              />
+              <div
+                *ngIf="!doc.isImage"
+                class="doc-preview-pdf"
+                (click)="openPreview(doc)"
+                [title]="'Open ' + (doc.previewMime || 'document')"
+              >
+                <ion-icon name="document-text-outline"></ion-icon>
+                <div class="doc-preview-pdf__label">
+                  {{ doc.isPdf ? 'PDF document' : 'Open document' }}
+                </div>
+                <div class="doc-preview-pdf__hint">Click to open in new tab</div>
+              </div>
+            </div>
+            <div class="doc-row__actions">
+              <ng-container *ngIf="doc.status === 'PENDING'">
+                <button class="action-btn action-btn--success" (click)="approveDoc(entry, doc); $event.stopPropagation()">
+                  <ion-icon name="checkmark-outline"></ion-icon> Approve
+                </button>
+                <button class="action-btn action-btn--danger" (click)="rejectDoc(entry, doc); $event.stopPropagation()">
+                  <ion-icon name="close-outline"></ion-icon> Reject
+                </button>
+              </ng-container>
+              <span class="doc-row__rejection" *ngIf="doc.status === 'REJECTED' && doc.rejectionReason">
+                Reason: {{ doc.rejectionReason }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

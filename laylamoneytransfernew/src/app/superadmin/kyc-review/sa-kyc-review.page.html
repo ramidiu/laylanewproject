@@ -1,0 +1,301 @@
+<div class="kyc-review">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">KYC Review</h1>
+      <p class="page-subtitle">Review and approve user identity documents</p>
+    </div>
+  </div>
+
+  <!-- Main Tab Switcher -->
+  <div class="main-tabs">
+    <button class="main-tab" [class.main-tab--active]="activeMainTab === 'USERS'" (click)="activeMainTab = 'USERS'">
+      <ion-icon name="people-outline"></ion-icon> Customer KYC
+    </button>
+    <button class="main-tab" [class.main-tab--active]="activeMainTab === 'PAYIN'" (click)="activeMainTab = 'PAYIN'">
+      <ion-icon name="cash-outline"></ion-icon> PayIn Customers
+    </button>
+  </div>
+
+  <!-- ═══════════════ PAYIN CUSTOMERS TAB ═══════════════ -->
+  <div *ngIf="activeMainTab === 'PAYIN'">
+
+    <div class="search-bar">
+      <ion-icon name="search-outline" class="search-bar__icon"></ion-icon>
+      <input type="text" class="search-bar__input" placeholder="Search by name, email or ID…"
+        [(ngModel)]="payinSearchQuery" (ngModelChange)="onPayinSearch($event)" />
+    </div>
+
+    <div *ngIf="payinLoading" class="loading-state">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+
+    <div *ngIf="!payinLoading && payinFilteredCustomers.length === 0" class="empty-state">
+      <ion-icon name="document-text-outline" class="empty-state__icon"></ion-icon>
+      <p class="empty-state__text">No PayIn customers found.</p>
+    </div>
+
+    <div class="kyc-cards" *ngIf="!payinLoading && payinFilteredCustomers.length > 0">
+      <div class="kyc-card" *ngFor="let c of payinFilteredCustomers">
+
+        <!-- Card Header -->
+        <div class="kyc-card__header" (click)="togglePayinCustomer(c)">
+          <div class="kyc-card__user-info">
+            <div class="user-avatar-sm">{{ c.firstName?.[0] || '?' }}{{ c.lastName?.[0] || '?' }}</div>
+            <div class="kyc-card__user-details">
+              <span class="kyc-card__name">
+                {{ c.firstName }} {{ c.lastName }}
+                <span class="kyc-card__user-id">{{ c.customerId | slice:0:8 }}…</span>
+              </span>
+              <span class="kyc-card__email">{{ c.email }}</span>
+              <span class="kyc-card__date" *ngIf="c.createdAt">
+                <ion-icon name="calendar-outline"></ion-icon>
+                {{ c.createdAt | date:'d MMM yyyy' }}
+              </span>
+            </div>
+          </div>
+          <div class="kyc-card__meta">
+            <ion-badge [color]="c.isVerified ? 'success' : 'warning'">{{ c.isVerified ? 'Verified' : 'Unverified' }}</ion-badge>
+            <ion-badge color="primary">{{ c.createdSource }}</ion-badge>
+            <span *ngIf="c.hasExpiredDocuments" class="status-badge status-badge--danger">Docs Expired</span>
+            <button class="expand-btn" [class.expand-btn--open]="c._expanded">
+              <ion-icon name="chevron-down-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Expanded Body -->
+        <div class="kyc-card__body" *ngIf="c._expanded">
+          <!-- Customer details -->
+          <div class="doc-row__details" style="margin-bottom:12px">
+            <div class="doc-detail" *ngIf="c.phone"><span class="doc-detail__label">Phone</span><span class="doc-detail__value">{{ c.phone }}</span></div>
+            <div class="doc-detail" *ngIf="c.nationality"><span class="doc-detail__label">Nationality</span><span class="doc-detail__value">{{ c.nationality }}</span></div>
+            <div class="doc-detail" *ngIf="c.dob"><span class="doc-detail__label">Date of Birth</span><span class="doc-detail__value">{{ c.dob | date:'MMM d, y' }}</span></div>
+            <div class="doc-detail" *ngIf="c.addressLine1"><span class="doc-detail__label">Address</span><span class="doc-detail__value">{{ c.addressLine1 }}, {{ c.city }}, {{ c.country }} {{ c.postalCode }}</span></div>
+          </div>
+
+          <!-- Documents -->
+          <div *ngIf="c._docsLoading" class="docs-loading">
+            <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2]"></div>
+          </div>
+          <div *ngIf="!c._docsLoading && (!c._docs || c._docs.length === 0)" class="docs-empty">No documents uploaded.</div>
+          <div class="docs-list" *ngIf="!c._docsLoading && c._docs?.length > 0">
+            <div class="doc-row" *ngFor="let doc of c._docs">
+              <div class="doc-row__header">
+                <span class="doc-row__type">{{ doc.docCategory }} — {{ doc.docSide }}</span>
+                <span class="status-badge status-badge--{{ doc.status === 'APPROVED' ? 'success' : doc.status === 'REJECTED' ? 'danger' : 'warning' }}">{{ doc.status }}</span>
+                <span class="doc-row__filename" *ngIf="doc.fileName">{{ doc.fileName }}</span>
+              </div>
+              <div class="doc-row__details" *ngIf="doc.documentNumber || doc.expiryDate">
+                <div class="doc-detail" *ngIf="doc.documentNumber"><span class="doc-detail__label">Doc #</span><span class="doc-detail__value">{{ doc.documentNumber }}</span></div>
+                <div class="doc-detail" *ngIf="doc.expiryDate"><span class="doc-detail__label">Expires</span><span class="doc-detail__value">{{ doc.expiryDate }}</span></div>
+              </div>
+              <div class="doc-row__actions">
+                <a [href]="getPayinDocUrl(doc.id)" target="_blank" class="action-btn action-btn--link" style="text-decoration:none">
+                  <ion-icon name="eye-outline"></ion-icon> View Document
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ REGULAR KYC TAB ═══════════════ -->
+  <div *ngIf="activeMainTab === 'USERS'">
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card stat-card--medium">
+      <div class="stat-card__value">{{ partialCount }}</div>
+      <div class="stat-card__label">Partial</div>
+    </div>
+    <div class="stat-card stat-card--warning">
+      <div class="stat-card__value">{{ stats.pending }}</div>
+      <div class="stat-card__label">Pending</div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <ion-icon name="search-outline" class="search-bar__icon"></ion-icon>
+    <input type="text" class="search-bar__input" placeholder="Search by name, email or ID…"
+      [(ngModel)]="searchQuery" (ngModelChange)="applyFilter()" />
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs">
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'PENDING'" (click)="setFilter('PENDING')">Pending Approval</button>
+    <button class="filter-tab" [class.filter-tab--active]="activeFilter === 'PARTIAL'" (click)="setFilter('PARTIAL')">Partial</button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && filteredEntries.length === 0" class="empty-state">
+    <ion-icon name="document-text-outline" class="empty-state__icon"></ion-icon>
+    <p class="empty-state__text">No KYC submissions found for this filter.</p>
+  </div>
+
+  <!-- User Cards -->
+  <div class="kyc-cards" *ngIf="!loading && filteredEntries.length > 0">
+    <div class="kyc-card" *ngFor="let entry of filteredEntries">
+      <!-- Card Header -->
+      <div class="kyc-card__header" (click)="toggleExpand(entry)">
+        <div class="kyc-card__user-info">
+          <div class="user-avatar-sm">{{ entry.user.firstName?.[0] || '?' }}{{ entry.user.lastName?.[0] || '?' }}</div>
+          <div class="kyc-card__user-details">
+            <span class="kyc-card__name">
+              {{ entry.user.firstName }} {{ entry.user.lastName }}
+              <span class="kyc-card__user-id">#{{ entry.user.id }}</span>
+            </span>
+            <span class="kyc-card__email">{{ entry.user.email }}</span>
+            <span class="kyc-card__date" *ngIf="entry.user.createdAt">
+              <ion-icon name="calendar-outline"></ion-icon>
+              {{ entry.user.createdAt | date:'d MMM yyyy' }}
+            </span>
+          </div>
+        </div>
+        <div class="kyc-card__meta">
+          <span class="status-badge status-badge--{{ getStatusClass(entry.kycStatus?.overallStatus, entry) }}">
+            {{ getStatusLabel(entry.kycStatus?.overallStatus, entry) }}
+          </span>
+          <span
+            *ngIf="entry.riskScore"
+            class="status-badge status-badge--{{ riskColor(entry.riskScore.riskScore) }}"
+            [title]="'Risk points: ' + entry.riskScore.riskPoints + (entry.riskScore.overridden ? ' (overridden)' : '')"
+          >
+            Risk: {{ entry.riskScore.riskScore }}
+          </span>
+          <span *ngIf="entry.riskLoading && !entry.riskScore" class="status-badge status-badge--medium">
+            Risk: …
+          </span>
+          <button
+            *ngIf="entry.openComplianceAlerts && entry.openComplianceAlerts > 0"
+            class="compliance-badge"
+            (click)="openComplianceForUser(entry); $event.stopPropagation()"
+            title="Open compliance queue for this customer"
+          >
+            <ion-icon name="warning-outline"></ion-icon>
+            Compliance: {{ entry.openComplianceAlerts }} open
+          </button>
+          <span class="tier-badge">{{ entry.user.kycTier || 'NONE' }}</span>
+          <button class="action-btn action-btn--link" (click)="viewProfile(entry); $event.stopPropagation()" title="View Profile">
+            <ion-icon name="person-outline"></ion-icon>
+          </button>
+          <button class="expand-btn" [class.expand-btn--open]="entry.expanded">
+            <ion-icon name="chevron-down-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Profile Changed Banner -->
+      <div class="profile-changed-banner" *ngIf="entry.expanded && isPendingVerification(entry)">
+        <div class="profile-changed-banner__header">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <strong>Profile Changed — Awaiting Re-verification</strong>
+        </div>
+        <div class="profile-changed-banner__details">
+          <div class="profile-detail-row">
+            <span class="profile-detail-row__label">Name</span>
+            <span class="profile-detail-row__value">{{ entry.user.firstName }} {{ entry.user.lastName }}</span>
+          </div>
+          <div class="profile-detail-row">
+            <span class="profile-detail-row__label">Email</span>
+            <span class="profile-detail-row__value">{{ entry.user.email }}</span>
+          </div>
+          <div class="profile-detail-row">
+            <span class="profile-detail-row__label">Phone</span>
+            <span class="profile-detail-row__value">{{ entry.user.phone }}</span>
+          </div>
+          <div class="profile-detail-row" *ngIf="entry.user.addressLine1">
+            <span class="profile-detail-row__label">Address</span>
+            <span class="profile-detail-row__value">{{ entry.user.addressLine1 }}<span *ngIf="entry.user.city">, {{ entry.user.city }}</span><span *ngIf="entry.user.postcode"> {{ entry.user.postcode }}</span></span>
+          </div>
+          <div class="profile-detail-row">
+            <span class="profile-detail-row__label">Country</span>
+            <span class="profile-detail-row__value">{{ entry.user.countryCode }}</span>
+          </div>
+        </div>
+        <div class="profile-changed-banner__actions">
+          <button class="action-btn action-btn--success" (click)="reVerifyUser(entry); $event.stopPropagation()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon> Approve &amp; Re-verify
+          </button>
+        </div>
+      </div>
+
+      <!-- Expanded Documents -->
+      <div class="kyc-card__body" *ngIf="entry.expanded">
+        <div *ngIf="entry.loadingDocs" class="docs-loading">
+          <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2]"></div>
+        </div>
+
+        <div *ngIf="!entry.loadingDocs && entry.documents.length === 0" class="docs-empty">
+          No documents uploaded yet.
+        </div>
+
+        <div class="docs-list" *ngIf="!entry.loadingDocs && entry.documents.length > 0">
+          <div class="doc-row" *ngFor="let doc of entry.documents">
+            <div class="doc-row__header">
+              <span class="doc-row__type">{{ formatDocType(doc.documentType) }}</span>
+              <span class="status-badge status-badge--{{ getDocStatusClass(doc.status) }}">{{ doc.status }}</span>
+              <span class="doc-row__date">{{ doc.uploadedAt || doc.createdAt | date:'MMM d, y HH:mm' }}</span>
+            </div>
+            <div class="doc-row__details" *ngIf="doc.documentNumber || doc.issueDate || doc.expiryDate">
+              <div class="doc-detail" *ngIf="doc.documentNumber">
+                <span class="doc-detail__label">Document Number</span>
+                <span class="doc-detail__value">{{ doc.documentNumber }}</span>
+              </div>
+              <div class="doc-detail" *ngIf="doc.issueDate">
+                <span class="doc-detail__label">Issue Date</span>
+                <span class="doc-detail__value">{{ doc.issueDate | date:'MMM d, y' }}</span>
+              </div>
+              <div class="doc-detail" *ngIf="doc.expiryDate">
+                <span class="doc-detail__label">Expiry Date</span>
+                <span class="doc-detail__value">{{ doc.expiryDate | date:'MMM d, y' }}</span>
+              </div>
+            </div>
+            <div class="doc-row__preview" *ngIf="doc.previewUrl">
+              <img *ngIf="doc.isImage" [src]="doc.previewUrl" alt="Document preview" class="doc-preview-img" (click)="openPreview(doc)" />
+              <iframe *ngIf="doc.isPdf" [src]="doc.previewUrl" class="doc-preview-pdf" (click)="openPreview(doc)"></iframe>
+              <div *ngIf="!doc.isImage && !doc.isPdf" class="doc-preview-file" (click)="openPreview(doc)">
+                <ion-icon name="document-outline"></ion-icon>
+                <span>Click to view</span>
+              </div>
+            </div>
+            <div class="doc-row__actions">
+              <ng-container *ngIf="doc.status === 'PENDING'">
+                <button class="action-btn action-btn--success" (click)="approveDoc(entry, doc); $event.stopPropagation()">
+                  <ion-icon name="checkmark-outline"></ion-icon> Approve
+                </button>
+                <button class="action-btn action-btn--danger" (click)="rejectDoc(entry, doc); $event.stopPropagation()">
+                  <ion-icon name="close-outline"></ion-icon> Reject
+                </button>
+              </ng-container>
+              <span class="doc-row__rejection" *ngIf="doc.status === 'REJECTED' && doc.rejectionReason">
+                Reason: {{ doc.rejectionReason }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="kyc-pagination" *ngIf="!loading && totalPages > 1">
+    <button class="fb-btn fb-btn--secondary pagination-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)">
+      <ion-icon name="chevron-back"></ion-icon>
+    </button>
+    <span class="pagination-info">Page {{ currentPage + 1 }} of {{ totalPages }} · {{ totalElements }} users</span>
+    <button class="fb-btn fb-btn--secondary pagination-btn" [disabled]="currentPage >= totalPages - 1" (click)="goToPage(currentPage + 1)">
+      <ion-icon name="chevron-forward"></ion-icon>
+    </button>
+  </div>
+
+  </div><!-- end *ngIf USERS -->
+</div>

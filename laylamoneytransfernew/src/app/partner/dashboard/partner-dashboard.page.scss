@@ -1,0 +1,80 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.partner-dash { max-width: 1200px; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0 0 $fb-space-6; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $fb-space-4;
+  margin-bottom: $fb-space-6;
+
+  @media (max-width: $fb-breakpoint-md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.quick-actions {
+  display: flex;
+  gap: $fb-space-3;
+  margin-bottom: $fb-space-6;
+  flex-wrap: wrap;
+
+  .btn-primary-solid {
+    --background: #1B3A6B;
+    --background-hover: #142D56;
+    --background-activated: #142D56;
+    --color: #{$fb-white};
+  }
+}
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.section-title {
+  font-size: $fb-text-base;
+  font-weight: $fb-font-semibold;
+  color: $fb-gray-900;
+  padding: $fb-space-4;
+  margin: 0;
+  border-bottom: 1px solid $fb-gray-100;
+}
+
+.empty-state {
+  text-align: center;
+  color: $fb-gray-400;
+  padding: $fb-space-8 !important;
+  font-size: $fb-text-sm;
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+  white-space: nowrap;
+
+  ion-icon { font-size: 14px; margin-right: 2px; }
+
+  &:hover  { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); }
+  &:active { transform: translateY(1px); }
+  &:focus-visible { outline: 2px solid rgba(59, 130, 246, 0.4); outline-offset: 2px; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &--success {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+    &:hover { background: #d1fae5; border-color: #6ee7b7; }
+  }
+}

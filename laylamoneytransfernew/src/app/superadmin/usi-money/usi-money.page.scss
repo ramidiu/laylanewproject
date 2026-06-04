@@ -1,0 +1,168 @@
+.usi-page { padding: 16px 24px 40px; }
+
+.usi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.usi-title { margin: 0 0 4px; font-size: 1.4rem; color: #1B3A6B; }
+.usi-sub   { margin: 0; color: #6b7280; font-size: 0.85rem; }
+.usi-header-actions { display: flex; gap: 10px; }
+
+.usi-filters {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 12px;
+  margin-bottom: 12px;
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+
+.usi-bulk-bar {
+  background: #f0f4ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.usi-bulk-bar > span { font-weight: 600; color: #1B3A6B; margin-right: 8px; }
+
+.usi-table-card { overflow: auto; padding: 0; }
+.usi-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  th, td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  th { background: #fafbfc; color: #6b7280; font-weight: 600; text-align: left; }
+  tr:hover { background: #fafbfd; }
+}
+.usi-row--done td { opacity: 0.55; }
+.usi-mono     { font-family: ui-monospace, monospace; }
+.usi-sub-line { font-size: 0.75rem; color: #9ca3af; margin-top: 2px; }
+.usi-actions-col { text-align: right; white-space: nowrap; }
+
+.usi-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  &--new  { background: #e5e7eb; color: #4b5563; }
+  &--init { background: #fef3c7; color: #92400e; }
+  &--sent { background: #dbeafe; color: #1e40af; }
+  &--paid { background: #d1fae5; color: #065f46; }
+  &--fail { background: #fee2e2; color: #991b1b; }
+  &--info { background: #e0e7ff; color: #3730a3; }
+}
+
+.usi-error { color: #b91c1c; font-size: 0.72rem; margin-top: 4px; max-width: 240px; }
+
+.usi-ref-banner {
+  position: sticky;
+  top: 12px;
+  z-index: 30;
+  margin: 0 0 16px;
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 1px solid #34d399;
+    border-radius: 14px;
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.18);
+    @media (max-width: 640px) {
+      flex-direction: column; align-items: stretch; gap: 10px;
+    }
+  }
+
+  &__icon { font-size: 28px; color: #047857; flex-shrink: 0; }
+
+  &__body { flex: 1; min-width: 0; }
+
+  &__title {
+    color: #064e3b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  &__status {
+    margin-left: 6px;
+    background: #065f46;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__field {
+    width: 100%;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #34d399;
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #064e3b;
+    letter-spacing: 0.04em;
+    outline: none;
+    user-select: all;
+    cursor: text;
+    &:focus { border-color: #047857; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.18); }
+  }
+
+  &__close {
+    background: transparent;
+    border: none;
+    color: #065f46;
+    cursor: pointer;
+    padding: 6px;
+    ion-icon { font-size: 22px; }
+    &:hover { color: #064e3b; }
+  }
+}
+
+.usi-ref-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  user-select: all;
+  transition: background 0.15s;
+  ion-icon { font-size: 13px; opacity: 0.6; }
+  &:hover { background: #a7f3d0; }
+}
+
+.usi-empty { padding: 60px 16px; text-align: center; color: #9ca3af;
+  &__icon { font-size: 48px; color: #d1d5db; display: block; margin: 0 auto 12px; }
+}
+
+.usi-loading {
+  padding: 40px; text-align: center; color: #6b7280;
+  display: flex; gap: 12px; align-items: center; justify-content: center;
+}
+
+.fb-btn--sm {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  ion-icon { font-size: 14px; }
+}
+.fb-btn--ghost {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid transparent;
+  &:hover { background: #f3f4f6; }
+}

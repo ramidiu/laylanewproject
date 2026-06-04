@@ -1,0 +1,90 @@
+<div class="admin-users">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Users</h1>
+      <p class="page-subtitle">Manage all platform users</p>
+    </div>
+    <div class="page-header__meta">
+      <span class="total-count">{{ totalElements }} total users</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <ion-icon name="search-outline"></ion-icon>
+      <input class="fb-input" placeholder="Search by name or email..." (input)="onSearch($event)" [value]="searchQuery" />
+    </div>
+    <select class="fb-input filter-select" (change)="onStatusFilter($any($event.target).value)">
+      <option value="">All Status</option>
+      <option value="ACTIVE">Active</option>
+      <option value="SUSPENDED">Suspended</option>
+      <option value="PENDING_VERIFICATION">Pending</option>
+    </select>
+    <select class="fb-input filter-select" (change)="onKycFilter($any($event.target).value)">
+      <option value="">All KYC</option>
+      <option value="NONE">None</option>
+      <option value="TIER_1">Tier 1</option>
+      <option value="TIER_2">Tier 2</option>
+      <option value="TIER_3">Tier 3</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="fb-card table-card">
+    <div *ngIf="loading" class="table-loading">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5,6,7,8]"></div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!loading">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>KYC Tier</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users" (click)="viewUser(user.id)" class="clickable-row">
+            <td>
+              <div class="user-name-cell">
+                <div class="user-avatar-sm">{{ user.firstName[0] }}{{ user.lastName[0] }}</div>
+                <span>{{ user.firstName }} {{ user.lastName }}</span>
+              </div>
+            </td>
+            <td>{{ user.email }}</td>
+            <td>
+              <ion-badge [color]="user.kycTier === 'TIER_3' ? 'success' : user.kycTier === 'TIER_2' ? 'secondary' : user.kycTier === 'TIER_1' ? 'warning' : 'medium'">
+                {{ user.kycTier }}
+              </ion-badge>
+            </td>
+            <td>
+              <app-status-chip [status]="user.status"></app-status-chip>
+            </td>
+            <td>{{ user.createdAt | date:'MMM d, y' }}</td>
+            <td>
+              <ion-button fill="clear" size="small" (click)="viewUser(user.id); $event.stopPropagation()">
+                <ion-icon name="eye-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="table-pagination" *ngIf="totalPages > 1">
+      <button class="fb-btn fb-btn--secondary pagination-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)">
+        <ion-icon name="chevron-back"></ion-icon>
+      </button>
+      <span class="pagination-info">Page {{ currentPage + 1 }} of {{ totalPages }}</span>
+      <button class="fb-btn fb-btn--secondary pagination-btn" [disabled]="currentPage >= totalPages - 1" (click)="goToPage(currentPage + 1)">
+        <ion-icon name="chevron-forward"></ion-icon>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,59 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">Compliance &amp; Risk</h1>
+      <p class="dashboard__subtitle">Alerts, CTR drafts and sanctions screening</p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="dashboard__metrics">
+      <app-metric-card label="Open Alerts" [value]="openAlertCount | number" icon="alert-circle-outline" iconBg="#dc2626"></app-metric-card>
+      <app-metric-card label="CTR Drafts" [value]="ctrDrafts | number" icon="document-text-outline" iconBg="#f59e0b"></app-metric-card>
+      <app-metric-card label="Sanctions Entries" [value]="sanctionsEntries | number" icon="shield-outline" iconBg="#1B3571"></app-metric-card>
+      <app-metric-card label="Screening Hit Rate" [value]="screeningHitRate" icon="analytics-outline" iconBg="#6b7280"></app-metric-card>
+    </div>
+
+    <div class="dashboard__charts">
+      <app-chart-panel title="Alerts by Severity" subtitle="Open alerts breakdown">
+        <canvas baseChart [type]="severityChart.type" [data]="severityChart.data" [options]="severityChart.options" height="260"></canvas>
+      </app-chart-panel>
+    </div>
+
+    <div class="dashboard__table-panel">
+      <div class="dashboard__table-header">Latest Open Alerts (Top 10)</div>
+      <table class="dashboard__table" *ngIf="latestAlerts.length > 0">
+        <thead>
+          <tr>
+            <th>Alert ID</th>
+            <th>Type</th>
+            <th>Severity</th>
+            <th>Description</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of latestAlerts">
+            <td class="mono">{{ a.id || '—' }}</td>
+            <td>{{ a.alertType || a.type || '—' }}</td>
+            <td>
+              <span class="dashboard__badge" [ngClass]="{
+                'dashboard__badge--danger': a.severity === 'HIGH',
+                'dashboard__badge--warning': a.severity === 'MEDIUM',
+                'dashboard__badge--primary': a.severity === 'LOW'
+              }">{{ a.severity }}</span>
+            </td>
+            <td>{{ a.description || a.message || '—' }}</td>
+            <td>{{ a.createdAt | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dashboard__empty" *ngIf="latestAlerts.length === 0">No open alerts</div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,102 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: layla-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: remitz
+    ports:
+      - "3310:3306"
+    volumes:
+      - layla_mysql_data:/var/lib/mysql
+    networks:
+      - layla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: layla-redis-new
+    ports:
+      - "6382:6379"
+    volumes:
+      - layla_redis_data:/data
+    networks:
+      - layla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: laylaproject-backend:latest
+    container_name: layla-backend
+    ports:
+      - "8095:8080"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-layla-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY:-4b6992bd8fae644c14a7d8e1bff86c69}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - BREVO_API_KEY=${BREVO_API_KEY:-CHANGE_ME_BREVO_KEY}
+      - BREVO_FROM_NAME=${BREVO_FROM_NAME:-Layla Money Transfer}
+      - BREVO_FROM_EMAIL=${BREVO_FROM_EMAIL:-noreply@laylamoneytransfer.com}
+      - MAIL_HOST=${MAIL_HOST:-sandbox.smtp.mailtrap.io}
+      - MAIL_PORT=${MAIL_PORT:-2525}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://68.169.59.140:8096}
+      - BRAND_NAME=Layla Money Transfer
+      - BRAND_SUPPORT_EMAIL=support@laylamoneytransfer.com
+      - KUBER_ENABLED=${KUBER_ENABLED:-false}
+      - VOLUME_ENABLED=${VOLUME_ENABLED:-true}
+      - VOLUME_APPLICATION_ID=${VOLUME_APPLICATION_ID:-30f61de5-013a-405a-9ae2-e01ae02036e2}
+      - VOLUME_ENVIRONMENT=${VOLUME_ENVIRONMENT:-SANDBOX}
+      - REMIT_ONE_ENABLED=true
+      - REMIT_ONE_USERNAME=Abdulazim.mohammed2817
+      - REMIT_ONE_PASSWORD=Abolayla2007
+      - REMIT_ONE_PIN=12345
+      - REMIT_ONE_AGENT_NAME=Universal Securities
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - layla-network
+    restart: unless-stopped
+
+  frontend:
+    image: laylaproject-frontend:latest
+    container_name: layla-frontend-new
+    ports:
+      - "8096:80"
+    depends_on:
+      - backend
+    networks:
+      - layla-network
+    restart: unless-stopped
+
+volumes:
+  layla_mysql_data:
+  layla_redis_data:
+
+networks:
+  layla-network:
+    driver: bridge

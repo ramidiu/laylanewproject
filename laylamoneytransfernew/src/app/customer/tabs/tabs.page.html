@@ -1,0 +1,126 @@
+<div class="shell" [class.shell--collapsed]="sidebarCollapsed" [class.shell--fullscreen]="isFullscreenPage">
+  <!-- Sidebar (desktop) -->
+  <aside class="sidebar" [class.sidebar--collapsed]="sidebarCollapsed" *ngIf="!isFullscreenPage">
+    <!-- Brand -->
+    <div class="sidebar__brand">
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="sidebar__brand-logo-img" style="" [style.width]="sidebarCollapsed ? '40px' : '100px'" style="height:auto" />
+    </div>
+
+    <!-- Main Nav -->
+    <nav class="sidebar__nav">
+      <a *ngFor="let item of mainNav"
+         class="sidebar__item"
+         [class.sidebar__item--active]="isActive(item.route)"
+         (click)="navigateTo(item.route)">
+        <ion-icon [name]="item.icon"></ion-icon>
+        <span class="sidebar__item-label" *ngIf="!sidebarCollapsed">{{ item.label | translate }}</span>
+      </a>
+    </nav>
+
+    <!-- Account Section -->
+    <div class="sidebar__section-label" *ngIf="!sidebarCollapsed">{{ 'NAV.ACCOUNT' | translate }}</div>
+    <nav class="sidebar__nav">
+      <a *ngFor="let item of accountNav"
+         class="sidebar__item"
+         [class.sidebar__item--active]="isActive(item.route)"
+         (click)="navigateTo(item.route)">
+        <ion-icon [name]="item.icon"></ion-icon>
+        <span class="sidebar__item-label" *ngIf="!sidebarCollapsed">{{ item.label | translate }}</span>
+      </a>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar__footer">
+      <a class="sidebar__item" (click)="toggleSidebar()">
+        <ion-icon [name]="sidebarCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'"></ion-icon>
+        <span class="sidebar__item-label" *ngIf="!sidebarCollapsed">{{ 'NAV.COLLAPSE' | translate }}</span>
+      </a>
+      <a class="sidebar__item sidebar__item--logout" (click)="onLogout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+        <span class="sidebar__item-label" *ngIf="!sidebarCollapsed">{{ 'NAV.LOGOUT' | translate }}</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay" *ngIf="mobileMenuOpen && !isFullscreenPage" (click)="closeMobileMenu()"></div>
+
+  <!-- Mobile sidebar drawer -->
+  <aside class="sidebar sidebar--mobile" [class.sidebar--mobile-open]="mobileMenuOpen" *ngIf="!isFullscreenPage">
+    <div class="sidebar__brand">
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="sidebar__brand-logo-img" style="width:100px;height:auto" />
+      <button class="sidebar__close" (click)="closeMobileMenu()" style="margin-left:auto">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+    <nav class="sidebar__nav">
+      <a *ngFor="let item of mainNav"
+         class="sidebar__item"
+         [class.sidebar__item--active]="isActive(item.route)"
+         (click)="navigateTo(item.route)">
+        <ion-icon [name]="item.icon"></ion-icon>
+        <span class="sidebar__item-label">{{ item.label | translate }}</span>
+      </a>
+    </nav>
+    <div class="sidebar__section-label">{{ 'NAV.ACCOUNT' | translate }}</div>
+    <nav class="sidebar__nav">
+      <a *ngFor="let item of accountNav"
+         class="sidebar__item"
+         [class.sidebar__item--active]="isActive(item.route)"
+         (click)="navigateTo(item.route)">
+        <ion-icon [name]="item.icon"></ion-icon>
+        <span class="sidebar__item-label">{{ item.label | translate }}</span>
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <a class="sidebar__item sidebar__item--logout" (click)="onLogout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+        <span class="sidebar__item-label">{{ 'NAV.LOGOUT' | translate }}</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main">
+    <!-- Top Header -->
+    <header class="topbar" *ngIf="!isFullscreenPage">
+      <div class="topbar__left">
+        <button class="topbar__menu-btn" (click)="toggleMobileMenu()">
+          <ion-icon name="menu-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="topbar__right">
+        <button class="topbar__icon-btn" (click)="openNotifications()" title="Notifications">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span class="topbar__badge" *ngIf="notificationCount > 0">
+            {{ notificationCount > 99 ? '99+' : notificationCount }}
+          </span>
+        </button>
+        <div class="topbar__user">
+          <div class="topbar__avatar">{{ userInitials }}</div>
+          <span class="topbar__username">{{ userName }}</span>
+        </div>
+        <button class="topbar__logout-btn" (click)="onLogout()">
+          <ion-icon name="log-out-outline"></ion-icon>
+          <span>{{ 'NAV.LOGOUT' | translate }}</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="content">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+
+  <!-- Bottom Tabs (mobile only) -->
+  <div class="tabs-bar" *ngIf="!isFullscreenPage">
+    <a *ngFor="let tab of bottomTabs"
+       class="tab-item"
+       [routerLink]="tab.route"
+       routerLinkActive="active">
+      <ion-icon [name]="tab.icon"></ion-icon>
+      <span>{{ tab.label | translate }}</span>
+    </a>
+  </div>
+</div>

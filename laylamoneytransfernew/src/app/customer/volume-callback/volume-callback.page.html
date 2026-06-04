@@ -1,0 +1,96 @@
+<ion-content class="vc-content">
+  <div class="vc-wrap">
+
+    <!-- Status Icon -->
+    <div class="vc-icon" [ngClass]="isSuccess ? 'vc-icon--success' : 'vc-icon--pending'">
+      <ion-icon [name]="isSuccess ? 'checkmark-circle' : 'time'"></ion-icon>
+    </div>
+
+    <!-- Title -->
+    <h1 class="vc-title">{{ isSuccess ? 'Payment Successful!' : 'Payment Pending' }}</h1>
+    <p class="vc-subtitle">
+      {{ isSuccess
+        ? 'Your transfer has been submitted and is being processed.'
+        : 'Your payment is being confirmed. We\'ll notify you once complete.' }}
+    </p>
+
+    <!-- Transfer Summary Card -->
+    <div class="vc-card">
+
+      <!-- You Sent / Recipient Gets -->
+      <div class="vc-transfer">
+        <div class="vc-transfer__side">
+          <span class="vc-transfer__label">You sent</span>
+          <span class="vc-transfer__amount">{{ sendCurrency }} {{ sendAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="vc-transfer__arrow">
+          <ion-icon name="arrow-forward"></ion-icon>
+        </div>
+        <div class="vc-transfer__side vc-transfer__side--receive">
+          <span class="vc-transfer__label">Recipient gets</span>
+          <span class="vc-transfer__amount vc-transfer__amount--receive">
+            {{ receiveCurrency }} {{ receiveAmount | number:'1.2-2' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="vc-divider"></div>
+
+      <!-- Details Rows -->
+      <div class="vc-row" *ngIf="recipientName">
+        <span class="vc-row__label">
+          <ion-icon name="person-outline"></ion-icon> Recipient
+        </span>
+        <span class="vc-row__value">{{ recipientName }}</span>
+      </div>
+
+      <div class="vc-row" *ngIf="fee > 0">
+        <span class="vc-row__label">
+          <ion-icon name="receipt-outline"></ion-icon> Fee
+        </span>
+        <span class="vc-row__value">{{ sendCurrency }} {{ fee | number:'1.2-2' }}</span>
+      </div>
+
+      <div class="vc-row" *ngIf="exchangeRate > 0">
+        <span class="vc-row__label">
+          <ion-icon name="swap-horizontal-outline"></ion-icon> Exchange rate
+        </span>
+        <span class="vc-row__value">1 {{ sendCurrency }} = {{ exchangeRate | number:'1.4-4' }} {{ receiveCurrency }}</span>
+      </div>
+
+      <div class="vc-row" *ngIf="txnRef">
+        <span class="vc-row__label">
+          <ion-icon name="document-text-outline"></ion-icon> Reference
+        </span>
+        <span class="vc-row__value vc-row__value--ref">{{ txnRef }}</span>
+      </div>
+
+      <div class="vc-row" *ngIf="paymentId">
+        <span class="vc-row__label">
+          <ion-icon name="card-outline"></ion-icon> Payment ID
+        </span>
+        <span class="vc-row__value vc-row__value--ref">{{ paymentId }}</span>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="vc-status" [ngClass]="isSuccess ? 'vc-status--success' : 'vc-status--pending'">
+        <ion-icon [name]="isSuccess ? 'checkmark-circle-outline' : 'time-outline'"></ion-icon>
+        {{ status | uppercase }}
+      </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="vc-actions">
+      <button class="vc-btn vc-btn--primary" (click)="goToTransactions()">
+        <ion-icon name="list-outline"></ion-icon>
+        View Transactions
+      </button>
+      <button class="vc-btn vc-btn--outline" (click)="goToHome()">
+        <ion-icon name="home-outline"></ion-icon>
+        Go to Dashboard
+      </button>
+    </div>
+
+  </div>
+</ion-content>

@@ -1,0 +1,148 @@
+<div class="detail-page-header">
+  <button class="detail-page-header__back" (click)="goBack()">
+    <ion-icon name="arrow-back-outline"></ion-icon>
+    {{ 'TRANSACTION_DETAIL.BACK' | translate }}
+  </button>
+  <div class="detail-page-header__actions" *ngIf="transaction">
+    <button class="detail-page-header__invoice"
+            (click)="downloadReceipt()"
+            [disabled]="downloading">
+      <ion-icon name="document-text-outline"></ion-icon>
+      {{ downloading ? ('TRANSACTION_DETAIL.GENERATING' | translate) : ('TRANSACTION_DETAIL.DOWNLOAD_RECEIPT' | translate) }}
+    </button>
+  </div>
+</div>
+
+<div class="detail-loading" *ngIf="loading">
+  <div class="fb-skeleton fb-skeleton--card"></div>
+  <div class="fb-skeleton fb-skeleton--card"></div>
+</div>
+
+<div class="detail-container" *ngIf="transaction && !loading">
+  <div class="detail-status-banner">
+    <app-status-chip [status]="transaction.status"></app-status-chip>
+    <div class="detail-status-banner__ref fb-currency">{{ transaction.referenceNumber }}</div>
+    <div class="detail-status-banner__ref fb-currency" *ngIf="transaction.payoutReference">
+      Payout Ref: {{ transaction.payoutReference }}
+    </div>
+    <div class="detail-status-banner__date">{{ transaction.createdAt | date:'EEEE, MMMM d, y · h:mm a' }}</div>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-transfer">
+      <div class="detail-transfer__side">
+        <div class="detail-transfer__label">{{ 'TRANSACTION_DETAIL.YOU_SENT' | translate }}</div>
+        <div class="detail-transfer__amount fb-currency">
+          {{ transaction.sendAmount | number:'1.2-2' }}
+          <span class="detail-transfer__currency">{{ transaction.sendCurrency }}</span>
+        </div>
+      </div>
+      <div class="detail-transfer__arrow">
+        <ion-icon name="arrow-forward-outline"></ion-icon>
+      </div>
+      <div class="detail-transfer__side detail-transfer__side--receive">
+        <div class="detail-transfer__label">{{ 'TRANSACTION_DETAIL.RECIPIENT_GETS' | translate }}</div>
+        <div class="detail-transfer__amount detail-transfer__amount--receive fb-currency">
+          {{ transaction.receiveAmount | number:'1.2-2' }}
+          <span class="detail-transfer__currency">{{ transaction.receiveCurrency }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card" *ngIf="beneficiary">
+    <h3 class="detail-card__title">{{ 'TRANSACTION_DETAIL.BENEFICIARY_DETAILS' | translate }}</h3>
+    <div class="detail-row">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.RECIPIENT' | translate }}</span>
+      <span class="detail-row__value">{{ beneficiary.fullName }}</span>
+    </div>
+    <div class="detail-row" *ngIf="beneficiary.mobileNumber">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.TELEPHONE' | translate }}</span>
+      <span class="detail-row__value">{{ beneficiary.mobileNumber }}</span>
+    </div>
+    <div class="detail-row" *ngIf="beneficiary.bankName">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.BANK_NAME' | translate }}</span>
+      <span class="detail-row__value">{{ beneficiary.bankName }}</span>
+    </div>
+    <div class="detail-row" *ngIf="beneficiary.accountNumber || beneficiary.iban">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.ACCOUNT_NUMBER' | translate }}</span>
+      <span class="detail-row__value">{{ beneficiary.accountNumber || beneficiary.iban }}</span>
+    </div>
+    <div class="detail-row" *ngIf="beneficiary.swiftBic">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.SWIFT_CODE' | translate }}</span>
+      <span class="detail-row__value">{{ beneficiary.swiftBic }}</span>
+    </div>
+    <div class="detail-row" *ngIf="beneficiary.sortCode">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.SORT_CODE' | translate }}</span>
+      <span class="detail-row__value">{{ beneficiary.sortCode }}</span>
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <h3 class="detail-card__title">{{ 'TRANSACTION_DETAIL.TRANSFER_DETAILS' | translate }}</h3>
+
+    <div class="detail-row">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.RECIPIENT' | translate }}</span>
+      <span class="detail-row__value">{{ transaction.beneficiaryName }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.EXCHANGE_RATE' | translate }}</span>
+      <span class="detail-row__value fb-currency">
+        1 {{ transaction.sendCurrency }} = {{ transaction.appliedRate | number:'1.2-4' }} {{ transaction.receiveCurrency }}
+      </span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.TRANSFER_FEE' | translate }}</span>
+      <span class="detail-row__value fb-currency">
+        {{ transaction.feeAmount | number:'1.2-2' }} {{ transaction.sendCurrency }}
+      </span>
+    </div>
+    <div class="detail-row" *ngIf="transaction.walletAmountUsed" style="color:#059669;">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.WALLET_USED' | translate }}</span>
+      <span class="detail-row__value fb-currency">-{{ transaction.walletAmountUsed | number:'1.2-2' }} {{ transaction.sendCurrency }}</span>
+    </div>
+    <div class="detail-row detail-row--total">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.TOTAL_DEBITED' | translate }}</span>
+      <span class="detail-row__value fb-currency">
+        {{ (transaction.totalDebitAmount - (transaction.walletAmountUsed || 0)) | number:'1.2-2' }} {{ transaction.sendCurrency }}
+      </span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.DELIVERY_METHOD' | translate }}</span>
+      <span class="detail-row__value">{{ transaction.deliveryMethod | titlecase }}</span>
+    </div>
+    <div class="detail-row" *ngIf="transaction.paymentMethodType">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.PAYMENT_METHOD' | translate }}</span>
+      <span class="detail-row__value">{{ transaction.paymentMethodType | titlecase }}</span>
+    </div>
+    <div class="detail-row" *ngIf="transaction.referralCodeUsed">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.REFERRAL_CODE' | translate }}</span>
+      <span class="detail-row__value fb-currency">{{ transaction.referralCodeUsed }}</span>
+    </div>
+  </div>
+
+  <div class="detail-card" *ngIf="history.length > 0">
+    <h3 class="detail-card__title">{{ 'TRANSACTION_DETAIL.STATUS_HISTORY' | translate }}</h3>
+    <div class="detail-timeline">
+      <div class="timeline-item" *ngFor="let h of history" [class.timeline-item--current]="h === history[history.length - 1]">
+        <div class="timeline-item__dot"></div>
+        <div class="timeline-item__content">
+          <div class="timeline-item__status">
+            <span class="timeline-item__from">{{ h.fromStatus | titlecase }}</span>
+            <ion-icon name="arrow-forward-outline"></ion-icon>
+            <span class="timeline-item__to">{{ h.toStatus | titlecase }}</span>
+          </div>
+          <div class="timeline-item__meta">
+            <span>{{ h.createdAt | date:'MMM d, y · h:mm a' }}</span>
+            <span *ngIf="h.reason"> &middot; {{ h.reason }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-note">
+    <ion-icon name="shield-checkmark-outline"></ion-icon>
+    <span>{{ 'TRANSACTION_DETAIL.SECURE_NOTE' | translate }}</span>
+  </div>
+</div>

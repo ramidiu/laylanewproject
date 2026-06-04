@@ -1,0 +1,87 @@
+import { NgModule } from '@angular/core';
+import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
+import { AuthGuard } from './core/guards/auth.guard';
+import { RoleGuard } from './core/guards/role.guard';
+
+const routes: Routes = [
+  {
+    path: '',
+    loadChildren: () => import('./landing/landing.module').then(m => m.LandingPageModule)
+  },
+  {
+    path: 'login',
+    loadChildren: () => import('./customer/login/login.module').then(m => m.LoginPageModule)
+  },
+  {
+    path: 'admin-login',
+    loadChildren: () => import('./customer/admin-login/admin-login.module').then(m => m.AdminLoginPageModule)
+  },
+  {
+    path: 'register',
+    loadChildren: () => import('./customer/register/register.module').then(m => m.RegisterPageModule)
+  },
+  {
+    path: 'otp-verify',
+    loadChildren: () => import('./customer/otp-verify/otp-verify.module').then(m => m.OtpVerifyPageModule)
+  },
+  {
+    path: 'forgot-password',
+    loadChildren: () => import('./customer/forgot-password/forgot-password.module').then(m => m.ForgotPasswordPageModule)
+  },
+  {
+    path: 'reset-password',
+    loadChildren: () => import('./customer/reset-password/reset-password.module').then(m => m.ResetPasswordPageModule)
+  },
+  {
+    path: 'admin-mfa-setup',
+    loadChildren: () => import('./customer/admin-mfa-setup/admin-mfa-setup.module').then(m => m.AdminMfaSetupPageModule)
+  },
+  {
+    path: 'demo-access',
+    loadChildren: () => import('./customer/demo-access/demo-access.module').then(m => m.DemoAccessPageModule)
+  },
+  {
+    path: 'home',
+    loadChildren: () => import('./customer/tabs/tabs.module').then(m => m.TabsPageModule),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['ADMIN', 'SUPER_ADMIN'] }
+  },
+  {
+    path: 'partner',
+    loadChildren: () => import('./partner/partner.module').then(m => m.PartnerModule),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['PAYOUT_PARTNER'] }
+  },
+  {
+    path: 'agent',
+    loadChildren: () => import('./agent/agent.module').then(m => m.AgentModule),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['AGENT'] }
+  },
+  {
+    path: 'superadmin',
+    loadChildren: () => import('./superadmin/superadmin.module').then(m => m.SuperAdminModule),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['SUPER_ADMIN', 'ADMIN'] }
+  },
+  {
+    path: 'payin-partner',
+    loadChildren: () => import('./payin-partner/payin-partner.module').then(m => m.PayinPartnerModule),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['PAYIN_PARTNER'] }
+  },
+  { path: '**', redirectTo: '' }
+];
+
+@NgModule({
+  imports: [
+    RouterModule.forRoot(routes, { preloadingStrategy: PreloadAllModules })
+  ],
+  exports: [RouterModule]
+})
+export class AppRoutingModule {}

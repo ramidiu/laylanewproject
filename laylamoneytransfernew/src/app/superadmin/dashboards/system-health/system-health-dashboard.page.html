@@ -1,0 +1,63 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">System Health</h1>
+      <p class="dashboard__subtitle">Service status and availability<span *ngIf="lastChecked"> &middot; Last checked {{ lastChecked }}</span></p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__metrics">
+    <app-metric-card label="Services Up" [value]="upCount + ' / ' + services.length" icon="checkmark-circle-outline" [iconBg]="downCount === 0 ? '#059669' : '#f59e0b'"></app-metric-card>
+    <app-metric-card label="Services Down" [value]="downCount" icon="alert-circle-outline" [iconBg]="downCount > 0 ? '#dc2626' : '#059669'"></app-metric-card>
+  </div>
+
+  <div class="dashboard__status-grid">
+    <div *ngFor="let s of services"
+         class="dashboard__status-card"
+         [class.dashboard__status-card--up]="s.status === 'UP'"
+         [class.dashboard__status-card--down]="s.status === 'DOWN'">
+      <div class="status-dot"
+           [class.status-dot--up]="s.status === 'UP'"
+           [class.status-dot--down]="s.status === 'DOWN'"
+           [style.background]="s.status === 'CHECKING' ? '#f59e0b' : ''"></div>
+      <div>
+        <div class="status-name">{{ s.name }}</div>
+        <div class="status-detail">Port {{ s.port }} &middot; {{ s.detail }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard__table-panel">
+    <div class="dashboard__table-header">Service Details</div>
+    <table class="dashboard__table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Port</th>
+          <th>Status</th>
+          <th>Response Time</th>
+          <th>Probe Endpoint</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of services">
+          <td style="font-weight:600;">{{ s.name }}</td>
+          <td class="mono">{{ s.port }}</td>
+          <td>
+            <span class="dashboard__badge"
+                  [class.dashboard__badge--success]="s.status === 'UP'"
+                  [class.dashboard__badge--danger]="s.status === 'DOWN'"
+                  [class.dashboard__badge--warning]="s.status === 'CHECKING'">
+              {{ s.status }}
+            </span>
+          </td>
+          <td class="num">{{ s.responseTimeMs !== undefined ? s.responseTimeMs + ' ms' : '—' }}</td>
+          <td class="mono" style="font-size:11px;color:#6b7280;">{{ s.probeUrl }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

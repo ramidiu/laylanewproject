@@ -1,0 +1,225 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.success-content {
+  --background: #{$fb-gray-50};
+}
+
+.success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $fb-space-6;
+  padding-top: $fb-space-10;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+// Animated checkmark
+.success-icon {
+  margin-bottom: $fb-space-5;
+
+  &__circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: $fb-success;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scaleIn 0.4s ease-out;
+
+    ion-icon {
+      font-size: 40px;
+      color: white;
+      animation: checkIn 0.3s ease-out 0.2s both;
+    }
+  }
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes checkIn {
+  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.success-title {
+  font-size: $fb-text-2xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-1;
+  text-align: center;
+}
+
+.success-subtitle {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  margin: 0 0 $fb-space-6;
+  text-align: center;
+}
+
+// Details card
+.success-card {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  box-shadow: $fb-shadow-lg;
+  padding: $fb-space-6;
+  width: 100%;
+  margin-bottom: $fb-space-6;
+
+  &__ref {
+    text-align: center;
+    margin-bottom: $fb-space-4;
+  }
+
+  &__ref-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: $fb-gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  &__ref-value {
+    font-family: $fb-font-mono;
+    font-size: $fb-text-lg;
+    font-weight: 700;
+    color: $fb-navy;
+    letter-spacing: 0.02em;
+  }
+
+  &__divider {
+    height: 1px;
+    background: $fb-gray-100;
+    margin: $fb-space-4 0;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $fb-space-3;
+  }
+
+  &__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+
+    &:last-child { text-align: right; }
+  }
+
+  &__arrow {
+    color: $fb-gray-400;
+    ion-icon { font-size: 20px; }
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $fb-gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__value {
+    font-size: $fb-text-lg;
+    font-weight: 700;
+    color: $fb-gray-900;
+
+    &--highlight {
+      color: $fb-success;
+    }
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    font-size: $fb-text-sm;
+    color: $fb-gray-600;
+    margin-bottom: $fb-space-2;
+
+    ion-icon { font-size: 18px; color: $fb-gray-400; }
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    margin-top: $fb-space-3;
+    padding: $fb-space-3;
+    background: rgba($fb-sky, 0.08);
+    border-radius: $fb-radius-md;
+    font-size: $fb-text-sm;
+    color: $fb-navy;
+    font-weight: 500;
+  }
+
+  &__status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $fb-sky;
+    animation: pulse 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+// Action buttons
+.success-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-3;
+}
+
+.success-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: $fb-radius-lg;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  ion-icon { font-size: 20px; }
+
+  &--primary {
+    background: $fb-navy;
+    color: $fb-white;
+    &:hover { background: darken($fb-navy, 8%); }
+  }
+
+  &--secondary {
+    background: $fb-white;
+    color: $fb-navy;
+    border: 2px solid $fb-navy;
+    &:hover { background: rgba($fb-navy, 0.04); }
+  }
+
+  &--link {
+    background: none;
+    color: $fb-gray-500;
+    font-weight: 500;
+    padding: 8px;
+    &:hover { color: $fb-navy; }
+  }
+}

@@ -1,0 +1,37 @@
+<div class="setup-page">
+  <div class="setup-card" *ngIf="context">
+    <h1>Set up two-factor authentication</h1>
+    <p class="intro">
+      Your admin account requires two-factor authentication. Scan the QR code below with
+      Google Authenticator, Authy, or a similar app, then enter the 6-digit code to
+      finish setup and sign in.
+    </p>
+
+    <div class="qr-block" *ngIf="context.qr">
+      <img [src]="context.qr" alt="TOTP QR code" />
+    </div>
+
+    <div class="secret-block">
+      <div class="secret-label">Or enter this secret manually</div>
+      <div class="secret-value">{{ context.secret }}</div>
+    </div>
+
+    <div class="code-row">
+      <input
+        type="text"
+        maxlength="6"
+        inputmode="numeric"
+        placeholder="000000"
+        [(ngModel)]="code"
+        [disabled]="submitting"
+        (keyup.enter)="complete()" />
+      <button class="fb-btn fb-btn--primary" (click)="complete()" [disabled]="submitting || code.length !== 6">
+        {{ submitting ? 'Verifying…' : 'Verify & continue' }}
+      </button>
+    </div>
+
+    <div class="error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <button class="cancel-link" (click)="cancel()">Cancel and sign out</button>
+  </div>
+</div>

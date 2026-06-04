@@ -1,0 +1,180 @@
+@import '../../../../theme/remitzai-design-tokens';
+
+.user-detail {
+  max-width: 1000px;
+}
+
+.page-header {
+  margin-bottom: $fb-space-4;
+}
+
+.user-profile-card {
+  margin-bottom: $fb-space-4;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-4;
+  padding-bottom: $fb-space-4;
+  border-bottom: 1px solid $fb-gray-100;
+  margin-bottom: $fb-space-4;
+  flex-wrap: wrap;
+
+  &__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: $fb-gradient-navy;
+    color: $fb-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $fb-text-xl;
+    font-weight: $fb-font-bold;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+
+    h2 {
+      font-size: $fb-text-xl;
+      font-weight: $fb-font-bold;
+      color: $fb-gray-900;
+      margin: 0 0 $fb-space-1;
+    }
+
+    p {
+      font-size: $fb-text-sm;
+      color: $fb-gray-500;
+      margin: 0 0 $fb-space-2;
+    }
+  }
+
+  &__badges {
+    display: flex;
+    gap: $fb-space-2;
+    align-items: center;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-2;
+  }
+}
+
+.user-details-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $fb-space-4;
+
+  @media (max-width: $fb-breakpoint-md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.detail-item {
+  &__label {
+    display: block;
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+    margin-bottom: 2px;
+  }
+
+  &__value {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-900;
+  }
+}
+
+.section-title {
+  font-size: $fb-text-base;
+  font-weight: $fb-font-semibold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-4;
+}
+
+.fb-card {
+  margin-bottom: $fb-space-4;
+}
+
+.risk-card {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-4;
+}
+
+.risk-card__summary {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-4;
+}
+
+.risk-card__level {
+  font-size: $fb-text-sm;
+  padding: 6px 14px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+
+.risk-card__points {
+  display: flex;
+  flex-direction: column;
+}
+
+.risk-card__breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: $fb-space-3;
+}
+
+.empty-section {
+  text-align: center;
+  padding: $fb-space-6;
+  color: $fb-gray-400;
+  font-size: $fb-text-sm;
+}
+
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-3;
+}
+
+.doc-item {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-3;
+  padding: $fb-space-3;
+  border: 1px solid $fb-gray-100;
+  border-radius: $fb-radius-md;
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    flex: 1;
+
+    ion-icon {
+      font-size: 24px;
+      color: $fb-navy;
+    }
+  }
+
+  &__type {
+    font-weight: $fb-font-medium;
+    font-size: $fb-text-sm;
+  }
+
+  &__date {
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-1;
+  }
+}

@@ -1,0 +1,39 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.agent-commissions { max-width: 1000px; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0 0 $fb-space-6; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $fb-space-4;
+  margin-bottom: $fb-space-6;
+
+  @media (max-width: $fb-breakpoint-md) { grid-template-columns: 1fr; }
+}
+
+.filters-bar {
+  display: flex;
+  gap: $fb-space-3;
+  margin-bottom: $fb-space-4;
+}
+
+.filter-select { width: 200px; cursor: pointer; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+
+.commission-amount {
+  color: $fb-success;
+  font-weight: $fb-font-bold;
+}
+
+.empty-state {
+  text-align: center;
+  padding: $fb-space-10;
+  color: $fb-gray-400;
+
+  ion-icon { font-size: 48px; margin-bottom: $fb-space-3; }
+  p { font-weight: $fb-font-medium; color: $fb-gray-500; margin: 0; }
+}

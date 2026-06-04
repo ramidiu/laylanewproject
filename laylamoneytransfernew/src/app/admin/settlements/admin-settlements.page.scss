@@ -1,0 +1,32 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.settlements-page { max-width: 1200px; }
+
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: $fb-space-6; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }
+.section-title { font-size: $fb-text-base; font-weight: $fb-font-semibold; color: $fb-gray-900; margin: 0 0 $fb-space-4; }
+
+.add-form-card { padding: $fb-space-6; margin-bottom: $fb-space-4; }
+
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: $fb-space-4;
+  @media (max-width: $fb-breakpoint-md) { grid-template-columns: 1fr; }
+}
+
+.fb-field { margin-bottom: $fb-space-3; }
+.fb-field--full { grid-column: 1 / -1; }
+.fb-field__label { display: block; font-size: $fb-text-sm; font-weight: $fb-font-medium; color: $fb-gray-700; margin-bottom: $fb-space-1; }
+.form-actions { display: flex; gap: $fb-space-3; margin-top: $fb-space-4; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.table-loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+.ref-cell { font-family: $fb-font-mono; font-size: $fb-text-sm; color: $fb-gray-500; }
+.action-buttons { display: flex; gap: 2px; }
+
+.empty-state {
+  text-align: center; padding: $fb-space-10; color: $fb-gray-400;
+  ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
+  p { margin: 0; font-size: $fb-text-sm; }
+}

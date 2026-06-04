@@ -1,0 +1,267 @@
+<div class="compliance-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Compliance Alerts</h1>
+      <p class="page-subtitle">Review and disposition sanction / PEP hits</p>
+    </div>
+    <button class="fb-btn fb-btn--ghost" (click)="loadAlerts(); loadMetrics()">
+      <ion-icon name="refresh-outline"></ion-icon> Refresh
+    </button>
+  </div>
+
+  <div class="metrics-row" *ngIf="metrics">
+    <div class="metric-card">
+      <div class="metric-card__label">Opened Today</div>
+      <div class="metric-card__value">{{ metrics.openedToday }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Pending Review</div>
+      <div class="metric-card__value">{{ metrics.pendingReview }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Closed 30d</div>
+      <div class="metric-card__value">{{ metrics.closedLast30Days }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">False Positive Rate</div>
+      <div class="metric-card__value">{{ (metrics.falsePositiveRate30d * 100) | number:'1.0-1' }}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Mean Time to Disposition</div>
+      <div class="metric-card__value">{{ metrics.meanMinutesToDisposition30d | number:'1.0-0' }} min</div>
+    </div>
+  </div>
+
+  <div class="user-filter-chip" *ngIf="userIdFilter">
+    <ion-icon name="person-outline"></ion-icon>
+    <span>Filtered to customer #{{ userIdFilter }}</span>
+    <button class="user-filter-chip__clear" (click)="clearUserFilter()">
+      <ion-icon name="close-outline"></ion-icon> Clear filter
+    </button>
+  </div>
+
+  <div class="filters-row">
+    <div class="filter-tabs">
+      <button class="filter-tab" [class.filter-tab--active]="statusFilter === 'OPEN'" (click)="setStatusFilter('OPEN')">Open</button>
+      <button class="filter-tab" [class.filter-tab--active]="statusFilter === 'UNDER_REVIEW'" (click)="setStatusFilter('UNDER_REVIEW')">Under Review</button>
+      <button class="filter-tab" [class.filter-tab--active]="statusFilter === 'ESCALATED'" (click)="setStatusFilter('ESCALATED')">Escalated</button>
+      <button class="filter-tab" [class.filter-tab--active]="statusFilter === 'CLOSED_FALSE_POSITIVE'" (click)="setStatusFilter('CLOSED_FALSE_POSITIVE')">False Positive</button>
+      <button class="filter-tab" [class.filter-tab--active]="statusFilter === 'CLOSED_SAR_FILED'" (click)="setStatusFilter('CLOSED_SAR_FILED')">Confirmed</button>
+      <button class="filter-tab" [class.filter-tab--active]="statusFilter === ''" (click)="setStatusFilter('')">All</button>
+    </div>
+    <div class="filter-selects">
+      <select class="fb-select" [ngModel]="sortOrder" (ngModelChange)="setSortOrder($event)">
+        <option value="createdAt,desc">Newest first</option>
+        <option value="createdAt,asc">Oldest first</option>
+        <option value="severity,desc">Severity high → low</option>
+      </select>
+      <select class="fb-select" [ngModel]="typeFilter" (ngModelChange)="setTypeFilter($event)">
+        <option value="">All Types</option>
+        <option value="SANCTIONS">Sanctions</option>
+        <option value="PEP">PEP</option>
+      </select>
+      <select class="fb-select" [ngModel]="severityFilter" (ngModelChange)="setSeverityFilter($event)">
+        <option value="">All Severities</option>
+        <option value="HIGH">High</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="alerts-panel">
+    <div *ngIf="alertsLoading" class="empty-row">Loading alerts…</div>
+    <div *ngIf="!alertsLoading && filteredAlerts.length === 0" class="empty-row">
+      No alerts match the selected filters.
+    </div>
+    <table class="alerts-table" *ngIf="!alertsLoading && filteredAlerts.length > 0">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Type</th>
+          <th>Customer</th>
+          <th>Matched Name</th>
+          <th>Score</th>
+          <th>Source</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let alert of filteredAlerts" (click)="openAlert(alert)" class="alerts-row">
+          <td><span class="badge badge--{{ severityColor(alert.severity) }}">{{ alert.severity }}</span></td>
+          <td>
+            <span class="badge badge--{{ listTypeColor(detailListType(parseDetails(alert.details))) }}">
+              {{ detailListType(parseDetails(alert.details)) || '—' }}
+            </span>
+          </td>
+          <td>
+            <div class="cell-primary">#{{ alert.userId }}</div>
+            <div class="cell-secondary" *ngIf="alert.transactionId">txn #{{ alert.transactionId }}</div>
+          </td>
+          <td>
+            <div class="cell-primary">{{ detailMatchedName(parseDetails(alert.details)) || '—' }}</div>
+            <div class="cell-secondary">vs "{{ detailScreenedName(parseDetails(alert.details)) }}"</div>
+          </td>
+          <td class="score">{{ detailScore(parseDetails(alert.details)) }}</td>
+          <td class="source">{{ detailSource(parseDetails(alert.details)) }}</td>
+          <td>
+            <span class="status-chip status-chip--{{ alert.status.toLowerCase() }}">
+              {{ statusLabel(alert.status) }}
+            </span>
+          </td>
+          <td>{{ alert.createdAt | date:'short' }}</td>
+          <td><button class="row-btn" (click)="openAlert(alert); $event.stopPropagation()">View</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pager" *ngIf="!alertsLoading && totalPages > 0">
+      <button class="fb-btn fb-btn--ghost" [disabled]="page === 0" (click)="prevPage()">Prev</button>
+      <span>Page {{ page + 1 }} of {{ totalPages }} ({{ totalElements }} alerts)</span>
+      <button class="fb-btn fb-btn--ghost" [disabled]="page + 1 >= totalPages" (click)="nextPage()">Next</button>
+    </div>
+  </div>
+
+  <div class="detail-overlay" *ngIf="selectedAlert || detailLoading" (click)="closeDetail()"></div>
+  <aside class="detail-drawer" *ngIf="selectedAlert || detailLoading">
+    <div class="detail-drawer__header">
+      <h2>Alert #{{ selectedAlert?.id || '…' }}</h2>
+      <button class="detail-drawer__close" (click)="closeDetail()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="detail-drawer__body" *ngIf="detailLoading">Loading…</div>
+
+    <div class="detail-drawer__body" *ngIf="!detailLoading && selectedAlert">
+      <div class="detail-section">
+        <div class="detail-kv">
+          <span class="detail-kv__label">Severity</span>
+          <span class="badge badge--{{ severityColor(selectedAlert.severity) }}">{{ selectedAlert.severity }}</span>
+        </div>
+        <div class="detail-kv">
+          <span class="detail-kv__label">Status</span>
+          <span class="status-chip status-chip--{{ selectedAlert.status.toLowerCase() }}">{{ statusLabel(selectedAlert.status) }}</span>
+        </div>
+        <div class="detail-kv">
+          <span class="detail-kv__label">Created</span>
+          <span>{{ selectedAlert.createdAt | date:'medium' }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.transactionId">
+          <span class="detail-kv__label">Transaction</span>
+          <span>{{ selectedAlert.transactionReference || '#' + selectedAlert.transactionId }}</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Subject</h3>
+        <div class="detail-kv">
+          <span class="detail-kv__label">User</span>
+          <span>{{ selectedAlert.userName || '#' + selectedAlert.userId }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.userEmail">
+          <span class="detail-kv__label">Email</span>
+          <span>{{ selectedAlert.userEmail }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.userCountry">
+          <span class="detail-kv__label">Country</span>
+          <span>{{ selectedAlert.userCountry }}</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Matched List Entry</h3>
+        <div class="detail-kv">
+          <span class="detail-kv__label">Name</span>
+          <span>{{ selectedAlert.listEntryName || detailMatchedName(selectedAlert.details || null) }}</span>
+        </div>
+        <div class="detail-kv">
+          <span class="detail-kv__label">List Type</span>
+          <span class="badge badge--{{ listTypeColor(selectedAlert.listEntryListType || detailListType(selectedAlert.details || null)) }}">
+            {{ selectedAlert.listEntryListType || detailListType(selectedAlert.details || null) }}
+          </span>
+        </div>
+        <div class="detail-kv">
+          <span class="detail-kv__label">Source</span>
+          <span>{{ selectedAlert.listEntrySource || detailSource(selectedAlert.details || null) }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.listEntryCountry">
+          <span class="detail-kv__label">Entry Country</span>
+          <span>{{ selectedAlert.listEntryCountry }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.listEntryDateOfBirth">
+          <span class="detail-kv__label">DOB</span>
+          <span>{{ selectedAlert.listEntryDateOfBirth }}</span>
+        </div>
+        <div class="detail-kv">
+          <span class="detail-kv__label">Score</span>
+          <span class="score">{{ detailScore(selectedAlert.details || null) }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.listEntryExternalId">
+          <span class="detail-kv__label">External ID</span>
+          <span class="mono">{{ selectedAlert.listEntryExternalId }}</span>
+        </div>
+
+        <div class="chips-block" *ngIf="parseArray(selectedAlert.listEntryAliases).length > 0">
+          <div class="chips-block__label">Aliases</div>
+          <span class="chip" *ngFor="let a of parseArray(selectedAlert.listEntryAliases)">{{ a }}</span>
+        </div>
+        <div class="chips-block" *ngIf="parseArray(selectedAlert.listEntryTopics).length > 0">
+          <div class="chips-block__label">Topics</div>
+          <span class="chip" *ngFor="let t of parseArray(selectedAlert.listEntryTopics)">{{ t }}</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Description</h3>
+        <p class="description">{{ selectedAlert.description }}</p>
+      </div>
+
+      <div class="detail-section" *ngIf="selectedAlert.status === 'OPEN' || selectedAlert.status === 'UNDER_REVIEW'">
+        <h3>Disposition</h3>
+        <div class="bulk-hint" *ngIf="openForSelectedUser > 1">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          This customer has <strong>{{ openForSelectedUser }}</strong> open alerts in total.
+        </div>
+        <div class="actions">
+          <button class="fb-btn fb-btn--ghost" [disabled]="dispositioning" (click)="disposition('FALSE_POSITIVE')">
+            <ion-icon name="close-circle-outline"></ion-icon> Clear this one
+          </button>
+          <button
+            class="fb-btn fb-btn--bulk"
+            *ngIf="openForSelectedUser > 1"
+            [disabled]="dispositioning"
+            (click)="bulkClearForCurrentUser()"
+          >
+            <ion-icon name="checkmark-done-outline"></ion-icon>
+            Clear all {{ openForSelectedUser }} for this customer
+          </button>
+          <button class="fb-btn fb-btn--danger" [disabled]="dispositioning" (click)="disposition('CONFIRMED_MATCH')">
+            <ion-icon name="alert-circle-outline"></ion-icon> Confirm Match
+          </button>
+          <button class="fb-btn fb-btn--warning" [disabled]="dispositioning" (click)="disposition('ESCALATE')">
+            <ion-icon name="trending-up-outline"></ion-icon> Escalate to Case
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-section" *ngIf="selectedAlert.resolvedAt">
+        <h3>Resolution</h3>
+        <div class="detail-kv">
+          <span class="detail-kv__label">Resolved At</span>
+          <span>{{ selectedAlert.resolvedAt | date:'medium' }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.resolvedBy">
+          <span class="detail-kv__label">Resolved By</span>
+          <span>#{{ selectedAlert.resolvedBy }}</span>
+        </div>
+        <div class="detail-kv" *ngIf="selectedAlert.resolutionNotes">
+          <span class="detail-kv__label">Notes</span>
+          <span>{{ selectedAlert.resolutionNotes }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>

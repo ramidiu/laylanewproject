@@ -1,0 +1,127 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.admin-users {
+  max-width: 1200px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $fb-space-6;
+
+  &__meta {
+    text-align: right;
+  }
+}
+
+.page-title {
+  font-size: $fb-text-2xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-1;
+}
+
+.page-subtitle {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  margin: 0;
+}
+
+.total-count {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  font-weight: $fb-font-medium;
+}
+
+.filters-bar {
+  display: flex;
+  gap: $fb-space-3;
+  margin-bottom: $fb-space-4;
+  flex-wrap: wrap;
+}
+
+.search-wrapper {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+
+  ion-icon {
+    position: absolute;
+    left: $fb-space-4;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $fb-gray-400;
+    font-size: 18px;
+  }
+
+  .fb-input {
+    padding-left: $fb-space-10 + $fb-space-2;
+  }
+}
+
+.filter-select {
+  width: 180px;
+  cursor: pointer;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table-loading {
+  padding: $fb-space-6;
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-3;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background $fb-transition-fast;
+}
+
+.user-name-cell {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-2;
+  font-weight: $fb-font-medium;
+}
+
+.user-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $fb-sky-pale;
+  color: $fb-navy;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-bold;
+  flex-shrink: 0;
+}
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-3;
+  padding: $fb-space-4;
+  border-top: 1px solid $fb-gray-100;
+}
+
+.pagination-btn {
+  min-height: 36px;
+  padding: $fb-space-2 $fb-space-3;
+}
+
+.pagination-info {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+}

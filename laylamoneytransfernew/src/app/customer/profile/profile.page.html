@@ -1,0 +1,388 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'PROFILE.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="profile-content">
+  <!-- Loading -->
+  <div *ngIf="loading" class="profile-loading">
+    <div class="fb-skeleton fb-skeleton--circle" style="margin: 0 auto;"></div>
+    <div class="fb-skeleton fb-skeleton--title" style="margin: 16px auto; width: 40%;"></div>
+    <div class="fb-skeleton fb-skeleton--card"></div>
+  </div>
+
+  <div *ngIf="user && !loading" class="profile-container">
+    <!-- Pending Verification Banner -->
+    <div class="profile-pending-banner" *ngIf="user.status === 'PENDING_VERIFICATION'">
+      <ion-icon name="time-outline"></ion-icon>
+      <div>
+        <strong>{{ 'PROFILE.UNDER_REVIEW' | translate }}</strong>
+        <p>{{ 'PROFILE.UNDER_REVIEW_DESC' | translate }}</p>
+      </div>
+    </div>
+
+    <!-- Avatar & Name -->
+    <div class="profile-header">
+      <div class="profile-header__avatar">
+        {{ initials }}
+      </div>
+      <h2 class="profile-header__name">{{ user.firstName }} {{ user.lastName }}</h2>
+      <p class="profile-header__email">{{ user.email }}</p>
+      <ion-badge [color]="kycTierColor" class="profile-header__tier">
+        {{ kycTierLabel }}
+      </ion-badge>
+    </div>
+
+    <!-- Profile Info Card -->
+    <div class="fb-card profile-info-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 class="profile-card-title" style="margin-bottom:0;">{{ 'PROFILE.PERSONAL_INFO' | translate }}</h3>
+        <button class="fb-btn fb-btn--secondary" style="min-height:36px;padding:6px 16px;font-size:13px;" (click)="openEdit()">
+          <ion-icon name="create-outline"></ion-icon>
+          {{ 'PROFILE.EDIT' | translate }}
+        </button>
+      </div>
+      <ion-list lines="none">
+        <ion-item>
+          <ion-icon name="mail-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>{{ 'PROFILE.EMAIL' | translate }}</p>
+            <h3>{{ user.email }}</h3>
+          </ion-label>
+          <ion-icon *ngIf="user.emailVerified" name="checkmark-circle" slot="end" color="success"></ion-icon>
+        </ion-item>
+        <ion-item>
+          <ion-icon name="call-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>{{ 'PROFILE.PHONE' | translate }}</p>
+            <h3>{{ user.phone }}</h3>
+          </ion-label>
+          <ion-icon *ngIf="user.phoneVerified" name="checkmark-circle" slot="end" color="success"></ion-icon>
+        </ion-item>
+        <ion-item>
+          <ion-icon name="location-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>{{ 'PROFILE.COUNTRY' | translate }}</p>
+            <h3><span class="country-flag">{{ countryFlag }}</span> {{ countryName }}</h3>
+          </ion-label>
+        </ion-item>
+        <ion-item *ngIf="user.addressLine1">
+          <ion-icon name="home-outline" slot="start" color="primary"></ion-icon>
+          <ion-label class="ion-text-wrap">
+            <p>{{ 'PROFILE.ADDRESS' | translate }}</p>
+            <h3>{{ user.addressLine1 }}<span *ngIf="user.addressLine2">, {{ user.addressLine2 }}</span></h3>
+            <p *ngIf="user.city || user.postcode">{{ user.city }} {{ user.postcode }}</p>
+          </ion-label>
+        </ion-item>
+        <ion-item>
+          <ion-icon name="calendar-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <p>{{ 'PROFILE.MEMBER_SINCE' | translate }}</p>
+            <h3>{{ user.createdAt | date:'MMMM yyyy' }}</h3>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </div>
+
+    <!-- KYC Status Card -->
+    <div class="fb-card profile-kyc-card">
+      <h3 class="profile-card-title">{{ 'PROFILE.VERIFICATION_STATUS' | translate }}</h3>
+      <div class="kyc-tier-badge">
+        <div class="kyc-tier-badge__icon" [ngClass]="'kyc-tier-badge__icon--' + user.kycTier.toLowerCase()">
+          <ion-icon name="shield-checkmark"></ion-icon>
+        </div>
+        <div class="kyc-tier-badge__info">
+          <span class="kyc-tier-badge__label">{{ 'PROFILE.CURRENT_TIER' | translate }}</span>
+          <span class="kyc-tier-badge__value">{{ kycTierLabel }}</span>
+        </div>
+      </div>
+
+      <!-- Document status list -->
+      <div class="kyc-progress" *ngIf="kycStatus">
+        <div class="kyc-progress__item" *ngFor="let doc of kycStatus.documentsRequired">
+          <ion-icon
+            [name]="kycStatus.documentsApproved.includes(doc) ? 'checkmark-circle' : (kycStatus.documentsSubmitted.includes(doc) ? 'time' : 'ellipse-outline')"
+            [color]="kycStatus.documentsApproved.includes(doc) ? 'success' : (kycStatus.documentsSubmitted.includes(doc) ? 'warning' : 'medium')"
+          ></ion-icon>
+          <span>{{ doc | titlecase }}</span>
+          <span class="kyc-progress__status" *ngIf="kycStatus.documentsApproved.includes(doc)" style="color:#10B981;font-size:12px;margin-left:auto;">{{ 'PROFILE.APPROVED' | translate }}</span>
+          <span class="kyc-progress__status" *ngIf="kycStatus.documentsSubmitted.includes(doc) && !kycStatus.documentsApproved.includes(doc)" style="color:#F59E0B;font-size:12px;margin-left:auto;">{{ 'PROFILE.UNDER_REVIEW_SHORT' | translate }}</span>
+        </div>
+      </div>
+
+      <!-- Info banner when documents are pending -->
+      <div *ngIf="kycStatus?.overallStatus === 'PENDING'" class="kyc-pending-info" style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-top:12px;font-size:13px;color:#92400E;display:flex;align-items:flex-start;gap:8px;">
+        <ion-icon name="time-outline" style="font-size:18px;flex-shrink:0;margin-top:1px;"></ion-icon>
+        <span>{{ 'PROFILE.DOCS_PENDING_DESC' | translate }}</span>
+      </div>
+
+      <button class="fb-btn fb-btn--secondary" (click)="router.navigate(['/home/kyc'])" style="width: 100%; margin-top: 16px;">
+        <ion-icon name="document-text-outline"></ion-icon>
+        {{ 'PROFILE.MANAGE_DOCUMENTS' | translate }}
+      </button>
+    </div>
+
+    <!-- Settings -->
+    <div class="fb-card profile-settings-card">
+      <h3 class="profile-card-title">{{ 'PROFILE.SETTINGS' | translate }}</h3>
+      <ion-list lines="none">
+        <ion-item button detail (click)="openChangePassword()">
+          <ion-icon name="lock-closed-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</ion-label>
+        </ion-item>
+        <ion-item button detail (click)="router.navigate(['/home/mfa-setup'])">
+          <ion-icon name="shield-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>{{ 'PROFILE.TWO_FACTOR' | translate }}</ion-label>
+          <ion-badge slot="end" [color]="user.mfaEnabled ? 'success' : 'warning'">
+            {{ user.mfaEnabled ? ('COMMON.ON' | translate) : ('COMMON.OFF' | translate) }}
+          </ion-badge>
+        </ion-item>
+        <ion-item button (click)="showNotificationPrefs = !showNotificationPrefs">
+          <ion-icon name="notifications-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>{{ 'PROFILE.NOTIFICATION_PREFS' | translate }}</ion-label>
+          <ion-icon [name]="showNotificationPrefs ? 'chevron-up-outline' : 'chevron-down-outline'" slot="end" color="medium"></ion-icon>
+        </ion-item>
+
+        <!-- Notification Preferences Panel -->
+        <div class="notif-prefs" *ngIf="showNotificationPrefs">
+          <div class="notif-pref-item">
+            <div class="notif-pref-item__info">
+              <span class="notif-pref-item__title">{{ 'PROFILE.RATE_ALERTS' | translate }}</span>
+              <span class="notif-pref-item__desc">{{ 'PROFILE.RATE_ALERTS_DESC' | translate }}</span>
+            </div>
+            <ion-toggle [(ngModel)]="notifPrefs.rateAlerts" (ionChange)="saveNotifPrefs()"></ion-toggle>
+          </div>
+
+          <div class="notif-pref-item">
+            <div class="notif-pref-item__info">
+              <span class="notif-pref-item__title">{{ 'PROFILE.PROMOTIONS' | translate }}</span>
+              <span class="notif-pref-item__desc">{{ 'PROFILE.PROMOTIONS_DESC' | translate }}</span>
+            </div>
+            <ion-toggle [(ngModel)]="notifPrefs.promotional" (ionChange)="saveNotifPrefs()"></ion-toggle>
+          </div>
+
+          <div class="notif-pref-item">
+            <div class="notif-pref-item__info">
+              <span class="notif-pref-item__title">{{ 'PROFILE.TRANSACTION_UPDATES' | translate }}</span>
+              <span class="notif-pref-item__desc">{{ 'PROFILE.TRANSACTION_UPDATES_DESC' | translate }}</span>
+            </div>
+            <ion-toggle [(ngModel)]="notifPrefs.transactionUpdates" (ionChange)="saveNotifPrefs()"></ion-toggle>
+          </div>
+
+          <div class="notif-pref-item">
+            <div class="notif-pref-item__info">
+              <span class="notif-pref-item__title">{{ 'PROFILE.SECURITY_ALERTS' | translate }}</span>
+              <span class="notif-pref-item__desc">{{ 'PROFILE.SECURITY_ALERTS_DESC' | translate }}</span>
+            </div>
+            <ion-toggle [(ngModel)]="notifPrefs.securityAlerts" (ionChange)="saveNotifPrefs()"></ion-toggle>
+          </div>
+
+          <div class="notif-pref-item">
+            <div class="notif-pref-item__info">
+              <span class="notif-pref-item__title">{{ 'PROFILE.KYC_UPDATES' | translate }}</span>
+              <span class="notif-pref-item__desc">{{ 'PROFILE.KYC_UPDATES_DESC' | translate }}</span>
+            </div>
+            <ion-toggle [(ngModel)]="notifPrefs.kycUpdates" (ionChange)="saveNotifPrefs()"></ion-toggle>
+          </div>
+
+          <div class="notif-pref-item">
+            <div class="notif-pref-item__info">
+              <span class="notif-pref-item__title">{{ 'PROFILE.EMAIL_NOTIFICATIONS' | translate }}</span>
+              <span class="notif-pref-item__desc">{{ 'PROFILE.EMAIL_NOTIFICATIONS_DESC' | translate }}</span>
+            </div>
+            <ion-toggle [(ngModel)]="notifPrefs.emailEnabled" (ionChange)="saveNotifPrefs()"></ion-toggle>
+          </div>
+        </div>
+      </ion-list>
+    </div>
+
+  </div>
+
+  <!-- Logout - always visible -->
+  <div class="profile-logout-container">
+    <button class="fb-btn fb-btn--danger profile-logout" (click)="onLogout()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      {{ 'PROFILE.SIGN_OUT' | translate }}
+    </button>
+  </div>
+</ion-content>
+
+<!-- Edit Profile Modal -->
+<div class="edit-overlay" [class.edit-overlay--open]="showEditModal" (click)="closeEdit()">
+  <div class="edit-modal" [class.edit-modal--open]="showEditModal" (click)="$event.stopPropagation()">
+    <div class="edit-modal__header">
+      <h3>{{ 'PROFILE.EDIT_PROFILE' | translate }}</h3>
+      <button class="edit-modal__close" (click)="closeEdit()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="edit-modal__body">
+      <div class="edit-modal__warning">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <span>{{ 'PROFILE.EDIT_WARNING' | translate }}</span>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="onSaveProfile()">
+
+        <!-- UK Address Lookup -->
+        <div class="addr-section">
+          <div class="addr-section__header">
+            <ion-icon name="location-outline"></ion-icon>
+            Find your UK address
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">Search address</label>
+            <div class="addr-search-wrap">
+              <ion-icon name="search-outline" class="addr-search-icon"></ion-icon>
+              <input
+                type="text"
+                class="fb-input addr-search-input"
+                [value]="addrSearchQuery"
+                (input)="onAddrInput($event)"
+                placeholder="Type postcode or street…"
+                autocomplete="off"
+              />
+              <ion-spinner *ngIf="addrLoading" name="crescent" class="addr-spinner"></ion-spinner>
+              <ion-icon
+                *ngIf="addrSearchQuery && !addrLoading"
+                name="close-circle-outline"
+                class="addr-clear-icon"
+                (click)="clearAddr()"
+              ></ion-icon>
+            </div>
+          </div>
+          <div class="addr-suggestions" *ngIf="addrShowList && addrSuggestions.length > 0">
+            <div class="addr-suggestion" *ngFor="let s of addrSuggestions" (click)="pickAddr(s)">
+              <ion-icon name="location-outline"></ion-icon>
+              <span class="addr-suggestion__text">{{ s.addressText }}</span>
+              <span class="addr-suggestion__badge" *ngIf="s.entries > 1">{{ s.entries }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="edit-form-row">
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'PROFILE.FIRST_NAME' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="firstName" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'PROFILE.LAST_NAME' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="lastName" />
+          </div>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.PHONE_NUMBER' | translate }} *</label>
+          <input type="tel" class="fb-input" formControlName="phone" />
+        </div>
+
+        <h4 class="edit-section-title">{{ 'PROFILE.ADDRESS_SECTION' | translate }}</h4>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.ADDRESS_LINE_1' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="addressLine1"
+            [placeholder]="'PROFILE.ADDRESS_LINE_1_PLACEHOLDER' | translate" />
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.ADDRESS_LINE_2' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="addressLine2"
+            [placeholder]="'PROFILE.ADDRESS_LINE_2_PLACEHOLDER' | translate" />
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.CITY' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="city" />
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.POSTCODE' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="postcode" style="max-width:200px;" />
+        </div>
+
+        <div class="edit-modal__actions">
+          <button type="button" class="fb-btn fb-btn--secondary" (click)="closeEdit()">{{ 'PROFILE.CANCEL' | translate }}</button>
+          <button type="submit" class="fb-btn fb-btn--primary" [disabled]="editForm.invalid || saving">
+            {{ saving ? ('PROFILE.SAVING' | translate) : ('PROFILE.SAVE_CHANGES' | translate) }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="edit-overlay" [class.edit-overlay--open]="showPasswordModal" (click)="closeChangePassword()">
+  <div class="edit-modal" [class.edit-modal--open]="showPasswordModal" (click)="$event.stopPropagation()">
+    <div class="edit-modal__header">
+      <h3>{{ 'PROFILE.CHANGE_PASSWORD_TITLE' | translate }}</h3>
+      <button class="edit-modal__close" (click)="closeChangePassword()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="edit-modal__body">
+      <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()">
+        <!-- Current Password -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.CURRENT_PASSWORD' | translate }}</label>
+          <div class="password-input-wrapper">
+            <input [type]="showCurrentPassword ? 'text' : 'password'" class="fb-input" formControlName="currentPassword"
+              [placeholder]="'PROFILE.CURRENT_PASSWORD_PLACEHOLDER' | translate" />
+            <button type="button" class="password-toggle" (click)="showCurrentPassword = !showCurrentPassword">
+              <ion-icon [name]="showCurrentPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- New Password -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.NEW_PASSWORD' | translate }}</label>
+          <div class="password-input-wrapper">
+            <input [type]="showNewPassword ? 'text' : 'password'" class="fb-input" formControlName="newPassword"
+              [placeholder]="'PROFILE.NEW_PASSWORD_PLACEHOLDER' | translate"
+              (input)="onNewPasswordInput()" />
+            <button type="button" class="password-toggle" (click)="showNewPassword = !showNewPassword">
+              <ion-icon [name]="showNewPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </button>
+          </div>
+          <!-- Strength Meter -->
+          <div class="password-strength" *ngIf="passwordForm.get('newPassword')?.value">
+            <div class="password-strength__bar">
+              <div class="password-strength__fill" [style.width.%]="passwordStrength * 20"
+                   [class.strength-weak]="passwordStrength <= 2"
+                   [class.strength-fair]="passwordStrength === 3"
+                   [class.strength-strong]="passwordStrength >= 4"></div>
+            </div>
+            <span class="password-strength__label">{{ passwordStrengthLabel }}</span>
+          </div>
+          <p class="fb-field__hint">{{ 'PROFILE.NEW_PASSWORD_HINT' | translate }}</p>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'PROFILE.CONFIRM_PASSWORD' | translate }}</label>
+          <div class="password-input-wrapper">
+            <input [type]="showConfirmPassword ? 'text' : 'password'" class="fb-input" formControlName="confirmPassword"
+              [placeholder]="'PROFILE.CONFIRM_PASSWORD_PLACEHOLDER' | translate" />
+            <button type="button" class="password-toggle" (click)="showConfirmPassword = !showConfirmPassword">
+              <ion-icon [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </button>
+          </div>
+          <div class="fb-field__error" *ngIf="passwordForm.get('confirmPassword')?.touched && !passwordsMatch">
+            {{ 'PROFILE.PASSWORDS_DONT_MATCH' | translate }}
+          </div>
+        </div>
+
+        <div class="edit-modal__actions">
+          <button type="button" class="fb-btn fb-btn--secondary" (click)="closeChangePassword()">{{ 'PROFILE.CANCEL' | translate }}</button>
+          <button type="submit" class="fb-btn fb-btn--primary" [disabled]="passwordForm.invalid || savingPassword || !passwordsMatch || passwordStrength < 4">
+            {{ savingPassword ? ('PROFILE.CHANGING' | translate) : ('PROFILE.CHANGE_PASSWORD' | translate) }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

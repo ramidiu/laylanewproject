@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #16215C;
+      font-size: 11px;
+    }
+    .topbar { height: 18px; background: #16215C; }
+    .wrap { padding: 22px 28px 0 28px; }
+
+    .card {
+      border: 1px solid #DCE3F4;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    /* Header */
+    .brand-sub { color: #16215C; font-size: 11px; font-weight: bold; }
+    .contact { font-size: 10px; color: #16215C; line-height: 1.5; }
+    .contact .red { color: #C0203E; font-weight: bold; }
+
+    /* Section header pill */
+    .sec-head {
+      background: #16215C;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: .5px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .label { color: #16215C; font-size: 10px; }
+    .value { color: #16215C; font-size: 12px; font-weight: bold; }
+    .amount { color: #C0203E; font-size: 14px; font-weight: bold; }
+    .amount-lg { color: #C0203E; font-size: 16px; font-weight: bold; }
+
+    table { width: 100%; border-collapse: collapse; }
+    td { vertical-align: top; }
+    .col { width: 50%; vertical-align: top; padding-right: 14px; }
+    .divider { border-left: 1px solid #DCE3F4; }
+    .row { padding: 4px 0; }
+
+    /* Footer */
+    .footer-card {
+      background: #16215C;
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 10px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .bottombar {
+      background: #16215C;
+      color: #ffffff;
+      font-size: 10px;
+      padding: 12px 28px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar"></div>
+
+  <div class="wrap">
+
+    <!-- HEADER -->
+    <div class="card">
+      <table>
+        <tr>
+          <td style="width:45%;">
+            <img src="{{logoDataUri}}" alt="Layla Money Transfer" style="height:54px;" />
+            <div class="brand-sub" style="margin-top:6px;">Money Transfer</div>
+          </td>
+          <td style="width:55%;" class="contact">
+            <div><span class="red">&#9679;</span> 133 Broadley St</div>
+            <div style="margin-bottom:6px; padding-left:12px;">Marylebone, London NW8 8BA, UK</div>
+            <div><span class="red">&#9679;</span> TELE: +8555 7723 020</div>
+            <div style="margin-top:6px;"><span class="red">&#9679;</span> EMAIL: Azim Elsidieg (Director)</div>
+            <div style="padding-left:12px;">azim@laylamoneytransfer.co.uk</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- CUSTOMER / REFERENCE -->
+    <div class="card">
+      <table>
+        <tr>
+          <td class="col">
+            <div class="label">Customer Name</div>
+            <div class="value">{{senderName}}</div>
+          </td>
+          <td class="col divider" style="padding-left:14px;">
+            <div class="label">Transaction reference: <span class="value">{{referenceNumber}}</span></div>
+            <div class="label" style="margin-top:4px;">Transaction date: <span class="value">{{createdDate}}</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- TRANSACTION DETAILS -->
+    <div class="sec-head">TRANSACTION DETAILS</div>
+    <div class="card">
+      <table>
+        <tr>
+          <td class="col">
+            <div class="row"><span class="label">Amount to send</span><br/><span class="amount">{{sendAmount}} {{sendCurrency}}</span></div>
+            <div class="row"><span class="label">Transfer fees</span><br/><span class="amount">{{feeAmount}} {{sendCurrency}}</span></div>
+            <div class="row"><span class="label">Total paid</span><br/><span class="amount">{{totalDeducted}} {{sendCurrency}}</span></div>
+          </td>
+          <td class="col divider" style="padding-left:14px;">
+            <div class="row"><span class="label">Exchange rate</span><br/><span class="amount">{{appliedRate}} {{receiveCurrency}}</span></div>
+            <div class="row" style="margin-top:10px;"><span class="label">Receiver will get</span><br/><span class="amount-lg">{{receiveAmount}} {{receiveCurrency}}</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- RECEIVER DETAILS -->
+    <div class="sec-head">RECEIVER DETAILS</div>
+    <div class="card">
+      <table>
+        <tr>
+          <td class="col">
+            <div class="row"><span class="label">Receiver Name</span><br/><span class="value">{{beneficiaryName}}</span></div>
+            <div class="row"><span class="label">Telephone</span><br/><span class="value">{{beneficiaryPhone}}</span></div>
+            <div class="row"><span class="label">Country</span><br/><span class="value">{{beneficiaryCountry}}</span></div>
+            <div class="row"><span class="label">City</span><br/><span class="value">{{beneficiaryCity}}</span></div>
+          </td>
+          <td class="col divider" style="padding-left:14px;">
+            <div class="label">Receiver will get</div>
+            <div class="amount-lg">{{receiveAmount}} {{receiveCurrency}}</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- BANK DETAILS -->
+    <div class="sec-head">BANK DETAILS</div>
+    <div class="card">
+      <table>
+        <tr>
+          <td class="col">
+            <div class="row"><span class="label">Account Number</span><br/><span class="value">{{beneficiaryAccountNumber}}</span></div>
+            <div class="row"><span class="label">Bank Name</span><br/><span class="value">{{beneficiaryBankName}}</span></div>
+          </td>
+          <td class="col divider" style="padding-left:14px;">
+            <div class="row"><span class="label">Branch Name</span><br/><span class="value">{{beneficiaryBranch}}</span></div>
+            <div class="row"><span class="label">Swift Code</span><br/><span class="value">{{beneficiarySwift}}</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ABOUT / FOOTER -->
+    <div class="footer-card">
+      Layla (London) Limited is a trusted and reputable money transfer company, specialising in
+      secure and efficient transactions between the UK and Sudan.
+      The company is registered with the UK Companies House under number 9672013, and is
+      regulated by the UK Financial Conduct Authority (FCA) under registration number 740120.
+      Since its inception in July 2015, our mission has been to provide customers with competitive
+      rates and reliable services for transferring their funds.
+      Over the years, we have earned a strong reputation for delivering swift and satisfactory results
+      for both senders and receivers.
+    </div>
+
+  </div>
+
+  <div class="bottombar">
+    azim@laylamoneytransfer.co.uk &#160;&#160;&#160;&#160;&#160; TELE: +8555 7723 020
+  </div>
+
+</body>
+</html>

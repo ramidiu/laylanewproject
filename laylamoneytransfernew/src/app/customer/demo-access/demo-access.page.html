@@ -1,0 +1,131 @@
+<ion-content class="demo-access-content" fullscreen="true">
+  <div class="demo-access">
+    <div class="demo-access__hero">
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="demo-access__logo" style="width:200px;height:auto" />
+      <h1 class="demo-access__headline">
+        Try Layla Money Transfer in <span class="accent">60 seconds</span>
+      </h1>
+      <p class="demo-access__subheadline">
+        Experience the full remittance platform with a live demo account.
+        No credit card, no commitment — just fill in the form and we'll email your credentials instantly.
+      </p>
+
+      <ul class="demo-access__features">
+        <li>
+          <ion-icon name="flash-outline"></ion-icon>
+          <div>
+            <strong>Instant access</strong>
+            <span>Credentials delivered to your inbox in seconds</span>
+          </div>
+        </li>
+        <li>
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          <div>
+            <strong>Real platform, sandbox data</strong>
+            <span>Explore every feature with realistic test data</span>
+          </div>
+        </li>
+        <li>
+          <ion-icon name="time-outline"></ion-icon>
+          <div>
+            <strong>24-hour session</strong>
+            <span>Your credentials stay active for 24 hours</span>
+          </div>
+        </li>
+        <li>
+          <ion-icon name="people-outline"></ion-icon>
+          <div>
+            <strong>Full admin access</strong>
+            <span>Explore the complete operator console with all controls</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="demo-access__card">
+      <ng-container *ngIf="!success">
+        <div class="demo-access__card-header">
+          <h2>Get your demo credentials</h2>
+          <p>Takes under a minute. We'll email you right away.</p>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="demo-access__form">
+          <div class="field">
+            <label>Full name</label>
+            <input type="text" formControlName="fullName" placeholder="Jane Adams" autocomplete="name" />
+            <div class="field-error" *ngIf="form.get('fullName')?.touched && form.get('fullName')?.invalid">
+              Please enter your full name
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Email</label>
+            <input type="email" formControlName="email" placeholder="you@company.com" autocomplete="email" />
+            <div class="field-error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+              Valid email required
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label>Country</label>
+              <select formControlName="country">
+                <option *ngFor="let c of countries" [value]="c.code">
+                  {{ c.flag }} &nbsp;{{ c.name }}
+                </option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Mobile number</label>
+              <div class="phone-input-wrapper" style="display:flex;align-items:center;gap:6px">
+                <span class="dial-code-prefix" style="padding:8px 12px;background:#F3F4F6;border-radius:6px;font-weight:600;color:#1B3571;white-space:nowrap">
+                  {{ selectedDialCode }}
+                </span>
+                <input type="tel" formControlName="phone" placeholder="e.g. 7700 900123" autocomplete="tel" style="flex:1" />
+              </div>
+              <div class="field-error" *ngIf="form.get('phone')?.touched && form.get('phone')?.invalid">
+                Mobile number required
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="demo-access__submit" [disabled]="submitting">
+            <ion-icon name="paper-plane-outline" *ngIf="!submitting"></ion-icon>
+            <ion-spinner name="crescent" *ngIf="submitting"></ion-spinner>
+            <span>{{ submitting ? 'Generating your demo…' : 'Send my demo credentials' }}</span>
+          </button>
+
+          <p class="demo-access__fineprint">
+            Credentials expire in 24 hours. By submitting you agree to our demo terms.
+          </p>
+        </form>
+      </ng-container>
+
+      <ng-container *ngIf="success">
+        <div class="demo-access__success">
+          <div class="demo-access__success-icon">
+            <ion-icon name="mail-open-outline"></ion-icon>
+          </div>
+          <h2>Check your inbox</h2>
+          <p>
+            We've just emailed your <strong>Admin</strong>
+            credentials to <strong>{{ successEmail }}</strong>.
+          </p>
+          <p class="demo-access__success-note">
+            The credentials are active for 24 hours. Sign in to access the full operator console.
+            To test the customer experience, register a separate customer account from the sign-in page.
+          </p>
+          <div class="demo-access__success-actions">
+            <a class="demo-access__submit" href="/login">
+              <ion-icon name="log-in-outline"></ion-icon>
+              <span>Go to sign in</span>
+            </a>
+            <button type="button" class="demo-access__link" (click)="resetForm()">
+              Request another demo
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</ion-content>

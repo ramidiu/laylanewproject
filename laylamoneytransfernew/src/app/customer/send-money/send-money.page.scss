@@ -1,0 +1,1159 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.send-content {
+  --background: #{$fb-gray-50};
+  --padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+// --- Sections ---
+.send-section {
+  padding: $fb-space-5 $fb-space-4;
+
+  & + & {
+    padding-top: 0;
+  }
+
+  // Tighter padding on small phones
+  @media (max-width: 480px) {
+    padding: $fb-space-4 $fb-space-3;
+  }
+}
+
+.section-title {
+  font-size: $fb-text-xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-1;
+}
+
+.section-subtitle {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  margin: 0 0 $fb-space-5;
+}
+
+// --- Section 1: Country Grid ---
+.corridor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $fb-space-3;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.corridor-card {
+  background: $fb-white;
+  border: 2px solid $fb-gray-200;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-3 $fb-space-2;
+  text-align: center;
+  cursor: pointer;
+  transition: all $fb-transition-fast;
+  min-width: 0;
+
+  &:hover {
+    border-color: $fb-sky;
+    box-shadow: $fb-shadow-card-hover;
+  }
+
+  &.selected {
+    border-color: $fb-info;
+    background: $fb-sky-wash;
+    box-shadow: 0 0 0 1px $fb-info;
+  }
+
+  &__flag {
+    display: block;
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 3px;
+    margin: 0 auto $fb-space-2;
+  }
+
+  &__name {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-800;
+    margin-bottom: 2px;
+  }
+
+  &__currency {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    font-family: $fb-font-mono;
+  }
+}
+
+// --- Section 2: Calculator ---
+.calc-card {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  padding: $fb-space-5;
+  box-shadow: $fb-shadow-card;
+  margin-bottom: $fb-space-5;
+}
+
+.field-label {
+  display: block;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-medium;
+  color: $fb-gray-700;
+  margin-bottom: $fb-space-2;
+
+  &--spaced {
+    margin-top: $fb-space-5;
+  }
+}
+
+.amount-input {
+  display: flex;
+  align-items: center;
+  background: $fb-gray-50;
+  border: 2px solid $fb-gray-200;
+  border-radius: $fb-radius-lg;
+  overflow: hidden;
+  transition: border-color $fb-transition-fast;
+
+  &:focus-within {
+    border-color: $fb-sky-dark;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    margin: 0 8px;
+    background: $fb-navy;
+    color: $fb-white;
+    font-weight: $fb-font-bold;
+    font-family: $fb-font-mono;
+    font-size: 0.75rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    border-radius: 6px;
+  }
+
+  &__badge--right {
+    margin-left: auto;
+    margin-right: 12px;
+  }
+
+  &__flag {
+    width: 16px;
+    height: 12px;
+    object-fit: cover;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__field {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: $fb-text-2xl;
+    font-family: $fb-font-mono;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-900;
+    padding: $fb-space-3 $fb-space-4;
+    text-align: right;
+    outline: none;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    -moz-appearance: textfield;
+
+    @media (max-width: 480px) {
+      font-size: $fb-text-lg;
+      padding: $fb-space-2 $fb-space-3;
+    }
+  }
+
+  &__field--left {
+    text-align: left;
+    padding-left: $fb-space-5;
+  }
+
+  &--receive {
+    border-color: $fb-success;
+    &:focus-within { border-color: darken($fb-success, 10%); }
+  }
+
+  &__badge--green {
+    background: $fb-success;
+  }
+
+  &__field--green {
+    color: $fb-success;
+  }
+}
+
+.amount-limits {
+  margin-top: $fb-space-2;
+  font-size: $fb-text-xs;
+  color: $fb-gray-400;
+}
+
+.fb-select {
+  width: 100%;
+  padding: $fb-space-3 $fb-space-4;
+  border: 2px solid $fb-gray-200;
+  border-radius: $fb-radius-lg;
+  background: $fb-white;
+  font-size: $fb-text-sm;
+  color: $fb-gray-800;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+
+  &:focus {
+    border-color: $fb-sky-dark;
+  }
+}
+
+// Quote loading skeleton
+.quote-loading {
+  margin-top: $fb-space-5;
+}
+
+.skeleton-bar {
+  height: 20px;
+  background: linear-gradient(90deg, $fb-gray-100 25%, $fb-gray-200 50%, $fb-gray-100 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: $fb-radius-sm;
+  margin-bottom: $fb-space-3;
+
+  &--short {
+    width: 60%;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// Rate card
+.rate-card {
+  margin-top: $fb-space-5;
+  padding-top: $fb-space-5;
+  border-top: 1px solid $fb-gray-100;
+
+  &__label {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    margin-bottom: $fb-space-1;
+  }
+
+  &__rate {
+    font-size: $fb-text-lg;
+    font-family: $fb-font-mono;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-900;
+    margin-bottom: $fb-space-4;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    padding: $fb-space-2 0;
+    font-size: $fb-text-sm;
+    color: $fb-gray-600;
+  }
+
+  &__value {
+    font-family: $fb-font-mono;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-800;
+  }
+
+  &__receive {
+    font-size: $fb-text-2xl;
+    font-family: $fb-font-mono;
+    font-weight: $fb-font-bold;
+    color: $fb-success;
+    margin-top: $fb-space-4;
+    text-align: center;
+  }
+
+  &__receive-label {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    text-align: center;
+    margin-bottom: $fb-space-4;
+  }
+}
+
+// Rate lock
+.rate-lock {
+  &__bar {
+    height: 4px;
+    background: $fb-gray-200;
+    border-radius: $fb-radius-full;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    background: $fb-sky;
+    border-radius: $fb-radius-full;
+    transition: width 1s linear;
+  }
+
+  &__text {
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+    margin-top: $fb-space-1;
+    text-align: center;
+  }
+}
+
+// --- Buttons ---
+.fb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-2;
+  padding: $fb-space-3 $fb-space-5;
+  border-radius: $fb-radius-lg;
+  font-size: $fb-text-base;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all $fb-transition-fast;
+
+  &--primary {
+    background: $fb-navy;
+    color: $fb-white;
+
+    &:hover {
+      background: $fb-navy-dark;
+    }
+
+    &:disabled {
+      background: $fb-gray-300;
+      cursor: not-allowed;
+    }
+  }
+
+  &--outline {
+    background: $fb-white;
+    color: $fb-navy;
+    border-color: $fb-navy;
+
+    &:hover {
+      background: $fb-sky-wash;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &--full {
+    width: 100%;
+    padding: $fb-space-4;
+  }
+}
+
+// --- Section 3: Recipient Panel ---
+.recipient-search {
+  --background: #{$fb-gray-50};
+  --border-radius: #{$fb-radius-lg};
+  --box-shadow: none;
+  --placeholder-color: #{$fb-gray-400};
+  padding: 0 0 $fb-space-3;
+}
+
+.recipient-segment {
+  margin-bottom: $fb-space-4;
+}
+
+.recipient-panel {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  padding: $fb-space-5;
+  box-shadow: $fb-shadow-lg;
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+    background: $fb-gray-50;
+    border: 2px solid $fb-gray-200;
+    border-radius: $fb-radius-lg;
+    padding: $fb-space-3 $fb-space-4;
+    margin-bottom: $fb-space-4;
+    min-height: 48px;
+
+    ion-icon {
+      color: $fb-gray-400;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: $fb-text-base;
+      color: $fb-gray-800;
+      outline: none;
+      padding: 0;
+      line-height: 1.5;
+
+      &::placeholder {
+        color: $fb-gray-400;
+      }
+    }
+  }
+
+  &__segment {
+    display: flex;
+    gap: 0;
+    margin-bottom: $fb-space-4;
+    background: $fb-gray-100;
+    border-radius: $fb-radius-lg;
+    padding: 3px;
+  }
+}
+
+.segment-btn {
+  flex: 1;
+  padding: $fb-space-2 $fb-space-3;
+  border: none;
+  border-radius: $fb-radius-md;
+  background: transparent;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  color: $fb-gray-500;
+  cursor: pointer;
+  text-align: center;
+  transition: all $fb-transition-fast;
+  min-height: 40px;
+
+  &.active {
+    background: $fb-navy;
+    color: $fb-white;
+    box-shadow: $fb-shadow-card;
+  }
+
+  &:not(.active):hover {
+    color: $fb-gray-700;
+  }
+}
+
+.recipient-list {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: $fb-space-4;
+}
+
+.recipient-item {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-3;
+  padding: $fb-space-3;
+  border-radius: $fb-radius-lg;
+  cursor: pointer;
+  transition: background $fb-transition-fast;
+
+  &:hover {
+    background: $fb-gray-50;
+  }
+
+  & + & {
+    border-top: 1px solid $fb-gray-100;
+  }
+
+  &__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: $fb-navy;
+    color: $fb-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $fb-font-bold;
+    font-size: $fb-text-sm;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-900;
+    font-size: $fb-text-sm;
+  }
+
+  &__detail {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $fb-space-3;
+    flex-shrink: 0;
+
+    ion-icon {
+      font-size: 20px;
+      color: $fb-gray-400;
+      cursor: pointer;
+      transition: color $fb-transition-fast;
+
+      &.favourite {
+        color: $fb-danger;
+      }
+
+      &:hover {
+        color: $fb-navy;
+      }
+    }
+
+    .delete-icon:hover {
+      color: $fb-danger;
+    }
+  }
+}
+
+.recipient-empty {
+  text-align: center;
+  padding: $fb-space-8 $fb-space-4;
+  color: $fb-gray-400;
+  margin-bottom: $fb-space-4;
+
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: $fb-space-2;
+  }
+
+  p {
+    font-size: $fb-text-sm;
+    margin: 0;
+  }
+}
+
+// --- Section 4: Selected Recipient ---
+.selected-recipient-card {
+  display: flex;
+  align-items: center;
+  gap: $fb-space-3;
+  background: $fb-white;
+  border: 2px solid $fb-navy;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-4;
+  margin-bottom: $fb-space-4;
+
+  &__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: $fb-navy;
+    color: $fb-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $fb-font-bold;
+    font-size: $fb-text-sm;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-900;
+  }
+
+  &__detail {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    margin-top: 2px;
+  }
+}
+
+.change-btn {
+  background: none;
+  border: none;
+  color: $fb-sky-dark;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: $fb-navy;
+  }
+}
+
+// --- Section 5: Review ---
+.review-card {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  box-shadow: $fb-shadow-lg;
+  overflow: hidden;
+  margin-bottom: $fb-space-5;
+}
+
+.review-section {
+  padding: $fb-space-4 $fb-space-5;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $fb-gray-100;
+  }
+
+  &__title {
+    font-size: $fb-text-xs;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 $fb-space-3;
+  }
+}
+
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  padding: $fb-space-2 0;
+
+  &__label {
+    color: $fb-gray-500;
+    font-size: $fb-text-sm;
+  }
+
+  &__value {
+    font-weight: $fb-font-medium;
+    color: $fb-gray-900;
+    font-size: $fb-text-sm;
+
+    &.mono {
+      font-family: $fb-font-mono;
+    }
+  }
+
+  &--total {
+    border-top: 1px solid $fb-gray-200;
+    padding-top: $fb-space-3;
+    margin-top: $fb-space-2;
+  }
+
+  &--total &__label,
+  &--total &__value {
+    font-weight: $fb-font-bold;
+    font-size: $fb-text-base;
+  }
+
+  &--highlight {
+    background: $fb-success-bg;
+    margin: $fb-space-3 (- $fb-space-5);
+    padding: $fb-space-3 $fb-space-5;
+    border-radius: 0;
+  }
+
+  &--highlight &__value {
+    color: $fb-success;
+    font-weight: $fb-font-bold;
+    font-size: $fb-text-lg;
+  }
+}
+
+.review-actions {
+  display: flex;
+  gap: $fb-space-3;
+  padding: $fb-space-4 0;
+
+  ion-button, .fb-btn {
+    flex: 1;
+  }
+}
+
+// --- Button styles (local) ---
+.fb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-2;
+  padding: $fb-space-3 $fb-space-5;
+  border-radius: $fb-radius-lg;
+  font-size: $fb-text-base;
+  font-weight: $fb-font-semibold;
+  font-family: $fb-font-body;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all $fb-transition-fast;
+  min-height: 48px;
+  text-decoration: none;
+
+  &--primary {
+    background: $fb-navy;
+    color: $fb-white;
+    border-color: $fb-navy;
+
+    &:hover { background: darken($fb-navy, 8%); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  &--outline {
+    background: $fb-white;
+    color: $fb-navy;
+    border-color: $fb-navy;
+
+    &:hover { background: $fb-gray-50; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  &--success {
+    background: $fb-success;
+    color: $fb-white;
+    border-color: $fb-success;
+  }
+
+  &--full {
+    width: 100%;
+  }
+
+  &--select-recipient {
+    width: 100%;
+    background: $fb-navy;
+    color: $fb-white;
+    border-color: $fb-navy;
+    min-height: 52px;
+    font-size: $fb-text-base;
+
+    &:hover { background: darken($fb-navy, 8%); }
+  }
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+// --- Add New Recipient button ---
+.add-recipient-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-2;
+  width: 100%;
+  padding: $fb-space-3 $fb-space-4;
+  background: $fb-navy;
+  color: $fb-white;
+  border: none;
+  border-radius: $fb-radius-lg;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+  min-height: 48px;
+
+  &:hover { background: darken($fb-navy, 8%); }
+
+  ion-icon { font-size: 18px; }
+}
+
+// ─────────────────────────────────────────────
+// Referral Code Input
+// ─────────────────────────────────────────────
+.referral-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.referral-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #0ea5e9; }
+  &--valid { border-color: #22c55e; }
+  &--invalid { border-color: #ef4444; }
+}
+
+.referral-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #22c55e;
+  font-weight: 600;
+
+  ion-icon { font-size: 16px; }
+
+  &--invalid { color: #ef4444; }
+}
+
+// ─────────────────────────────────────────────
+// Wallet Use Section
+// ─────────────────────────────────────────────
+.wallet-use-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  &__balance {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+}
+
+.wallet-toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  min-width: 48px;
+
+  input { display: none; }
+
+  &__slider {
+    position: absolute;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+  }
+
+  input:checked + &__slider {
+    background: #0ea5e9;
+    &::before { transform: translateX(22px); }
+  }
+}
+
+.wallet-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+
+  &__label { font-size: 13px; color: #6b7280; }
+  &__currency { font-size: 13px; font-weight: 600; color: #0f172a; }
+}
+
+.wallet-amount-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #0ea5e9;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  text-align: right;
+}
+
+// ── Volume Pay with Bank ─────────────────────────────────────────────────────
+
+// Volume Pay section — appears after transaction is created
+.volume-pay-section {
+  margin-top: 20px;
+  animation: slideIn 0.3s ease;
+
+  &__created {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+
+  &__tick {
+    font-size: 24px;
+    color: #16a34a;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #15803d;
+  }
+
+  &__ref {
+    font-size: 12px;
+    color: #166534;
+    margin-top: 2px;
+  }
+
+  &__hint {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0 0 14px;
+    text-align: center;
+  }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// Volume SDK injects bank form inside this container
+.volume-element-container {
+  width: 100%;
+  min-height: 60px;
+
+  iframe, > *:not(#pay-button) {
+    width: 100% !important;
+  }
+}
+
+// The pink "Pay with Bank" button
+.volume-pay-btn {
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #e91e8c; // pink
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s, transform 0.1s;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.35);
+  letter-spacing: 0.01em;
+
+  &:hover:not(:disabled) {
+    background: #c71880;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+/* Payment Method Selector */
+.payment-method-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.payment-method-option {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #fff;
+
+  &__radio {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    flex-shrink: 0;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+  }
+
+  ion-icon {
+    font-size: 18px;
+    color: #6b7280;
+  }
+
+  &__icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    color: #374151;
+    flex-shrink: 0;
+  }
+
+  &__brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    height: 22px;
+    text-decoration: none;
+    flex-shrink: 0;
+
+    img {
+      height: 22px;
+      width: auto;
+      max-width: 110px;
+      object-fit: contain;
+      border-radius: 3px;
+    }
+
+    &:hover img {
+      opacity: 0.85;
+    }
+  }
+
+  // Icon-only variant — replaces text label with a large brand graphic.
+  // Used for "Pay by Bank" (Volume GIF) and "Credit / Debit Card" (Trust Payments card row).
+  &--icon-only {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    min-height: 80px;
+
+    .payment-method-option__hero {
+      flex: 1;
+      width: 100%;
+      max-height: 70px;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      background: #fff;
+      border-radius: 6px;
+    }
+
+    @media (max-width: 480px) {
+      min-height: 64px;
+      padding: 8px 10px;
+      .payment-method-option__hero { max-height: 54px; }
+    }
+  }
+
+  &--active {
+    border-color: #1B3A6B;
+    background: #f0f4ff;
+
+    .payment-method-option__radio {
+      border-color: #1B3A6B;
+      background: #1B3A6B;
+    }
+
+    .payment-method-option__label {
+      color: #1B3A6B;
+    }
+
+    ion-icon {
+      color: #1B3A6B;
+    }
+  }
+
+  // Disabled state after Confirm & Send is clicked — prevents switching method
+  // mid-flight (would create a second transaction).
+  &--locked {
+    pointer-events: none;
+    opacity: 0.55;
+    cursor: not-allowed;
+
+    &.payment-method-option--active {
+      opacity: 0.85;  // keep the chosen option still readable
+    }
+  }
+}
+
+.delivery-locked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: $fb-gray-50;
+  border: 1.5px solid $fb-gray-200;
+  border-radius: $fb-radius-md;
+
+  &__value {
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-800;
+  }
+
+  &__change {
+    background: transparent;
+    border: none;
+    color: $fb-info;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: underline;
+
+    &:hover { color: $fb-navy; }
+  }
+}

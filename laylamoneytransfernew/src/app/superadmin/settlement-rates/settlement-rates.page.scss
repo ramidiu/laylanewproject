@@ -1,0 +1,83 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.settlement-rates-page { max-width: 1200px; }
+
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0 0 $fb-space-4; }
+.rates-tabs { margin-bottom: $fb-space-4; }
+.tab-content { margin-top: $fb-space-4; }
+.tab-header { display: flex; justify-content: flex-end; margin-bottom: $fb-space-3; }
+.loading { display: flex; flex-direction: column; gap: $fb-space-4; }
+
+.add-form-card { padding: $fb-space-4; margin-bottom: $fb-space-4; }
+
+.inline-form {
+  display: flex; gap: $fb-space-3; align-items: flex-end; flex-wrap: wrap;
+  .fb-field { flex: 1; min-width: 150px; margin-bottom: 0; }
+  .fb-field__label { display: block; font-size: $fb-text-sm; font-weight: $fb-font-medium; color: $fb-gray-700; margin-bottom: $fb-space-1; }
+  &__actions { display: flex; gap: $fb-space-2; }
+}
+
+.btn-sm { min-height: 40px; padding: $fb-space-2 $fb-space-4; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.table-loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.currency-tag {
+  display: inline-block; padding: 2px $fb-space-2; background: $fb-sky-wash;
+  border-radius: $fb-radius-sm; font-family: $fb-font-mono; font-weight: $fb-font-bold;
+  font-size: $fb-text-sm; color: $fb-navy;
+}
+
+.rate-edit { display: flex; align-items: center; gap: $fb-space-1; }
+.rate-input { width: 100px; height: 32px; padding: $fb-space-1 $fb-space-2; font-size: $fb-text-sm; text-align: center; }
+.rate-edit-actions { display: flex; gap: 2px; }
+
+.partner-rate-card {
+  margin-bottom: $fb-space-3;
+
+  &__header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: $fb-space-4; cursor: pointer;
+    font-weight: $fb-font-semibold; color: $fb-gray-900;
+    ion-icon { color: $fb-gray-400; }
+    &:hover { background: $fb-gray-50; }
+  }
+
+  &__body {
+    padding: 0 $fb-space-4 $fb-space-4;
+    border-top: 1px solid $fb-gray-100;
+  }
+}
+
+.rate-comparison {
+  display: flex; align-items: center; gap: $fb-space-4;
+  padding: $fb-space-3 0; border-bottom: 1px solid $fb-gray-50;
+
+  &__currency {
+    font-family: $fb-font-mono; font-weight: $fb-font-bold; color: $fb-navy;
+    min-width: 60px;
+  }
+
+  &__values { display: flex; gap: $fb-space-6; }
+}
+
+.rate-value {
+  display: flex; flex-direction: column;
+}
+
+.rate-label { font-size: $fb-text-xs; color: $fb-gray-500; }
+
+.rate-number {
+  font-weight: $fb-font-semibold; color: $fb-gray-900; font-family: $fb-font-mono;
+  &--global { color: $fb-gray-400; }
+}
+
+.empty-text { font-size: $fb-text-sm; color: $fb-gray-400; padding: $fb-space-3 0; }
+
+.empty-state {
+  text-align: center; padding: $fb-space-10; color: $fb-gray-400;
+  ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
+  p { margin: 0; font-size: $fb-text-sm; }
+}

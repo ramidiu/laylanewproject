@@ -1,0 +1,47 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">Corridor Analytics</h1>
+      <p class="dashboard__subtitle">Active corridors and delivery methods</p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="dashboard__metrics">
+      <app-metric-card label="Active Corridors" [value]="activeCorridors | number" icon="git-branch-outline" iconBg="#059669"></app-metric-card>
+      <app-metric-card label="Total Corridors" [value]="totalCorridors | number" icon="map-outline" iconBg="#1B3571"></app-metric-card>
+    </div>
+
+    <div class="dashboard__table-panel">
+      <div class="dashboard__table-header">All Corridors</div>
+      <table class="dashboard__table" *ngIf="corridors.length > 0">
+        <thead>
+          <tr>
+            <th>From Currency</th>
+            <th>To Currency</th>
+            <th>Status</th>
+            <th>Delivery Methods</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of corridors">
+            <td class="mono">{{ c.sendCurrency || c.fromCurrency || '—' }}</td>
+            <td class="mono">{{ c.receiveCurrency || c.toCurrency || '—' }}</td>
+            <td>
+              <span class="dashboard__badge" [ngClass]="(c.isActive || c.active) ? 'dashboard__badge--success' : 'dashboard__badge--medium'">
+                {{ (c.isActive || c.active) ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>{{ c.deliveryMethods?.join(', ') || c.deliveryMethod || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dashboard__empty" *ngIf="corridors.length === 0">No corridors configured</div>
+    </div>
+  </ng-container>
+</div>

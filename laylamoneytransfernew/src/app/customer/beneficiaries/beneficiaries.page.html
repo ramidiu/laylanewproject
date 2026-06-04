@@ -1,0 +1,634 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'BENEFICIARIES.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ben-content">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="ben-container">
+    <ion-searchbar
+      [placeholder]="'BENEFICIARIES.SEARCH' | translate"
+      (ionInput)="onSearch($event)"
+      [debounce]="300"
+    ></ion-searchbar>
+
+    <ion-segment [value]="showFavouritesOnly ? 'favourites' : 'all'" (ionChange)="onSegmentChange($event)">
+      <ion-segment-button value="all"><ion-label>{{ 'BENEFICIARIES.ALL' | translate }}</ion-label></ion-segment-button>
+      <ion-segment-button value="favourites"><ion-label>{{ 'BENEFICIARIES.FAVOURITES' | translate }}</ion-label></ion-segment-button>
+    </ion-segment>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="ben-loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && filteredBeneficiaries.length === 0 && !showAddForm" class="ben-empty">
+      <ion-icon name="people-outline"></ion-icon>
+      <h3>{{ 'BENEFICIARIES.EMPTY_TITLE' | translate }}</h3>
+      <p>{{ 'BENEFICIARIES.EMPTY_DESC' | translate }}</p>
+      <button class="fb-btn fb-btn--primary" style="margin-top: 16px;" (click)="showAddForm = true">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        {{ 'BENEFICIARIES.ADD_RECIPIENT' | translate }}
+      </button>
+    </div>
+
+    <!-- Add Beneficiary Form -->
+    <div class="add-form" *ngIf="showAddForm">
+      <div class="add-form__card">
+        <div class="add-form__header">
+          <h2>{{ 'BENEFICIARIES.ADD_TITLE' | translate }}</h2>
+          <ion-button fill="clear" size="small" (click)="showAddForm = false">
+            <ion-icon name="close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <form [formGroup]="addForm" (ngSubmit)="onAddBeneficiary()">
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.FULL_NAME' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="fullName"
+              [placeholder]="'BENEFICIARIES.FULL_NAME_PLACEHOLDER' | translate"
+              autocomplete="new-password" autocorrect="off" spellcheck="false"
+              [class.fb-input--error]="(addFormSubmitted || addForm.get('fullName')?.touched) && addForm.get('fullName')?.invalid" />
+            <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('fullName')?.touched) && addForm.get('fullName')?.hasError('required')">
+              {{ 'BENEFICIARIES.ERROR_FULL_NAME' | translate }}
+            </div>
+            <div class="fb-field__error" *ngIf="addForm.get('fullName')?.touched && addForm.get('fullName')?.hasError('minlength')">
+              {{ 'BENEFICIARIES.ERROR_FULL_NAME_MIN' | translate }}
+            </div>
+          </div>
+
+          <div class="fb-field" *ngIf="!preselectedCountry">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.COUNTRY' | translate }} *</label>
+            <ion-select formControlName="country" [placeholder]="'BENEFICIARIES.SELECT_COUNTRY' | translate" interface="action-sheet" class="fb-ion-select">
+              <ion-select-option *ngFor="let c of receiveCountries; trackBy: trackByCode" [value]="c.code">{{ c.name }}</ion-select-option>
+            </ion-select>
+            <div class="fb-field__error" *ngIf="addFormSubmitted && !addForm.get('country')?.value">
+              {{ 'BENEFICIARIES.ERROR_COUNTRY' | translate }}
+            </div>
+          </div>
+          <div class="fb-field" *ngIf="preselectedCountry">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.COUNTRY' | translate }}</label>
+            <div class="country-pill">
+              <img [src]="preselectedCountry | countryFlagSvg" class="country-pill__flag" alt="" onerror="this.style.display='none'" />
+              <span class="country-pill__code">{{ currencyFor(preselectedCountry) }}</span>
+            </div>
+          </div>
+
+          <div class="fb-field" *ngIf="!preselectedDeliveryMethod">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.DELIVERY_METHOD' | translate }} *</label>
+            <ion-select formControlName="deliveryMethod" [placeholder]="'BENEFICIARIES.SELECT_DELIVERY' | translate" interface="action-sheet" class="fb-ion-select">
+              <ion-select-option *ngFor="let dm of availableDeliveryMethods; trackBy: trackByCode" [value]="dm.value">{{ dm.label }}</ion-select-option>
+            </ion-select>
+            <div class="fb-field__error" *ngIf="addFormSubmitted && !addForm.get('deliveryMethod')?.value">
+              {{ 'BENEFICIARIES.ERROR_DELIVERY' | translate }}
+            </div>
+          </div>
+
+          <!-- Common fields for Bank Deposit and Cash Pickup -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'BANK_DEPOSIT' || addForm.value.deliveryMethod === 'CASH_PICKUP'">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.MOBILE_NUMBER' | translate }} *</label>
+              <div class="fb-phone-row">
+                <span class="fb-dial-code" *ngIf="dialCode">{{ dialCode }}</span>
+                <input type="tel" class="fb-input fb-input--phone" formControlName="mobileNumber"
+                  [placeholder]="'BENEFICIARIES.MOBILE_PLACEHOLDER' | translate"
+                  [class.fb-input--error]="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.invalid" />
+              </div>
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_MOBILE' | translate }}
+              </div>
+            </div>
+            <div class="fb-field" *ngIf="addForm.get('country')?.value && !isSudanBank()">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.FIND_ADDRESS' | translate }}</label>
+              <app-address-autocomplete
+                [country]="addForm.get('country')?.value"
+                (addressSelected)="onBeneficiaryAddressSelected(addForm, $event)"
+              ></app-address-autocomplete>
+            </div>
+            <div class="fb-field" *ngIf="!isSudanBank()">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="address"
+                [placeholder]="'BENEFICIARIES.ADDRESS_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_ADDRESS' | translate }}
+              </div>
+            </div>
+            <div class="fb-field" *ngIf="!isSudanBank()">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.RELATIONSHIP' | translate }} *</label>
+              <select class="fb-input fb-native-select" formControlName="relationship"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('relationship')?.touched) && addForm.get('relationship')?.invalid">
+                <option value="" disabled>{{ 'BENEFICIARIES.RELATIONSHIP_PLACEHOLDER' | translate }}</option>
+                <option value="Spouse">{{ 'BENEFICIARIES.REL_SPOUSE' | translate }}</option>
+                <option value="Parent">{{ 'BENEFICIARIES.REL_PARENT' | translate }}</option>
+                <option value="Child">{{ 'BENEFICIARIES.REL_CHILD' | translate }}</option>
+                <option value="Sibling">{{ 'BENEFICIARIES.REL_SIBLING' | translate }}</option>
+                <option value="Friend">{{ 'BENEFICIARIES.REL_FRIEND' | translate }}</option>
+                <option value="Business">{{ 'BENEFICIARIES.REL_BUSINESS' | translate }}</option>
+                <option value="Other">{{ 'BENEFICIARIES.REL_OTHER' | translate }}</option>
+              </select>
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('relationship')?.touched) && addForm.get('relationship')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_RELATIONSHIP' | translate }}
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Bank Deposit fields -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'BANK_DEPOSIT'">
+            <div class="fb-field-section-header">{{ 'BENEFICIARIES.BANK_DEPOSIT_DETAILS' | translate }}</div>
+            <div class="fb-field">
+              <label class="fb-field__label">Bank Name *</label>
+              <select class="fb-input fb-native-select" formControlName="bankName"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('bankName')?.touched) && addForm.get('bankName')?.invalid">
+                <option value="" disabled>{{ bankNames.length === 0 ? ('BENEFICIARIES.LOADING_BANKS' | translate) : ('BENEFICIARIES.BANK_PLACEHOLDER' | translate) }}</option>
+                <option *ngFor="let b of bankNames" [value]="b">{{ b }}</option>
+              </select>
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('bankName')?.touched) && addForm.get('bankName')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_BANK_NAME' | translate }}
+              </div>
+            </div>
+
+            <div class="fb-field" *ngIf="!isSudan()">
+              <label class="fb-field__label">Branch Name *</label>
+              <input type="text" class="fb-input" formControlName="sortCode"
+                placeholder="e.g. First Abu Dhabi Bank"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('sortCode')?.touched) && addForm.get('sortCode')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('sortCode')?.touched) && addForm.get('sortCode')?.hasError('required')">
+                Branch name is required
+              </div>
+            </div>
+
+            <div class="fb-field-row" *ngIf="!isSudan()">
+              <div class="fb-field">
+                <label class="fb-field__label">Bank State *</label>
+                <input type="text" class="fb-input" formControlName="branchState"
+                  placeholder="Any Branch"
+                  [class.fb-input--error]="(addFormSubmitted || addForm.get('branchState')?.touched) && addForm.get('branchState')?.invalid" />
+                <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('branchState')?.touched) && addForm.get('branchState')?.hasError('required')">
+                  Bank state is required
+                </div>
+              </div>
+              <div class="fb-field">
+                <label class="fb-field__label">Bank City *</label>
+                <input type="text" class="fb-input" formControlName="branchCity"
+                  placeholder="Any Branch"
+                  [class.fb-input--error]="(addFormSubmitted || addForm.get('branchCity')?.touched) && addForm.get('branchCity')?.invalid" />
+                <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('branchCity')?.touched) && addForm.get('branchCity')?.hasError('required')">
+                  Bank city is required
+                </div>
+              </div>
+            </div>
+
+            <!-- Account Number — always visible -->
+            <div class="fb-field">
+              <label class="fb-field__label">Account Number *</label>
+              <input type="text" class="fb-input" formControlName="accountNumber"
+                [placeholder]="isIbanCountry() ? 'Same as IBAN, e.g. AE070331234567890123456' : ('BENEFICIARIES.ACCOUNT_PLACEHOLDER' | translate)"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_ACCOUNT' | translate }}
+              </div>
+              <div class="fb-field__error" *ngIf="addForm.get('accountNumber')?.touched && addForm.get('accountNumber')?.hasError('minlength')">
+                {{ 'BENEFICIARIES.ERROR_ACCOUNT_MIN' | translate }}
+              </div>
+              <div class="fb-field__hint" *ngIf="isIbanCountry()">For Saudi Arabia / UAE / Turkey / Qatar this is the IBAN. You can paste it here and into the IBAN field below.</div>
+            </div>
+
+            <!-- IBAN — only for IBAN countries (Saudi Arabia, UAE, Turkey, Qatar, SEPA) -->
+            <div class="fb-field" *ngIf="isIbanCountry()">
+              <label class="fb-field__label">IBAN *</label>
+              <input type="text" class="fb-input" formControlName="iban"
+                placeholder="e.g. AE070331234567890123456"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('iban')?.touched) && addForm.get('iban')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('iban')?.touched) && addForm.get('iban')?.hasError('required')">
+                IBAN is required for this country
+              </div>
+              <div class="fb-field__error" *ngIf="addForm.get('iban')?.touched && (addForm.get('iban')?.hasError('minlength') || addForm.get('iban')?.hasError('maxlength'))">
+                IBAN must be 15–34 characters
+              </div>
+              <div class="fb-field__hint">For Saudi Arabia, UAE, Turkey, Qatar — IBAN is required (no SWIFT needed)</div>
+            </div>
+
+            <!-- SWIFT — only for non-IBAN, non-Egypt countries -->
+            <div class="fb-field" *ngIf="!isIbanCountry() && !isNoSwiftCountry() && !isSudan()">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.SWIFT_CODE' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="swiftBic" [placeholder]="bankCodePlaceholder"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('swiftBic')?.touched) && addForm.get('swiftBic')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('swiftBic')?.touched) && addForm.get('swiftBic')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_SWIFT' | translate }}
+              </div>
+              <div class="fb-field__hint" *ngIf="bankCodeFormat">Format: {{ bankCodeFormat }}</div>
+            </div>
+          </ng-container>
+
+          <!-- Mobile wallet fields -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'MOBILE_WALLET'">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.MOBILE_PROVIDER' | translate }} *</label>
+              <select class="fb-input fb-native-select" formControlName="mobileProvider"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('mobileProvider')?.touched) && addForm.get('mobileProvider')?.invalid">
+                <option value="" disabled>{{ mobileWallets.length === 0 ? ('BENEFICIARIES.LOADING_WALLETS' | translate) : ('BENEFICIARIES.SELECT_WALLET_PROVIDER' | translate) }}</option>
+                <option *ngFor="let wallet of mobileWallets" [value]="wallet.serviceName">{{ wallet.serviceName }}</option>
+              </select>
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('mobileProvider')?.touched) && addForm.get('mobileProvider')?.hasError('required')">
+                {{ 'BENEFICIARIES.MOBILE_PROVIDER' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.MOBILE_NUMBER' | translate }} *</label>
+              <input type="tel" class="fb-input" formControlName="mobileNumber"
+                [placeholder]="'BENEFICIARIES.MOBILE_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_MOBILE' | translate }}
+              </div>
+              <div class="fb-field__error" *ngIf="addForm.get('mobileNumber')?.touched && addForm.get('mobileNumber')?.hasError('minlength')">
+                {{ 'BENEFICIARIES.ERROR_MOBILE_MIN' | translate }}
+              </div>
+            </div>
+
+            <!-- Address — USI requires beneficiary address for Mobile Wallet payouts -->
+            <div class="fb-field" *ngIf="addForm.get('country')?.value && !isSudanBank()">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.FIND_ADDRESS' | translate }}</label>
+              <app-address-autocomplete
+                [country]="addForm.get('country')?.value"
+                (addressSelected)="onBeneficiaryAddressSelected(addForm, $event)"
+              ></app-address-autocomplete>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="address"
+                [placeholder]="'BENEFICIARIES.ADDRESS_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_ADDRESS' | translate }}
+              </div>
+            </div>
+
+            <!-- Relationship — recommended for Mobile Wallet too -->
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.RELATIONSHIP' | translate }} *</label>
+              <select class="fb-input fb-native-select" formControlName="relationship"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('relationship')?.touched) && addForm.get('relationship')?.invalid">
+                <option value="" disabled>{{ 'BENEFICIARIES.RELATIONSHIP_PLACEHOLDER' | translate }}</option>
+                <option value="Spouse">{{ 'BENEFICIARIES.REL_SPOUSE' | translate }}</option>
+                <option value="Parent">{{ 'BENEFICIARIES.REL_PARENT' | translate }}</option>
+                <option value="Child">{{ 'BENEFICIARIES.REL_CHILD' | translate }}</option>
+                <option value="Sibling">{{ 'BENEFICIARIES.REL_SIBLING' | translate }}</option>
+                <option value="Friend">{{ 'BENEFICIARIES.REL_FRIEND' | translate }}</option>
+                <option value="Business">{{ 'BENEFICIARIES.REL_BUSINESS' | translate }}</option>
+                <option value="Other">{{ 'BENEFICIARIES.REL_OTHER' | translate }}</option>
+              </select>
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('relationship')?.touched) && addForm.get('relationship')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_RELATIONSHIP' | translate }}
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Cash Collection fields -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'CASH_PICKUP'">
+            <div class="fb-field-section-header">{{ 'BENEFICIARIES.CASH_COLLECTION_DETAILS' | translate }}</div>
+
+            <!-- Collection-point dropdown — USI corridors (live) or our DB list (e.g. Sudan).
+                 Picking a point auto-fills name / code / address / city below. -->
+            <div class="fb-field" *ngIf="usiCollectionPoints.length > 0 || loadingUsiCollectionPoints">
+              <label class="fb-field__label">Collection Point *</label>
+              <select class="fb-input fb-native-select"
+                      [value]="selectedUsiCollectionPointCode"
+                      (change)="onUsiCollectionPointPick($any($event.target).value)">
+                <option value="" disabled>
+                  {{ loadingUsiCollectionPoints ? 'Loading collection points…'
+                       : (usiCollectionPoints.length === 0 ? 'No collection points available — fill in manually below'
+                                                           : 'Select a collection point') }}
+                </option>
+                <option *ngFor="let p of usiCollectionPoints" [value]="p.code">
+                  {{ p.name }} — {{ p.city || 'Anywhere' }} ({{ p.code }})
+                </option>
+              </select>
+              <div class="fb-field__hint" *ngIf="usiCollectionPoints.length > 0">
+                Selecting a point fills in name, code, address and city automatically.
+              </div>
+            </div>
+
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_POINT_NAME' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="bankName"
+                [placeholder]="'BENEFICIARIES.COLLECTION_POINT_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('bankName')?.touched) && addForm.get('bankName')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('bankName')?.touched) && addForm.get('bankName')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_COLLECTION_POINT' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_CODE' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="accountNumber"
+                [placeholder]="'BENEFICIARIES.COLLECTION_CODE_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_COLLECTION_CODE' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_ADDRESS' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="idNumber"
+                [placeholder]="'BENEFICIARIES.COLLECTION_ADDRESS_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('idNumber')?.touched) && addForm.get('idNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('idNumber')?.touched) && addForm.get('idNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_COLLECTION_ADDRESS' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_CITY' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="city"
+                [placeholder]="'BENEFICIARIES.COLLECTION_CITY_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_COLLECTION_CITY' | translate }}
+              </div>
+            </div>
+            <!-- Mobile number is already captured in the common Bank/Cash section above; not duplicated here. -->
+          </ng-container>
+
+          <!-- UPI (India only) -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'UPI'">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.UPI_ID' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="accountNumber"
+                [placeholder]="'BENEFICIARIES.UPI_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.UPI_ID' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+              </div>
+              <div class="fb-field__hint">{{ 'BENEFICIARIES.UPI_HINT' | translate }}</div>
+            </div>
+          </ng-container>
+
+          <!-- Home Delivery -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'HOME_DELIVERY'">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS_LINE_1' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="addressLine1"
+                [placeholder]="'BENEFICIARIES.STREET_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('addressLine1')?.touched) && addForm.get('addressLine1')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('addressLine1')?.touched) && addForm.get('addressLine1')?.hasError('required')">
+                {{ 'BENEFICIARIES.ADDRESS_LINE_1' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.CITY' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="city"
+                [placeholder]="'BENEFICIARIES.CITY' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.hasError('required')">
+                {{ 'BENEFICIARIES.CITY' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.PHONE_NUMBER' | translate }} *</label>
+              <input type="tel" class="fb-input" formControlName="mobileNumber"
+                [placeholder]="'BENEFICIARIES.PHONE_DELIVERY_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_PHONE_DELIVERY' | translate }}
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Airtime Top-up -->
+          <ng-container *ngIf="addForm.value.deliveryMethod === 'AIRTIME_TOPUP'">
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.PHONE_NUMBER' | translate }} *</label>
+              <input type="tel" class="fb-input" formControlName="mobileNumber"
+                [placeholder]="'BENEFICIARIES.MOBILE_PLACEHOLDER' | translate"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.hasError('required')">
+                {{ 'BENEFICIARIES.ERROR_MOBILE' | translate }}
+              </div>
+            </div>
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.NETWORK_PROVIDER' | translate }}</label>
+              <input type="text" class="fb-input" formControlName="mobileProvider"
+                [placeholder]="'BENEFICIARIES.NETWORK_PLACEHOLDER' | translate" />
+            </div>
+          </ng-container>
+
+          <div class="add-form__actions">
+            <button type="button" class="fb-btn fb-btn--secondary" (click)="showAddForm = false; addFormSubmitted = false">{{ 'BENEFICIARIES.CANCEL' | translate }}</button>
+            <button type="submit" class="fb-btn fb-btn--primary">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              {{ 'BENEFICIARIES.SAVE' | translate }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Beneficiary List -->
+    <ion-card
+      *ngFor="let ben of filteredBeneficiaries; trackBy: trackByBeneficiaryId"
+      class="ben-card"
+      (click)="sendTo(ben)"
+      button
+    >
+      <ion-card-content>
+        <div class="ben-card__row">
+          <div class="ben-card__avatar">
+            {{ getInitials(ben.fullName) }}
+          </div>
+          <div class="ben-card__info">
+            <div class="ben-card__name">{{ ben.fullName }}</div>
+            <div class="ben-card__detail">{{ getCountryFlag(ben.country) }} {{ getCountryName(ben.country) }}</div>
+            <div class="ben-card__account" *ngIf="ben.bankName">
+              {{ ben.bankName }} - {{ ben.accountNumber }}
+            </div>
+          </div>
+          <div class="ben-card__actions">
+            <ion-button fill="clear" size="small" (click)="toggleFavourite(ben, $event)">
+              <ion-icon [name]="ben.isFavourite ? 'heart' : 'heart-outline'" slot="icon-only"
+                [color]="ben.isFavourite ? 'danger' : 'medium'"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small" color="primary" (click)="openEdit(ben, $event)">
+              <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small" color="danger" (click)="deleteBeneficiary(ben, $event)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+    <!-- Add button (shown when list has items and form is hidden) -->
+    <div class="add-btn-container" *ngIf="!showAddForm && filteredBeneficiaries.length > 0">
+      <button class="fb-btn fb-btn--primary add-btn" (click)="showAddForm = true">
+        <ion-icon name="add-circle-outline"></ion-icon>
+        {{ 'BENEFICIARIES.ADD_NEW' | translate }}
+      </button>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Edit Recipient Modal -->
+<div
+  class="edit-overlay"
+  [class.edit-overlay--open]="showEditForm"
+  (click)="closeEdit()"
+>
+  <div
+    class="edit-modal"
+    [class.edit-modal--open]="showEditForm"
+    (click)="$event.stopPropagation()"
+    *ngIf="editingBeneficiary"
+  >
+    <div class="edit-modal__header">
+      <h3>{{ 'BENEFICIARIES.EDIT_TITLE' | translate }}</h3>
+      <button class="edit-modal__close" (click)="closeEdit()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="edit-modal__body">
+      <form [formGroup]="editForm" (ngSubmit)="onUpdateBeneficiary()">
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'BENEFICIARIES.FULL_NAME' | translate }}</label>
+          <input type="text" class="fb-input" formControlName="fullName"
+            [placeholder]="'BENEFICIARIES.FULL_NAME_PLACEHOLDER' | translate" />
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'BENEFICIARIES.COUNTRY' | translate }}</label>
+          <input type="text" class="fb-input" [value]="editingBeneficiary.country" disabled />
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-field__label">{{ 'BENEFICIARIES.DELIVERY_METHOD' | translate }}</label>
+          <input type="text" class="fb-input" [value]="editingBeneficiary.deliveryMethod | titlecase" disabled />
+        </div>
+
+        <!-- Common fields for Bank Deposit and Cash Pickup -->
+        <ng-container *ngIf="editingBeneficiary.deliveryMethod === 'BANK_DEPOSIT' || editingBeneficiary.deliveryMethod === 'CASH_PICKUP'">
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.MOBILE_NUMBER' | translate }} *</label>
+            <div class="fb-phone-row">
+              <span class="fb-dial-code" *ngIf="editDialCode">{{ editDialCode }}</span>
+              <input type="tel" class="fb-input fb-input--phone" formControlName="mobileNumber"
+                [placeholder]="'BENEFICIARIES.MOBILE_PLACEHOLDER' | translate" />
+            </div>
+          </div>
+          <div class="fb-field" *ngIf="editForm.get('country')?.value">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.FIND_ADDRESS' | translate }}</label>
+            <app-address-autocomplete
+              [country]="editForm.get('country')?.value"
+              (addressSelected)="onBeneficiaryAddressSelected(editForm, $event)"
+            ></app-address-autocomplete>
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="address"
+              [placeholder]="'BENEFICIARIES.ADDRESS_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.RELATIONSHIP' | translate }} *</label>
+            <select class="fb-input fb-native-select" formControlName="relationship">
+              <option value="" disabled>{{ 'BENEFICIARIES.RELATIONSHIP_PLACEHOLDER' | translate }}</option>
+              <option value="Spouse">{{ 'BENEFICIARIES.REL_SPOUSE' | translate }}</option>
+              <option value="Parent">{{ 'BENEFICIARIES.REL_PARENT' | translate }}</option>
+              <option value="Child">{{ 'BENEFICIARIES.REL_CHILD' | translate }}</option>
+              <option value="Sibling">{{ 'BENEFICIARIES.REL_SIBLING' | translate }}</option>
+              <option value="Friend">{{ 'BENEFICIARIES.REL_FRIEND' | translate }}</option>
+              <option value="Business">{{ 'BENEFICIARIES.REL_BUSINESS' | translate }}</option>
+              <option value="Other">{{ 'BENEFICIARIES.REL_OTHER' | translate }}</option>
+            </select>
+          </div>
+        </ng-container>
+
+        <!-- Bank Deposit fields -->
+        <ng-container *ngIf="editingBeneficiary.deliveryMethod === 'BANK_DEPOSIT'">
+          <div class="fb-field-section-header">{{ 'BENEFICIARIES.BANK_DEPOSIT_DETAILS' | translate }}</div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.BANK_NAME' | translate }} *</label>
+            <select class="fb-input fb-native-select" formControlName="bankName">
+              <option value="" disabled>{{ editBankNames.length === 0 ? ('BENEFICIARIES.LOADING_BANKS' | translate) : ('BENEFICIARIES.BANK_PLACEHOLDER' | translate) }}</option>
+              <option *ngFor="let b of editBankNames" [value]="b">{{ b }}</option>
+            </select>
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.ACCOUNT_NUMBER' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="accountNumber"
+              [placeholder]="'BENEFICIARIES.ACCOUNT_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.BANK_BRANCH_NAME' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="sortCode"
+              [placeholder]="'BENEFICIARIES.BANK_BRANCH_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.SWIFT_CODE' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="swiftBic" [placeholder]="editBankCodePlaceholder" />
+            <div class="fb-field__hint" *ngIf="editBankCodeFormat">Format: {{ editBankCodeFormat }}</div>
+          </div>
+        </ng-container>
+
+        <!-- Mobile wallet fields -->
+        <ng-container *ngIf="editingBeneficiary.deliveryMethod === 'MOBILE_WALLET'">
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.MOBILE_NUMBER_LABEL' | translate }}</label>
+            <input type="tel" class="fb-input" formControlName="mobileNumber" placeholder="+91 98765 43210" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.MOBILE_PROVIDER_LABEL' | translate }}</label>
+            <select class="fb-input fb-native-select" formControlName="mobileProvider">
+              <option value="" disabled>{{ editMobileWallets.length === 0 ? ('BENEFICIARIES.LOADING_WALLETS' | translate) : ('BENEFICIARIES.SELECT_WALLET_PROVIDER' | translate) }}</option>
+              <option *ngFor="let w of editMobileWallets" [value]="w.serviceName">{{ w.serviceName }}</option>
+            </select>
+          </div>
+        </ng-container>
+
+        <!-- Cash Collection fields -->
+        <ng-container *ngIf="editingBeneficiary.deliveryMethod === 'CASH_PICKUP'">
+          <div class="fb-field-section-header">{{ 'BENEFICIARIES.CASH_COLLECTION_DETAILS' | translate }}</div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_POINT_NAME' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="bankName"
+              [placeholder]="'BENEFICIARIES.COLLECTION_POINT_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_CODE' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="accountNumber"
+              [placeholder]="'BENEFICIARIES.COLLECTION_CODE_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_ADDRESS' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="idNumber"
+              [placeholder]="'BENEFICIARIES.COLLECTION_ADDRESS_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.COLLECTION_CITY' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="city"
+              [placeholder]="'BENEFICIARIES.COLLECTION_CITY_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.PHONE_NUMBER' | translate }} *</label>
+            <div class="fb-phone-row">
+              <span class="fb-dial-code" *ngIf="editDialCode">{{ editDialCode }}</span>
+              <input type="tel" class="fb-input fb-input--phone" formControlName="mobileNumber"
+                [placeholder]="'BENEFICIARIES.MOBILE_PLACEHOLDER' | translate" />
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="edit-modal__actions">
+          <button type="button" class="fb-btn fb-btn--secondary" (click)="closeEdit()">{{ 'BENEFICIARIES.CANCEL' | translate }}</button>
+          <button type="submit" class="fb-btn fb-btn--primary">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            {{ 'BENEFICIARIES.SAVE_CHANGES' | translate }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

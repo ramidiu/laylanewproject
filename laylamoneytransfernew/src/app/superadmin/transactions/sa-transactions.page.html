@@ -1,0 +1,238 @@
+<div class="admin-txn">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Transactions</h1>
+      <p class="page-subtitle">{{ totalElements }} total corridor transactions</p>
+    </div>
+    <button class="fb-btn fb-btn--secondary" (click)="exportTransactions()">
+      <ion-icon name="download-outline"></ion-icon>
+      Export
+    </button>
+  </div>
+
+  <!-- Main Tab Switcher -->
+  <div class="main-tabs">
+    <button class="main-tab" [class.main-tab--active]="activeTab === 'REGULAR'" (click)="activeTab = 'REGULAR'">
+      <ion-icon name="swap-horizontal-outline"></ion-icon> Corridor Transactions
+    </button>
+    <button class="main-tab" [class.main-tab--active]="activeTab === 'PAYIN'" (click)="activeTab = 'PAYIN'">
+      <ion-icon name="cash-outline"></ion-icon> PayIn Transactions
+      <ion-badge color="primary" style="margin-left:6px;font-size:0.7rem">{{ payinTransactions.length }}</ion-badge>
+    </button>
+  </div>
+
+  <!-- ══════════════ PAYIN TAB ══════════════ -->
+  <div *ngIf="activeTab === 'PAYIN'">
+    <div class="fb-card table-card" style="margin-top:16px">
+      <div class="table-toolbar" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e5e7eb;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;margin-right:auto">
+          <ion-badge color="primary">{{ payinFiltered.length }}</ion-badge>
+          <span style="font-size:0.85rem;color:#6b7280">results</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:6px;padding:7px 12px">
+            <ion-icon name="search-outline" style="color:#9ca3af"></ion-icon>
+            <input [(ngModel)]="payinSearchTerm" (ngModelChange)="applyPayinFilter()" placeholder="Search ID, customer, ref…" style="border:none;outline:none;font-size:0.85rem;width:180px" />
+          </div>
+          <select [(ngModel)]="payinStatusFilter" (ngModelChange)="applyPayinFilter()" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem;outline:none">
+            <option value="">All Statuses</option>
+            <option value="PROCESSING">Processing</option>
+            <option value="PENDING">Pending</option>
+            <option value="SUCCESS">Success</option>
+            <option value="FAILED">Failed</option>
+          </select>
+          <select [(ngModel)]="payinSourceFilter" (ngModelChange)="applyPayinFilter()" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem;outline:none">
+            <option value="">All Sources</option>
+            <option value="FRONTEND">Frontend</option>
+            <option value="BACKEND">Backend</option>
+          </select>
+          <ion-button fill="outline" size="small" (click)="loadPayinTransactions()">
+            <ion-icon name="refresh-outline" slot="start"></ion-icon> Refresh
+          </ion-button>
+        </div>
+      </div>
+
+      <div *ngIf="payinLoading" style="padding:16px;display:flex;flex-direction:column;gap:8px">
+        <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+      </div>
+
+      <div style="overflow-x:auto" *ngIf="!payinLoading">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Transaction ID</th>
+              <th>Customer ID</th>
+              <th>Source</th>
+              <th>Amount</th>
+              <th>Receives</th>
+              <th>Payment Mode</th>
+              <th>Delivery</th>
+              <th>Status</th>
+              <th>Ext. Reference</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let txn of payinFiltered">
+              <td style="font-family:monospace;font-size:0.8rem" [title]="txn.transactionId">{{ txn.transactionId | slice:0:8 }}…</td>
+              <td style="font-family:monospace;font-size:0.8rem" [title]="txn.customerId">{{ txn.customerId | slice:0:8 }}…</td>
+              <td><ion-badge [color]="txn.customerSource === 'BACKEND' ? 'primary' : 'secondary'">{{ txn.customerSource }}</ion-badge></td>
+              <td style="font-weight:600">{{ txn.amount | number:'1.2-2' }} {{ txn.currency }}</td>
+              <td style="font-weight:600">
+                <span *ngIf="txn.receiveAmount">{{ txn.receiveAmount | number:'1.2-2' }} {{ txn.receiveCurrency }}</span>
+                <span *ngIf="!txn.receiveAmount" style="color:#9ca3af">—</span>
+              </td>
+              <td>{{ payinPaymentLabel(txn.paymentMode) }}</td>
+              <td>{{ payinDeliveryLabel(txn.deliveryMethod) }}</td>
+              <td>
+                <span class="payin-status-chip" [ngClass]="'payin-status-chip--' + txn.status?.toLowerCase()">{{ txn.status }}</span>
+              </td>
+              <td style="font-family:monospace;font-size:0.8rem">{{ txn.externalReferenceId || '—' }}</td>
+              <td style="font-size:0.8rem">{{ txn.createdAt | date:'MMM d, y HH:mm' }}</td>
+            </tr>
+            <tr *ngIf="payinFiltered.length === 0">
+              <td colspan="10" style="text-align:center;color:#9ca3af;padding:32px">No PayIn transactions found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ REGULAR TRANSACTIONS TAB ══════════════ -->
+  <div *ngIf="activeTab === 'REGULAR'">
+
+  <!-- Stats Summary -->
+  <div class="stats-row" *ngIf="!statsLoading">
+    <div class="stat-card">
+      <span class="stat-value">{{ stats.total || 0 }}</span>
+      <span class="stat-label">Total</span>
+    </div>
+    <div class="stat-card stat-card--success">
+      <span class="stat-value">{{ stats.completed || 0 }}</span>
+      <span class="stat-label">Paid</span>
+    </div>
+    <div class="stat-card stat-card--processing">
+      <span class="stat-value">{{ stats.processing || 0 }}</span>
+      <span class="stat-label">Processing</span>
+    </div>
+    <div class="stat-card stat-card--pending">
+      <span class="stat-value">{{ stats.pending || 0 }}</span>
+      <span class="stat-label">Pending</span>
+    </div>
+    <div class="stat-card stat-card--danger">
+      <span class="stat-value">{{ stats.failed || 0 }}</span>
+      <span class="stat-label">Failed</span>
+    </div>
+    <div class="stat-card stat-card--cancelled">
+      <span class="stat-value">{{ stats.cancelled || 0 }}</span>
+      <span class="stat-label">Cancelled</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <ion-icon name="search-outline"></ion-icon>
+      <input class="fb-input" placeholder="Search by reference, sender, beneficiary..." (input)="onSearch($event)" />
+    </div>
+    <select class="fb-input filter-select" (change)="onStatusFilter($any($event.target).value)">
+      <option value="">All Status</option>
+      <option *ngFor="let status of statuses" [value]="status">{{ status | titlecase }}</option>
+    </select>
+    <input type="date" class="fb-input filter-date" [(ngModel)]="fromDate" (change)="onDateChange()" placeholder="From" />
+    <input type="date" class="fb-input filter-date" [(ngModel)]="toDate" (change)="onDateChange()" placeholder="To" />
+  </div>
+
+  <!-- Table -->
+  <div class="fb-card table-card">
+    <div *ngIf="loading" class="table-loading">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5,6,7,8]"></div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!loading">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Sender</th>
+            <th>Beneficiary</th>
+            <th>Send Amount</th>
+            <th>Receive Amount</th>
+            <th>Fee</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let txn of transactions">
+            <td class="fb-currency ref-cell">{{ txn.referenceNumber }}</td>
+            <td>{{ txn.senderName || 'User #' + txn.senderId }}</td>
+            <td>{{ txn.beneficiaryName || 'Beneficiary #' + txn.beneficiaryId }}</td>
+            <td class="fb-currency">{{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}</td>
+            <td class="fb-currency">{{ txn.receiveAmount | number:'1.2-2' }} {{ txn.receiveCurrency }}</td>
+            <td class="fb-currency">{{ txn.feeAmount | number:'1.2-2' }}</td>
+            <td><ion-badge [color]="getStatusColor(txn.status)">{{ getStatusLabel(txn.status) }}</ion-badge></td>
+            <td>{{ txn.createdAt | date:'MMM d, y HH:mm' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn action-btn--grey" (click)="viewBeneficiary(txn)">
+                  <ion-icon name="person-outline"></ion-icon>
+                  Details
+                </button>
+                <button *ngIf="(txn.status === 'PENDING' || txn.status === 'CREATED') && (!txn.payinPartnerId || txn.payinPartnerActive === false)"
+                  class="action-btn action-btn--success" (click)="markFundsReceived(txn)">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  Received
+                </button>
+                <button *ngIf="(txn.status === 'PROCESSING' || txn.status === 'FUNDS_RECEIVED' || txn.status === 'SENT_TO_PAYOUT') && (!txn.payoutPartnerId || txn.payoutPartnerActive === false)"
+                  class="action-btn action-btn--success" (click)="markPaid(txn)">
+                  <ion-icon name="cash-outline"></ion-icon>
+                  Mark Paid
+                </button>
+                <button *ngIf="txn.status === 'COMPLIANCE_HOLD' && (!txn.payinPartnerId || txn.payinPartnerActive === false)"
+                  class="action-btn action-btn--primary" (click)="releaseCompliance(txn)">
+                  <ion-icon name="shield-checkmark-outline"></ion-icon>
+                  Release
+                </button>
+                <button *ngIf="txn.status === 'PENDING' || txn.status === 'CREATED' || txn.status === 'COMPLIANCE_HOLD'"
+                  class="action-btn action-btn--danger" (click)="adminCancel(txn)">
+                  <ion-icon name="close-circle-outline"></ion-icon>
+                  Cancel
+                </button>
+                <button *ngIf="txn.status === 'PROCESSING' || txn.status === 'FUNDS_RECEIVED'"
+                  class="action-btn action-btn--warning" (click)="adminRefund(txn)">
+                  <ion-icon name="return-down-back-outline"></ion-icon>
+                  Refund
+                </button>
+                <button *ngIf="txn.status === 'PENDING'"
+                  class="action-btn action-btn--grey" (click)="adminArchive(txn)">
+                  <ion-icon name="archive-outline"></ion-icon>
+                  Archive
+                </button>
+                <span *ngIf="(txn.status === 'PENDING' || txn.status === 'CREATED' || txn.status === 'COMPLIANCE_HOLD') && txn.payinPartnerId && txn.payinPartnerActive === true"
+                      class="muted-tag">Pay-In partner (active)</span>
+                <span *ngIf="(txn.status === 'PROCESSING' || txn.status === 'FUNDS_RECEIVED' || txn.status === 'SENT_TO_PAYOUT') && txn.payoutPartnerId && txn.payoutPartnerActive === true"
+                      class="muted-tag">Pay-Out partner (active)</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="table-pagination" *ngIf="totalPages > 1">
+      <button class="fb-btn fb-btn--secondary pagination-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)">
+        <ion-icon name="chevron-back"></ion-icon>
+      </button>
+      <span class="pagination-info">Page {{ currentPage + 1 }} of {{ totalPages }}</span>
+      <button class="fb-btn fb-btn--secondary pagination-btn" [disabled]="currentPage >= totalPages - 1" (click)="goToPage(currentPage + 1)">
+        <ion-icon name="chevron-forward"></ion-icon>
+      </button>
+    </div>
+  </div>
+
+  </div><!-- end REGULAR tab -->
+</div>

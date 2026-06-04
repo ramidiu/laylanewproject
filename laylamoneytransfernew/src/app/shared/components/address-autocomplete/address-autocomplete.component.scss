@@ -1,0 +1,94 @@
+.addr-ac {
+  position: relative;
+  width: 100%;
+}
+
+.addr-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.addr-search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 15px;
+  color: #6b7280;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.addr-search-input {
+  padding-left: 34px !important;
+  padding-right: 34px !important;
+  width: 100%;
+}
+
+.addr-spinner {
+  position: absolute;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  --color: #1b3a6b;
+}
+
+.addr-clear-icon {
+  position: absolute;
+  right: 10px;
+  font-size: 17px;
+  color: #9ca3af;
+  cursor: pointer;
+
+  &:hover {
+    color: #374151;
+  }
+}
+
+.addr-suggestions {
+  border: 1px solid #c7d4f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.addr-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover,
+  &:active {
+    background: #eef3ff;
+  }
+
+  ion-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    color: #1b3a6b;
+  }
+
+  &__text {
+    flex: 1;
+  }
+
+  &__badge {
+    font-size: 10px;
+    color: #6b7280;
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,58 @@
+<ion-content class="notifications-content">
+  <div class="notifications-page">
+    <div class="notifications-header">
+      <div>
+        <h1 class="notifications-title">{{ 'NOTIFICATIONS.TITLE' | translate }}</h1>
+        <p class="notifications-subtitle">
+          {{ totalElements }} notification{{ totalElements === 1 ? '' : 's' }} total
+        </p>
+      </div>
+      <button
+        class="fb-btn fb-btn--ghost"
+        [disabled]="markingAll || notifications.length === 0"
+        (click)="markAllAsRead()"
+      >
+        <ion-icon name="checkmark-done-outline"></ion-icon>
+        {{ markingAll ? ('COMMON.LOADING' | translate) : ('NOTIFICATIONS.MARK_ALL_READ' | translate) }}
+      </button>
+    </div>
+
+    <div class="notifications-list">
+      <div *ngIf="loading" class="empty-state">
+        <p>{{ 'COMMON.LOADING' | translate }}</p>
+      </div>
+
+      <div *ngIf="!loading && notifications.length === 0" class="empty-state">
+        <ion-icon name="notifications-off-outline" class="empty-state__icon"></ion-icon>
+        <h3>{{ 'NOTIFICATIONS.EMPTY' | translate }}</h3>
+        <p>You'll see updates about your transactions, KYC status, and account activity here.</p>
+      </div>
+
+      <div
+        *ngFor="let n of notifications"
+        class="notification-row"
+        [class.notification-row--unread]="!n.isRead"
+        (click)="onNotificationClick(n)"
+      >
+        <div class="notification-row__icon notification-row__icon--{{ typeColor(n.type) }}">
+          <ion-icon [name]="typeIcon(n.type)"></ion-icon>
+        </div>
+        <div class="notification-row__body">
+          <div class="notification-row__title">{{ n.title }}</div>
+          <div class="notification-row__message">{{ n.message }}</div>
+          <div class="notification-row__meta">
+            <span class="notification-row__type">{{ n.type }}</span>
+            <span class="notification-row__time">{{ n.createdAt | date:'MMM d, y, HH:mm' }}</span>
+          </div>
+        </div>
+        <div *ngIf="!n.isRead" class="notification-row__dot" title="Unread"></div>
+      </div>
+
+      <div class="pager" *ngIf="!loading && totalPages > 1">
+        <button class="fb-btn fb-btn--ghost" [disabled]="page === 0" (click)="prevPage()">{{ 'COMMON.BACK' | translate }}</button>
+        <span>Page {{ page + 1 }} of {{ totalPages }}</span>
+        <button class="fb-btn fb-btn--ghost" [disabled]="page + 1 >= totalPages" (click)="nextPage()">{{ 'COMMON.NEXT' | translate }}</button>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,128 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'TRANSACTIONS.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="txn-list-content">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="txn-list-container">
+    <ion-searchbar
+      [placeholder]="'TRANSACTIONS.SEARCH_PLACEHOLDER' | translate"
+      (ionChange)="onSearch($event)"
+      [debounce]="400"
+      class="txn-search"
+    ></ion-searchbar>
+
+    <div class="filter-chips-wrap">
+      <div class="filter-chips">
+        <ion-chip
+          *ngFor="let filter of filters"
+          [class.selected]="selectedFilter === filter"
+          (click)="onFilterChange(filter)"
+        >
+          {{ ('TRANSACTIONS.STATUS_' + filter) | translate }}
+        </ion-chip>
+      </div>
+    </div>
+
+    <div class="txn-filters">
+      <button class="txn-filters__toggle" (click)="toggleAdvanced()">
+        <ion-icon name="options-outline"></ion-icon>
+        <span>{{ showAdvanced ? ('TRANSACTIONS.HIDE_FILTERS' | translate) : ('TRANSACTIONS.MORE_FILTERS' | translate) }}</span>
+        <span class="txn-filters__count" *ngIf="hasAdvancedFilters">● {{ 'TRANSACTIONS.ACTIVE_FILTERS' | translate }}</span>
+      </button>
+      <select class="txn-filters__sort" [(ngModel)]="sortOrder" (ngModelChange)="onSortChange()">
+        <option value="createdAt,desc">{{ 'TRANSACTIONS.NEWEST_FIRST' | translate }}</option>
+        <option value="createdAt,asc">{{ 'TRANSACTIONS.OLDEST_FIRST' | translate }}</option>
+        <option value="sendAmount,desc">{{ 'TRANSACTIONS.AMOUNT_HIGH_LOW' | translate }}</option>
+        <option value="sendAmount,asc">{{ 'TRANSACTIONS.AMOUNT_LOW_HIGH' | translate }}</option>
+      </select>
+    </div>
+
+    <div class="txn-filters-panel" *ngIf="showAdvanced">
+      <div class="txn-filters-panel__grid">
+        <div class="txn-filters-panel__field">
+          <label>{{ 'TRANSACTIONS.FROM_DATE' | translate }}</label>
+          <input type="date" [(ngModel)]="startDate" (ngModelChange)="onDateChange()" />
+        </div>
+        <div class="txn-filters-panel__field">
+          <label>{{ 'TRANSACTIONS.TO_DATE' | translate }}</label>
+          <input type="date" [(ngModel)]="endDate" (ngModelChange)="onDateChange()" />
+        </div>
+        <div class="txn-filters-panel__field">
+          <label>{{ 'TRANSACTIONS.MIN_AMOUNT' | translate }}</label>
+          <input type="number" min="0" placeholder="0" [(ngModel)]="minAmount" (ngModelChange)="onClientFilterChange()" />
+        </div>
+        <div class="txn-filters-panel__field">
+          <label>{{ 'TRANSACTIONS.MAX_AMOUNT' | translate }}</label>
+          <input type="number" min="0" placeholder="No limit" [(ngModel)]="maxAmount" (ngModelChange)="onClientFilterChange()" />
+        </div>
+        <div class="txn-filters-panel__field">
+          <label>{{ 'TRANSACTIONS.DELIVERY_CURRENCY' | translate }}</label>
+          <select [(ngModel)]="currencyFilter" (ngModelChange)="onClientFilterChange()">
+            <option value="">{{ 'TRANSACTIONS.ALL_CURRENCIES' | translate }}</option>
+            <option *ngFor="let c of availableCurrencies" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+        <div class="txn-filters-panel__field">
+          <label>{{ 'TRANSACTIONS.DELIVERY_METHOD' | translate }}</label>
+          <select [(ngModel)]="deliveryFilter" (ngModelChange)="onClientFilterChange()">
+            <option value="">{{ 'TRANSACTIONS.ALL_METHODS' | translate }}</option>
+            <option *ngFor="let m of availableDeliveryMethods" [value]="m">{{ m }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="txn-filters-panel__actions">
+        <button class="txn-filters-panel__clear" (click)="clearAllFilters()">
+          <ion-icon name="close-outline"></ion-icon> {{ 'TRANSACTIONS.CLEAR_ALL' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="txn-list-loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+
+    <div *ngIf="!loading && filteredTransactions.length === 0" class="txn-list-empty">
+      <ion-icon name="receipt-outline"></ion-icon>
+      <h3>{{ 'TRANSACTIONS.NO_FOUND' | translate }}</h3>
+      <p>{{ hasAdvancedFilters || searchQuery || selectedFilter !== 'ALL' ? ('TRANSACTIONS.CLEAR_FILTERS' | translate) : ('TRANSACTIONS.WILL_APPEAR' | translate) }}</p>
+    </div>
+
+    <ion-card
+      *ngFor="let txn of filteredTransactions"
+      class="txn-item"
+      (click)="goToDetail(txn.id)"
+      button
+    >
+      <ion-card-content>
+        <div class="txn-item__header">
+          <div class="txn-item__left">
+            <div class="txn-item__name">{{ txn.beneficiaryName }}</div>
+            <div class="txn-item__ref">{{ txn.referenceNumber }}</div>
+          </div>
+          <div class="txn-item__right">
+            <div class="txn-item__amount fb-currency">
+              {{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}
+            </div>
+            <div class="txn-item__receive fb-currency">
+              {{ txn.receiveAmount | number:'1.2-2' }} {{ txn.receiveCurrency }}
+            </div>
+          </div>
+        </div>
+        <div class="txn-item__footer">
+          <app-status-chip [status]="txn.status"></app-status-chip>
+          <span class="txn-item__date">{{ txn.createdAt | date:'MMM d, y HH:mm' }}</span>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-infinite-scroll (ionInfinite)="loadMore($event)">
+      <ion-infinite-scroll-content loadingSpinner="crescent"></ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+  </div>
+</ion-content>

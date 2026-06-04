@@ -1,0 +1,86 @@
+<div class="ctr-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">CTR Reports</h1>
+      <p class="page-subtitle">Currency Transaction Reports — customers whose daily send volume crossed the regulatory threshold</p>
+    </div>
+    <div class="page-header__actions">
+      <button class="fb-btn fb-btn--ghost" (click)="exportCsv()">
+        <ion-icon name="download-outline"></ion-icon> Export CSV
+      </button>
+      <button class="fb-btn fb-btn--ghost" (click)="load()">
+        <ion-icon name="refresh-outline"></ion-icon> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-row">
+    <div class="filter-tabs">
+      <button class="filter-tab" [class.filter-tab--active]="filingStatus === ''" (click)="setStatus('')">All</button>
+      <button class="filter-tab" [class.filter-tab--active]="filingStatus === 'DRAFT'" (click)="setStatus('DRAFT')">Draft</button>
+      <button class="filter-tab" [class.filter-tab--active]="filingStatus === 'SUBMITTED'" (click)="setStatus('SUBMITTED')">Submitted</button>
+      <button class="filter-tab" [class.filter-tab--active]="filingStatus === 'ACKNOWLEDGED'" (click)="setStatus('ACKNOWLEDGED')">Acknowledged</button>
+    </div>
+    <div class="filter-selects">
+      <input class="fb-select" type="date" [(ngModel)]="startDate" (ngModelChange)="onDateChange()" placeholder="From" />
+      <input class="fb-select" type="date" [(ngModel)]="endDate" (ngModelChange)="onDateChange()" placeholder="To" />
+      <button class="fb-btn fb-btn--ghost" *ngIf="startDate || endDate" (click)="clearDates()">Clear dates</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="empty-row" *ngIf="loading">Loading CTR reports…</div>
+    <div class="empty-row" *ngIf="!loading && reports.length === 0">
+      No CTR reports match the selected filters.
+    </div>
+
+    <table class="data-table" *ngIf="!loading && reports.length > 0">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>CTR</th>
+          <th>Customer</th>
+          <th>Txns</th>
+          <th>Total</th>
+          <th>Threshold</th>
+          <th>Status</th>
+          <th>Filed</th>
+          <th>Refs</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reports">
+          <td>{{ r.reportDate }}</td>
+          <td class="mono">#{{ r.id }}</td>
+          <td>
+            <div class="cell-primary">{{ r.userName || '—' }}</div>
+            <div class="cell-secondary">#{{ r.userId }} · {{ r.userEmail }}</div>
+          </td>
+          <td class="num">{{ r.transactionCount }}</td>
+          <td class="num num--bold">{{ r.totalAmount | number:'1.2-2' }} {{ r.currency }}</td>
+          <td class="num num--muted">{{ r.threshold | number:'1.2-2' }}</td>
+          <td><span class="badge badge--{{ statusColor(r.filingStatus) }}">{{ r.filingStatus }}</span></td>
+          <td class="muted">{{ r.filedAt ? (r.filedAt | date:'short') : '—' }}</td>
+          <td class="refs">
+            <span *ngFor="let ref of parseRefs(r.transactionRefs); let last = last" class="ref-chip">
+              {{ ref }}<span *ngIf="!last">, </span>
+            </span>
+            <span *ngIf="parseRefs(r.transactionRefs).length === 0">—</span>
+          </td>
+          <td>
+            <button class="fb-btn fb-btn--primary" *ngIf="r.filingStatus === 'DRAFT'" (click)="submitCtr(r)">
+              Mark submitted
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pager" *ngIf="!loading && totalPages > 0">
+      <button class="fb-btn fb-btn--ghost" [disabled]="page === 0" (click)="prevPage()">Prev</button>
+      <span>Page {{ page + 1 }} of {{ totalPages }} ({{ totalElements }} reports)</span>
+      <button class="fb-btn fb-btn--ghost" [disabled]="page + 1 >= totalPages" (click)="nextPage()">Next</button>
+    </div>
+  </div>
+</div>

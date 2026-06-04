@@ -1,0 +1,103 @@
+// ============================================================
+// Layla Money Transfer — Design Tokens
+// Variable names kept as $fb- for compatibility with existing SCSS
+// ============================================================
+
+// --- Primary Palette (Deep Navy Blue) ---
+$fb-navy:        #1B3A6B;   // Layla primary navy
+$fb-navy-dark:   #142D56;   // Deep navy
+$fb-navy-light:  #2D5A9B;   // Hover / highlighted state
+$fb-sky:         #C0203E;   // Layla crimson red accent
+$fb-sky-dark:    #9B1A33;   // Darker red
+$fb-sky-light:   #E85577;   // Lighter red tint
+$fb-sky-pale:    #FDEAEE;   // Very light red tint
+$fb-sky-wash:    #FDF5F7;   // Near-white wash
+
+// --- Neutrals ---
+$fb-white:       #FFFFFF;
+$fb-gray-50:     #F8FAFC;
+$fb-gray-100:    #F3F4F6;
+$fb-gray-200:    #E5E7EB;
+$fb-gray-300:    #D1D5DB;
+$fb-gray-400:    #9CA3AF;
+$fb-gray-500:    #6B7280;
+$fb-gray-600:    #4B5563;
+$fb-gray-700:    #374151;
+$fb-gray-800:    #1F2937;
+$fb-gray-900:    #111827;
+
+// --- Semantic ---
+$fb-success:     #10B981;
+$fb-success-bg:  #ECFDF5;
+$fb-warning:     #F59E0B;
+$fb-warning-bg:  #FFFBEB;
+$fb-danger:      #EF4444;
+$fb-danger-bg:   #FEF2F2;
+$fb-info:        #3B82F6;
+$fb-info-bg:     #EFF6FF;
+
+// --- Typography ---
+$fb-font-body:   'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$fb-font-arabic: 'IBM Plex Sans Arabic', 'Traditional Arabic', sans-serif;
+$fb-font-mono:   'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+// Font Sizes
+$fb-text-xs:     0.75rem;
+$fb-text-sm:     0.875rem;
+$fb-text-base:   1rem;
+$fb-text-lg:     1.125rem;
+$fb-text-xl:     1.25rem;
+$fb-text-2xl:    1.5rem;
+$fb-text-3xl:    1.875rem;
+$fb-text-4xl:    2.25rem;
+
+// Font Weights
+$fb-font-regular:   400;
+$fb-font-medium:    500;
+$fb-font-semibold:  600;
+$fb-font-bold:      700;
+
+// --- Spacing ---
+$fb-space-0:  0;
+$fb-space-1:  0.25rem;
+$fb-space-2:  0.5rem;
+$fb-space-3:  0.75rem;
+$fb-space-4:  1rem;
+$fb-space-5:  1.25rem;
+$fb-space-6:  1.5rem;
+$fb-space-8:  2rem;
+$fb-space-10: 2.5rem;
+$fb-space-12: 3rem;
+$fb-space-16: 4rem;
+
+// --- Border Radius ---
+$fb-radius-sm:   0.25rem;
+$fb-radius-md:   0.5rem;
+$fb-radius-lg:   0.75rem;
+$fb-radius-xl:   1rem;
+$fb-radius-2xl:  1.5rem;
+$fb-radius-full: 9999px;
+
+// --- Shadows ---
+$fb-shadow-card:       0 2px 8px rgba(27, 58, 107, 0.08);
+$fb-shadow-card-hover: 0 8px 24px rgba(27, 58, 107, 0.16);
+$fb-shadow-lg:         0 12px 40px rgba(0, 0, 0, 0.12);
+$fb-shadow-xl:         0 20px 60px rgba(0, 0, 0, 0.15);
+
+// --- Transitions ---
+$fb-transition-fast:   150ms ease;
+$fb-transition-base:   250ms ease;
+$fb-transition-slow:   350ms ease;
+
+// --- Gradients ---
+$fb-gradient-navy:     linear-gradient(135deg, $fb-navy 0%, $fb-navy-dark 100%);
+$fb-gradient-sky:      linear-gradient(135deg, $fb-sky-dark 0%, $fb-sky 100%);
+$fb-gradient-toolbar:  linear-gradient(90deg, $fb-navy 0%, $fb-navy-light 50%, $fb-sky 100%);
+$fb-gradient-primary:  linear-gradient(135deg, $fb-navy 0%, $fb-navy-light 100%);
+
+// --- Breakpoints ---
+$fb-breakpoint-sm:  576px;
+$fb-breakpoint-md:  768px;
+$fb-breakpoint-lg:  992px;
+$fb-breakpoint-xl:  1200px;
+

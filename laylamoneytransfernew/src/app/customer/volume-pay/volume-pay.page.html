@@ -1,0 +1,51 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="cancelPayment()">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ 'VOLUME_PAY.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="volume-pay-content">
+
+  <!-- Loading skeleton -->
+  <div *ngIf="loading" class="volume-pay-loading">
+    <div class="fb-skeleton fb-skeleton--card" style="height: 80px; margin-bottom: 16px;"></div>
+    <div class="fb-skeleton fb-skeleton--card" style="height: 400px;"></div>
+  </div>
+
+  <div *ngIf="!loading" class="volume-pay-container">
+
+    <!-- Payment summary -->
+    <div class="volume-pay-summary">
+      <div class="volume-pay-summary__icon">
+        <ion-icon name="business-outline"></ion-icon>
+      </div>
+      <div class="volume-pay-summary__info">
+        <div class="volume-pay-summary__label">{{ 'VOLUME_PAY.PAY_VIA_BANK' | translate }}</div>
+        <div class="volume-pay-summary__amount">
+          {{ currency }} {{ amount | number:'1.2-2' }}
+        </div>
+        <div class="volume-pay-summary__recipient" *ngIf="recipientName">
+          {{ 'VOLUME_PAY.TO' | translate }} {{ recipientName }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Volume SDK container -->
+    <div class="volume-sdk-wrapper">
+      <div id="volume-element-container"></div>
+    </div>
+
+    <!-- Cancel button -->
+    <div class="volume-pay-cancel">
+      <ion-button fill="clear" color="medium" (click)="cancelPayment()">
+        {{ 'COMMON.CANCEL' | translate }}
+      </ion-button>
+    </div>
+
+  </div>
+</ion-content>

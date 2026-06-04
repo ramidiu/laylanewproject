@@ -1,0 +1,89 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'WALLET.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="wallet-content">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="wallet-loading">
+    <div class="fb-skeleton fb-skeleton--card"></div>
+    <div class="fb-skeleton fb-skeleton--card" style="height:60px;margin-top:12px;"></div>
+  </div>
+
+  <div *ngIf="!loading && wallet" class="wallet-container">
+
+    <!-- Balance Card -->
+    <div class="wallet-balance-card">
+      <div class="wallet-balance-card__label">{{ 'WALLET.AVAILABLE_BALANCE' | translate }}</div>
+      <div class="wallet-balance-card__amount">
+        {{ wallet.currency }} {{ wallet.balance | number:'1.2-2' }}
+      </div>
+      <div class="wallet-balance-card__status">
+        <span class="wallet-status-dot" [class.wallet-status-dot--active]="wallet.status === 'ACTIVE'"></span>
+        {{ wallet.status }}
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="wallet-summary">
+      <div class="wallet-summary-card wallet-summary-card--credit">
+        <div class="wallet-summary-card__icon">
+          <ion-icon name="arrow-down-outline"></ion-icon>
+        </div>
+        <div class="wallet-summary-card__info">
+          <span class="wallet-summary-card__label">{{ 'WALLET.TOTAL_CREDIT' | translate }}</span>
+          <span class="wallet-summary-card__amount">{{ wallet.currency }} {{ totalCredit | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="wallet-summary-card wallet-summary-card--debit">
+        <div class="wallet-summary-card__icon">
+          <ion-icon name="arrow-up-outline"></ion-icon>
+        </div>
+        <div class="wallet-summary-card__info">
+          <span class="wallet-summary-card__label">{{ 'WALLET.TOTAL_DEBIT' | translate }}</span>
+          <span class="wallet-summary-card__amount">{{ wallet.currency }} {{ totalDebit | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="wallet-txn-section">
+      <h3 class="wallet-txn-section__title">{{ 'WALLET.TRANSACTION_HISTORY' | translate }}</h3>
+
+      <div *ngIf="transactions.length === 0" class="wallet-empty">
+        <ion-icon name="wallet-outline"></ion-icon>
+        <p>{{ 'WALLET.NO_TRANSACTIONS' | translate }}</p>
+        <span>{{ 'WALLET.NO_TRANSACTIONS_DESC' | translate }}</span>
+      </div>
+
+      <div class="wallet-txn-list" *ngIf="transactions.length > 0">
+        <div class="wallet-txn" *ngFor="let txn of transactions">
+          <div class="wallet-txn__icon" [class.wallet-txn__icon--credit]="isCredit(txn)" [class.wallet-txn__icon--debit]="!isCredit(txn)">
+            <ion-icon [name]="isCredit(txn) ? 'arrow-down-outline' : 'arrow-up-outline'"></ion-icon>
+          </div>
+          <div class="wallet-txn__info">
+            <div class="wallet-txn__type">{{ txn.description || txn.type || 'Transaction' }}</div>
+            <div class="wallet-txn__date">{{ txn.createdAt | date:'MMM d, y · h:mm a' }}</div>
+            <div class="wallet-txn__ref" *ngIf="txn.referenceNumber">{{ 'WALLET.REF' | translate }}: {{ txn.referenceNumber }}</div>
+          </div>
+          <div class="wallet-txn__amount" [class.wallet-txn__amount--credit]="isCredit(txn)" [class.wallet-txn__amount--debit]="!isCredit(txn)">
+            {{ isCredit(txn) ? '+' : '-' }}{{ wallet.currency }} {{ (txn.amount < 0 ? -txn.amount : txn.amount) | number:'1.2-2' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No wallet -->
+  <div *ngIf="!loading && !wallet" class="wallet-empty" style="padding:40px 20px;">
+    <ion-icon name="wallet-outline"></ion-icon>
+    <p>{{ 'WALLET.NOT_AVAILABLE' | translate }}</p>
+    <span>{{ 'WALLET.TRY_AGAIN' | translate }}</span>
+  </div>
+</ion-content>

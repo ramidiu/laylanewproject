@@ -1,0 +1,278 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'SUPPORT.TITLE' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="support-content">
+  <div class="support-container">
+
+    <!-- Tabs -->
+    <div class="support-tabs">
+      <button class="support-tabs__btn"
+              [class.support-tabs__btn--active]="activeTab === 'submit'"
+              (click)="switchTab('submit')">
+        <ion-icon name="create-outline"></ion-icon>
+        {{ 'SUPPORT.NEW_TICKET' | translate }}
+      </button>
+      <button class="support-tabs__btn"
+              [class.support-tabs__btn--active]="activeTab === 'tickets'"
+              (click)="switchTab('tickets')">
+        <ion-icon name="chatbubbles-outline"></ion-icon>
+        {{ 'SUPPORT.MY_TICKETS' | translate }}
+        <span class="support-tabs__count" *ngIf="tickets.length">{{ tickets.length }}</span>
+      </button>
+    </div>
+
+    <!-- ========== SUBMIT REQUEST TAB ========== -->
+    <div *ngIf="activeTab === 'submit'" class="support-form">
+      <div class="fb-card support-form__card">
+        <div class="support-form__header">
+          <h2 class="support-form__title">{{ 'SUPPORT.SUBTITLE' | translate }}</h2>
+          <p class="support-form__subtitle">Describe your issue and our team will get back to you shortly.</p>
+        </div>
+
+        <!-- Subject -->
+        <div class="support-form__field">
+          <label class="support-form__label">{{ 'SUPPORT.SUBJECT' | translate }} <span class="required">*</span></label>
+          <input class="fb-input" type="text" placeholder="Brief summary of your issue"
+                 [(ngModel)]="subject" maxlength="200">
+        </div>
+
+        <!-- Issue Type -->
+        <div class="support-form__field">
+          <label class="support-form__label">Issue Type <span class="required">*</span></label>
+          <select class="fb-input support-form__select" [(ngModel)]="issueType">
+            <option value="" disabled>Select an issue type</option>
+            <option *ngFor="let type of issueTypes" [value]="type.value">{{ type.label }}</option>
+          </select>
+        </div>
+
+        <!-- Priority -->
+        <div class="support-form__field">
+          <label class="support-form__label">Priority</label>
+          <div class="priority-pills">
+            <button *ngFor="let p of priorities"
+                    class="priority-pills__btn"
+                    [class.priority-pills__btn--active]="priority === p.value"
+                    [attr.data-priority]="p.value"
+                    (click)="priority = p.value">
+              {{ p.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div class="support-form__field">
+          <label class="support-form__label">{{ 'SUPPORT.MESSAGE' | translate }} <span class="required">*</span></label>
+          <textarea class="fb-input support-form__textarea"
+                    placeholder="Describe your issue in detail..."
+                    [(ngModel)]="message"
+                    rows="5"></textarea>
+        </div>
+
+        <!-- File Upload -->
+        <div class="support-form__field">
+          <label class="support-form__label">Attachments <span class="optional">(optional, max 2 files)</span></label>
+          <div class="file-upload"
+               [class.file-upload--dragover]="dragOver"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave($event)"
+               (drop)="onDrop($event)"
+               (click)="fileInput.click()">
+            <input #fileInput type="file" hidden multiple (change)="onFileSelect($event)" accept="image/*,.pdf,.doc,.docx">
+            <ion-icon name="cloud-upload-outline" class="file-upload__icon"></ion-icon>
+            <p class="file-upload__text">Drag & drop files here or <span class="file-upload__link">browse</span></p>
+            <p class="file-upload__hint">PNG, JPG, PDF, DOC up to 10MB each</p>
+          </div>
+          <div class="file-upload__list" *ngIf="files.length">
+            <div class="file-upload__item" *ngFor="let file of files; let i = index">
+              <ion-icon name="document-outline"></ion-icon>
+              <span class="file-upload__name">{{ file.name }}</span>
+              <span class="file-upload__size">{{ formatFileSize(file.size) }}</span>
+              <button class="file-upload__remove" (click)="removeFile(i); $event.stopPropagation()">
+                <ion-icon name="close-circle"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="fb-btn fb-btn--primary support-form__submit"
+                [class.fb-btn--disabled]="submitting || !subject || !issueType || !message"
+                [disabled]="submitting || !subject || !issueType || !message"
+                (click)="onSubmit()">
+          <ion-icon name="send-outline" *ngIf="!submitting"></ion-icon>
+          <ion-spinner name="crescent" *ngIf="submitting" style="width: 20px; height: 20px;"></ion-spinner>
+          {{ submitting ? ('SUPPORT.SUBMITTING' | translate) : ('SUPPORT.SUBMIT' | translate) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== MY TICKETS TAB ========== -->
+    <div *ngIf="activeTab === 'tickets' && !selectedTicket">
+      <!-- Loading -->
+      <div *ngIf="ticketsLoading" class="ticket-list-loading">
+        <div class="fb-skeleton fb-skeleton--card"></div>
+        <div class="fb-skeleton fb-skeleton--card"></div>
+        <div class="fb-skeleton fb-skeleton--card"></div>
+      </div>
+
+      <!-- Empty -->
+      <div *ngIf="!ticketsLoading && !tickets.length" class="ticket-list-empty">
+        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+        <h3>{{ 'SUPPORT.NO_TICKETS' | translate }}</h3>
+        <p>When you submit a request, it will appear here.</p>
+        <button class="fb-btn fb-btn--primary" style="margin-top: 16px;" (click)="switchTab('submit')">
+          Submit a Request
+        </button>
+      </div>
+
+      <!-- Ticket Cards -->
+      <div *ngIf="!ticketsLoading && tickets.length" class="ticket-list">
+        <div class="ticket-card" *ngFor="let ticket of tickets" (click)="viewTicket(ticket)">
+          <div class="ticket-card__top">
+            <span class="ticket-card__number">#{{ ticket.ticketNumber || ticket.id }}</span>
+            <span class="ticket-card__date">{{ ticket.createdAt | date:'MMM d, yyyy' }}</span>
+          </div>
+          <h3 class="ticket-card__subject">{{ ticket.subject }}</h3>
+          <div class="ticket-card__meta">
+            <span class="ticket-card__status ticket-card__status--{{ ticket.status?.toLowerCase() }}">
+              {{ getStatusLabel(ticket.status) }}
+            </span>
+            <span class="ticket-card__priority ticket-card__priority--{{ ticket.priority?.toLowerCase() }}">
+              {{ getPriorityLabel(ticket.priority) }}
+            </span>
+            <span class="ticket-card__type">{{ getIssueTypeLabel(ticket.issueType) }}</span>
+          </div>
+          <p class="ticket-card__preview" *ngIf="ticket.lastMessage">{{ ticket.lastMessage }}</p>
+          <div class="ticket-card__arrow">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TICKET DETAIL / CONVERSATION ========== -->
+    <div *ngIf="activeTab === 'tickets' && selectedTicket" class="conversation-wrapper">
+      <!-- Back button -->
+      <button class="conversation__back" (click)="backToList()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+        Back to tickets
+      </button>
+
+      <!-- Ticket Header -->
+      <div class="fb-card conversation__header">
+        <div class="conversation__header-top">
+          <span class="ticket-card__number">#{{ selectedTicket.ticketNumber || selectedTicket.id }}</span>
+          <span class="ticket-card__status ticket-card__status--{{ selectedTicket.status?.toLowerCase() }}">
+            {{ getStatusLabel(selectedTicket.status) }}
+          </span>
+        </div>
+        <h2 class="conversation__title">{{ selectedTicket.subject }}</h2>
+        <div class="conversation__header-meta">
+          <span><ion-icon name="pricetag-outline"></ion-icon> {{ getIssueTypeLabel(selectedTicket.issueType) }}</span>
+          <span><ion-icon name="flag-outline"></ion-icon> {{ getPriorityLabel(selectedTicket.priority) }}</span>
+          <span><ion-icon name="calendar-outline"></ion-icon> {{ selectedTicket.createdAt | date:'MMM d, yyyy h:mm a' }}</span>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="loading" class="ticket-list-loading">
+        <div class="fb-skeleton fb-skeleton--card"></div>
+      </div>
+
+      <!-- Conversation Thread -->
+      <div *ngIf="!loading" class="conversation">
+        <div class="conversation__thread">
+          <div *ngFor="let msg of selectedTicket.messages"
+               class="message-bubble"
+               [ngClass]="{
+                 'message-bubble--customer': msg.senderType === 'CUSTOMER',
+                 'message-bubble--agent': msg.senderType === 'AGENT' || msg.senderType === 'ADMIN',
+                 'message-bubble--system': msg.senderType === 'SYSTEM'
+               }">
+            <!-- Agent avatar -->
+            <div class="message-bubble__avatar" *ngIf="msg.senderType === 'AGENT' || msg.senderType === 'ADMIN'">
+              <ion-icon name="headset-outline"></ion-icon>
+            </div>
+
+            <div class="message-bubble__content">
+              <div class="message-bubble__sender" *ngIf="msg.senderType !== 'SYSTEM'">
+                <span class="message-bubble__name">
+                  {{ msg.senderType === 'CUSTOMER' ? 'You' : (msg.senderName || 'Support Agent') }}
+                </span>
+                <span class="message-bubble__time">{{ msg.createdAt | date:'MMM d, h:mm a' }}</span>
+              </div>
+              <div class="message-bubble__text">{{ msg.message }}</div>
+              <!-- Attachments -->
+              <div class="message-bubble__attachments" *ngIf="msg.attachments?.length">
+                <div *ngFor="let att of msg.attachments">
+                  <a class="message-bubble__attachment" [href]="getAttachmentUrl(att)" target="_blank">
+                    <ion-icon name="attach-outline"></ion-icon>
+                    {{ att.fileName || 'Attachment' }}
+                  </a>
+                  <img *ngIf="isImage(att)" [src]="getAttachmentUrl(att)" class="attachment-preview" />
+                </div>
+              </div>
+              <!-- System timestamp -->
+              <div class="message-bubble__time" *ngIf="msg.senderType === 'SYSTEM'">
+                {{ msg.createdAt | date:'MMM d, h:mm a' }}
+              </div>
+            </div>
+
+            <!-- Customer avatar -->
+            <div class="message-bubble__avatar message-bubble__avatar--customer" *ngIf="msg.senderType === 'CUSTOMER'">
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
+          </div>
+
+          <!-- Empty conversation -->
+          <div *ngIf="!selectedTicket.messages?.length" class="conversation__empty">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <p>No messages yet. Start the conversation below.</p>
+          </div>
+        </div>
+
+        <!-- Reply Input -->
+        <div class="reply-input" *ngIf="selectedTicket.status !== 'CLOSED'">
+          <div class="reply-input__box">
+            <textarea class="fb-input reply-input__textarea"
+                      placeholder="Type your reply..."
+                      [(ngModel)]="replyMessage"
+                      rows="3"></textarea>
+            <div class="reply-input__actions">
+              <div class="reply-input__files">
+                <button class="reply-input__attach" (click)="replyFileInput.click()">
+                  <ion-icon name="attach-outline"></ion-icon>
+                  Attach
+                </button>
+                <input #replyFileInput type="file" hidden multiple (change)="onReplyFileSelect($event)">
+                <div class="reply-input__file-tags" *ngIf="replyFiles.length">
+                  <span class="reply-input__file-tag" *ngFor="let f of replyFiles; let i = index">
+                    {{ f.name }}
+                    <button (click)="removeReplyFile(i)"><ion-icon name="close"></ion-icon></button>
+                  </span>
+                </div>
+              </div>
+              <button class="fb-btn fb-btn--primary reply-input__send"
+                      [disabled]="replying || !replyMessage.trim()"
+                      (click)="onReply()">
+                <ion-icon name="send-outline" *ngIf="!replying"></ion-icon>
+                <ion-spinner name="crescent" *ngIf="replying" style="width: 18px; height: 18px;"></ion-spinner>
+                {{ replying ? 'Sending...' : 'Send Reply' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Closed notice -->
+        <div class="conversation__closed" *ngIf="selectedTicket.status === 'CLOSED'">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          This ticket has been closed. If you need further help, please submit a new request.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</ion-content>

@@ -1,0 +1,93 @@
+<div class="transfer-config-page">
+  <h1 class="page-title">Transfer Configuration</h1>
+  <p class="page-subtitle">Active payout types and payment methods</p>
+
+  <ion-segment [(ngModel)]="activeSegment" class="config-tabs">
+    <ion-segment-button value="payout"><ion-label>Payout Types</ion-label></ion-segment-button>
+    <ion-segment-button value="payment"><ion-label>Payment Methods</ion-label></ion-segment-button>
+  </ion-segment>
+
+  <!-- Payout Types -->
+  <div *ngIf="activeSegment === 'payout'" class="tab-content">
+    <div class="info-card">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <span>How receivers get money — showing enabled receiving countries only</span>
+    </div>
+
+    <div *ngIf="payoutLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div *ngIf="!payoutLoading">
+      <div class="country-group" *ngFor="let group of payoutGroups">
+        <div class="country-header">
+          <div class="country-header__info">
+            <span class="country-code-badge">{{ group.countryCode }}</span>
+            <strong>{{ group.countryName }}</strong>
+            <span class="currency-chip">{{ group.currency }}</span>
+          </div>
+          <span class="active-badge">Active</span>
+        </div>
+        <div class="type-list">
+          <div class="type-item" *ngFor="let item of group.items">
+            <div class="type-item__left">
+              <ion-icon [name]="getPayoutIcon(item.payoutType)" color="primary" class="type-icon"></ion-icon>
+              <div class="type-item__text">
+                <h3>{{ formatPayoutType(item.payoutType) }}</h3>
+                <p>{{ item.countryName }} — {{ item.currency }}</p>
+              </div>
+            </div>
+            <span class="enabled-chip">Enabled</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!payoutLoading && payoutGroups.length === 0" class="empty-state">
+      <ion-icon name="settings-outline"></ion-icon>
+      <p>No active payout types configured</p>
+    </div>
+  </div>
+
+  <!-- Payment Methods -->
+  <div *ngIf="activeSegment === 'payment'" class="tab-content">
+    <div class="info-card">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <span>How senders pay — showing enabled sending countries only</span>
+    </div>
+
+    <div *ngIf="paymentLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div *ngIf="!paymentLoading">
+      <div class="country-group" *ngFor="let group of paymentGroups">
+        <div class="country-header">
+          <div class="country-header__info">
+            <span class="country-code-badge">{{ group.countryCode }}</span>
+            <strong>{{ group.countryName }}</strong>
+            <span class="currency-chip">{{ group.currency }}</span>
+          </div>
+          <span class="active-badge">Active</span>
+        </div>
+        <div class="type-list">
+          <div class="type-item" *ngFor="let item of group.items">
+            <div class="type-item__left">
+              <ion-icon [name]="getPaymentIcon(item.paymentMethod)" color="primary" class="type-icon"></ion-icon>
+              <div class="type-item__text">
+                <h3>{{ formatPaymentMethod(item.paymentMethod) }}</h3>
+                <p>{{ item.countryName }} — {{ item.currency }}</p>
+              </div>
+            </div>
+            <span class="enabled-chip">Enabled</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!paymentLoading && paymentGroups.length === 0" class="empty-state">
+      <ion-icon name="card-outline"></ion-icon>
+      <p>No active payment methods configured</p>
+    </div>
+  </div>
+</div>

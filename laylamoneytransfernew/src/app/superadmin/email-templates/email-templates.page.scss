@@ -1,0 +1,85 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.email-templates-page { max-width: 1200px; }
+
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0 0 $fb-space-6; }
+.section-title { font-size: $fb-text-base; font-weight: $fb-font-semibold; color: $fb-gray-900; margin: 0 0 $fb-space-4; }
+.loading { display: flex; flex-direction: column; gap: $fb-space-4; }
+
+.fb-field { margin-bottom: $fb-space-4; }
+.fb-field__label { display: block; font-size: $fb-text-sm; font-weight: $fb-font-medium; color: $fb-gray-700; margin-bottom: $fb-space-1; }
+
+.body-textarea {
+  width: 100%; min-height: 200px; resize: vertical;
+  font-family: $fb-font-mono; font-size: $fb-text-sm;
+  line-height: 1.6; padding: $fb-space-3;
+}
+
+.edit-card { padding: $fb-space-6; margin-bottom: $fb-space-4; }
+.form-actions { display: flex; gap: $fb-space-3; }
+
+.templates-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: $fb-space-4;
+  @media (max-width: $fb-breakpoint-md) { grid-template-columns: 1fr; }
+}
+
+.template-card {
+  padding: $fb-space-5;
+
+  &__header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: $fb-space-3;
+  }
+
+  &__type {
+    display: flex; align-items: center; gap: $fb-space-2;
+    font-weight: $fb-font-semibold; color: $fb-gray-900;
+    ion-icon { color: $fb-sky; font-size: 20px; }
+  }
+
+  &__subject {
+    font-size: $fb-text-sm; color: $fb-gray-700; margin-bottom: $fb-space-2;
+    padding: $fb-space-2 $fb-space-3; background: $fb-gray-50; border-radius: $fb-radius-sm;
+  }
+
+  &__body-preview {
+    font-size: $fb-text-xs; color: $fb-gray-400; line-height: 1.5;
+    margin-bottom: $fb-space-4; max-height: 60px; overflow: hidden;
+  }
+
+  &__actions { display: flex; gap: $fb-space-2; }
+}
+
+.subject-label { font-weight: $fb-font-semibold; color: $fb-gray-500; }
+.btn-sm { min-height: 36px; padding: $fb-space-1 $fb-space-3; font-size: $fb-text-sm; }
+
+// Preview overlay
+.preview-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: $fb-space-6;
+}
+
+.preview-modal {
+  background: $fb-white; border-radius: $fb-radius-xl;
+  width: 100%; max-width: 700px; max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: $fb-shadow-xl;
+
+  &__header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: $fb-space-4 $fb-space-6; border-bottom: 1px solid $fb-gray-100;
+    h3 { margin: 0; font-size: $fb-text-base; font-weight: $fb-font-semibold; }
+  }
+
+  &__body {
+    padding: $fb-space-6; overflow-y: auto; flex: 1;
+  }
+}
+
+.empty-state {
+  text-align: center; padding: $fb-space-10; color: $fb-gray-400;
+  ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
+  p { margin: 0; font-size: $fb-text-sm; }
+}

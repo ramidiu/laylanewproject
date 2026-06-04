@@ -1,0 +1,90 @@
+# =============================================================================
+# Layla Money Transfer — LIVE docker stack (laylamoneytransfer.co.uk)
+#
+# Fully isolated from the existing TEST deployment on this server:
+#   - app dir     /opt/layla-live/            (test = /opt/layla)
+#   - backend     127.0.0.1:8086              (test = 8085)
+#   - mysql admin 127.0.0.1:3307              (host local MySQL = 3306)
+#   - kyc dir     /var/www/layla/data/kyc-uploads-live/
+#   - containers  layla-live-*                (no name clashes)
+#
+#   Angular is served as STATIC files by the host nginx from
+#     /var/www/layla/data/www/laylamoneytransfer.co.uk/   (NOT in docker)
+#
+# Usage on the server:
+#   cd /opt/layla-live
+#   cp .env.production .env       # then edit secrets
+#   docker compose -f docker-compose.production.yml up -d --build
+# =============================================================================
+
+services:
+  mysql:
+    # 8.0.32 = last image built on the older base; newer mysql:8.0 tags require
+    # x86-64-v2 CPU instructions this server lacks ("Fatal glibc error").
+    image: mysql:8.0.32
+    container_name: layla-live-mysql
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: remitz
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    ports:
+      - "127.0.0.1:3307:3306"      # localhost-only admin/import (3306 is the host's own MySQL)
+    volumes:
+      - layla_live_mysql_data:/var/lib/mysql
+    networks: [layla-live-network]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: layla-live-redis
+    restart: unless-stopped
+    volumes:
+      - layla_live_redis_data:/data
+    networks: [layla-live-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./layla-backend
+      dockerfile: Dockerfile
+    container_name: layla-live-backend
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate   # schema already imported; do not auto-mutate
+    ports:
+      - "127.0.0.1:8086:8080"      # localhost-only; host nginx proxies /api -> here (test uses 8085)
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # KYC documents live on the host so they survive container rebuilds
+      - /var/www/layla/data/kyc-uploads-live:/app/kyc-uploads
+    networks: [layla-live-network]
+
+volumes:
+  layla_live_mysql_data:
+  layla_live_redis_data:
+
+networks:
+  layla-live-network:
+    driver: bridge

@@ -1,0 +1,67 @@
+<div class="calc">
+  <h2 class="calc__title">Send Money Abroad</h2>
+  <p class="calc__subtitle">Check live rates and fees instantly</p>
+
+  <!-- You Send -->
+  <div class="calc__field">
+    <label class="calc__label">You send</label>
+    <div class="calc__input-row">
+      <input type="number" class="calc__amount" [(ngModel)]="sendAmount" (ngModelChange)="onAmountChange()" [min]="1" />
+      <div class="calc__country-wrap">
+        <img *ngIf="selectedSendCountry" [src]="selectedSendCountry.code | countryFlagSvg" class="calc__flag-img" alt="" onerror="this.style.display='none'" />
+        <select class="calc__country-select" [(ngModel)]="selectedSendCountry" (ngModelChange)="onSendCountryChange()">
+          <option *ngFor="let c of sendCountries" [ngValue]="c">{{ c.currency }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rate Info -->
+  <div class="calc__rate-info" *ngIf="exchangeRate > 0">
+    <div class="calc__rate-row">
+      <span>Exchange rate</span>
+      <span class="calc__rate-value">1 {{ selectedSendCountry?.currency }} = {{ exchangeRate | number:'1.4-4' }} {{ selectedReceiveCountry?.currency }}</span>
+    </div>
+    <div class="calc__rate-row">
+      <span>Fee</span>
+      <span>{{ fee | number:'1.2-2' }} {{ selectedSendCountry?.currency }}</span>
+    </div>
+    <div class="calc__rate-row calc__rate-row--total">
+      <span>Total you pay</span>
+      <span>{{ totalCost | number:'1.2-2' }} {{ selectedSendCountry?.currency }}</span>
+    </div>
+  </div>
+
+  <!-- Arrow/divider -->
+  <div class="calc__divider">
+    <div class="calc__arrow">
+      <ion-icon name="swap-vertical-outline"></ion-icon>
+    </div>
+  </div>
+
+  <!-- They Receive -->
+  <div class="calc__field">
+    <label class="calc__label">They receive</label>
+    <div class="calc__input-row">
+      <input type="text" class="calc__amount calc__amount--result" [value]="receiveAmount | number:'1.2-2'" readonly />
+      <div class="calc__country-wrap">
+        <img *ngIf="selectedReceiveCountry" [src]="selectedReceiveCountry.code | countryFlagSvg" class="calc__flag-img" alt="" onerror="this.style.display='none'" />
+        <select class="calc__country-select" [(ngModel)]="selectedReceiveCountry" (ngModelChange)="onReceiveCountryChange()">
+          <option *ngFor="let c of receiveCountries" [ngValue]="c">{{ c.currency }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading indicator -->
+  <div class="calc__loading" *ngIf="loading">
+    <div class="calc__spinner"></div>
+    Fetching live rate...
+  </div>
+
+  <!-- CTA -->
+  <a href="/register" class="calc__cta">
+    Get Started &mdash; Send Money Now
+  </a>
+  <p class="calc__disclaimer">Rate locked for 15 minutes after registration</p>
+</div>

@@ -1,0 +1,49 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">Finance</h1>
+      <p class="dashboard__subtitle">Revenue, volume and partner balances</p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="dashboard__metrics">
+      <app-metric-card label="Total Paid Volume (GBP)" [value]="(totalPaidVolume | number:'1.0-0') + ' GBP'" icon="wallet-outline" iconBg="#059669"></app-metric-card>
+      <app-metric-card label="Fee Revenue" [value]="(feeRevenue | number:'1.0-0') + ' GBP'" icon="cash-outline" iconBg="#1B3571"></app-metric-card>
+      <app-metric-card label="FX Margin Revenue" [value]="(fxMarginRevenue | number:'1.0-0') + ' GBP'" icon="trending-up-outline" iconBg="#7c3aed"></app-metric-card>
+      <app-metric-card label="Partner Float Total" [value]="(partnerFloatTotal | number:'1.0-0') + ' GBP'" icon="business-outline" iconBg="#0891b2"></app-metric-card>
+    </div>
+
+    <div class="dashboard__charts">
+      <app-chart-panel title="Revenue Breakdown" subtitle="Fees vs FX Margin">
+        <canvas baseChart [type]="revenueChart.type" [data]="revenueChart.data" [options]="revenueChart.options" height="260"></canvas>
+      </app-chart-panel>
+    </div>
+
+    <div class="dashboard__table-panel">
+      <div class="dashboard__table-header">Partner Balances</div>
+      <table class="dashboard__table" *ngIf="partnerBalances.length > 0">
+        <thead>
+          <tr>
+            <th>Partner</th>
+            <th>Currency</th>
+            <th class="num">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let b of partnerBalances">
+            <td>{{ b.partnerName || b.name || '—' }}</td>
+            <td>{{ b.currency || 'GBP' }}</td>
+            <td class="num num--bold">{{ (b.balance || b.amount || 0) | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dashboard__empty" *ngIf="partnerBalances.length === 0">No partner balance data available</div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,50 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.agent-send { max-width: 700px; }
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0 0 $fb-space-6; }
+
+.send-form-card { padding: $fb-space-6; }
+
+.section-title {
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  color: $fb-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: $fb-space-4 0 $fb-space-3;
+  padding-top: $fb-space-3;
+  border-top: 1px solid $fb-gray-100;
+
+  &:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $fb-space-3;
+}
+
+.fb-field {
+  margin-bottom: $fb-space-4;
+
+  &__label {
+    display: block;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    color: $fb-gray-700;
+    margin-bottom: $fb-space-1;
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: $fb-space-3;
+  margin-top: $fb-space-6;
+
+  .fb-btn { flex: 1; }
+}

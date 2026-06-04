@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS payin_customers (
+    id             BIGINT          NOT NULL AUTO_INCREMENT,
+    customer_id    VARCHAR(36)     NOT NULL,
+    first_name     VARCHAR(100)    NOT NULL,
+    last_name      VARCHAR(100)    NOT NULL,
+    email          VARCHAR(255)    NOT NULL,
+    phone          VARCHAR(20)     NOT NULL,
+    dob            DATE            NOT NULL,
+    nationality    VARCHAR(100)    NOT NULL,
+    address_line_1 VARCHAR(255)    NOT NULL,
+    city           VARCHAR(100)    NOT NULL,
+    country        VARCHAR(100)    NOT NULL,
+    postal_code    VARCHAR(20)     NOT NULL,
+    is_verified    TINYINT(1)      NOT NULL DEFAULT 0,
+    created_source VARCHAR(20)     NOT NULL,
+    created_at     DATETIME        NOT NULL,
+    updated_at     DATETIME        NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_payin_customers_customer_id (customer_id),
+    UNIQUE KEY uk_payin_customers_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

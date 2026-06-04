@@ -1,0 +1,28 @@
+<div class="dashboard">
+  <div class="dashboard__header">
+    <div>
+      <h1 class="dashboard__title">User Management</h1>
+      <p class="dashboard__subtitle">User base overview and KYC tiers</p>
+    </div>
+    <div class="dashboard__actions">
+      <button class="dashboard__refresh-btn" (click)="load()"><ion-icon name="refresh-outline"></ion-icon> Refresh</button>
+    </div>
+  </div>
+
+  <div class="dashboard__loading" *ngIf="loading">Loading dashboard...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="dashboard__metrics">
+      <app-metric-card label="Total Users" [value]="totalUsers | number" icon="people-outline" iconBg="#1B3571"></app-metric-card>
+      <app-metric-card label="KYC Pending" [value]="kycPending | number" icon="hourglass-outline" iconBg="#f59e0b"></app-metric-card>
+      <app-metric-card label="Active Users" [value]="activeUsers | number" icon="checkmark-circle-outline" iconBg="#059669"></app-metric-card>
+      <app-metric-card label="Suspended Users" [value]="suspendedUsers | number" icon="ban-outline" iconBg="#dc2626"></app-metric-card>
+    </div>
+
+    <div class="dashboard__charts">
+      <app-chart-panel title="Users by KYC Tier" subtitle="Distribution across tiers">
+        <canvas baseChart [type]="tierChart.type" [data]="tierChart.data" [options]="tierChart.options" height="260"></canvas>
+      </app-chart-panel>
+    </div>
+  </ng-container>
+</div>

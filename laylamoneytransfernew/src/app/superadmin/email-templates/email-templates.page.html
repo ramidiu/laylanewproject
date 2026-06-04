@@ -1,0 +1,71 @@
+<div class="email-templates-page">
+  <h1 class="page-title">Email Templates</h1>
+  <p class="page-subtitle">Manage notification email templates</p>
+
+  <!-- Preview Modal -->
+  <div class="preview-overlay" *ngIf="showPreview" (click)="closePreview()">
+    <div class="preview-modal" (click)="$event.stopPropagation()">
+      <div class="preview-modal__header">
+        <h3>Template Preview</h3>
+        <ion-button fill="clear" size="small" (click)="closePreview()">
+          <ion-icon name="close" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+      <div class="preview-modal__body" [innerHTML]="previewHtml"></div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="fb-card edit-card" *ngIf="editingTemplate">
+    <h3 class="section-title">Edit Template: {{ editingTemplate.name || editingTemplate.type }}</h3>
+    <div class="fb-field">
+      <label class="fb-field__label">Subject</label>
+      <input class="fb-input" [(ngModel)]="editSubject" placeholder="Email subject" />
+    </div>
+    <div class="fb-field">
+      <label class="fb-field__label">Body (HTML)</label>
+      <textarea class="fb-input body-textarea" [(ngModel)]="editBody" rows="12" placeholder="Email body HTML..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="fb-btn fb-btn--primary" (click)="saveTemplate()">Save Template</button>
+      <button class="fb-btn fb-btn--secondary" (click)="cancelEdit()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Templates List -->
+  <div *ngIf="loading" class="loading">
+    <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+
+  <div class="templates-grid" *ngIf="!loading && !editingTemplate">
+    <div class="fb-card template-card" *ngFor="let template of templates">
+      <div class="template-card__header">
+        <div class="template-card__type">
+          <ion-icon name="mail-outline"></ion-icon>
+          <span>{{ template.name || template.type }}</span>
+        </div>
+        <ion-badge color="primary">{{ template.channel || 'EMAIL' }}</ion-badge>
+      </div>
+      <div class="template-card__subject">
+        <span class="subject-label">Subject:</span>
+        {{ template.subject }}
+      </div>
+      <div class="template-card__body-preview">
+        {{ (template.body || template.htmlBody || '').substring(0, 150) }}...
+      </div>
+      <div class="template-card__actions">
+        <button class="fb-btn fb-btn--secondary btn-sm" (click)="startEdit(template)">
+          <ion-icon name="create-outline"></ion-icon> Edit
+        </button>
+        <button class="fb-btn fb-btn--secondary btn-sm" (click)="previewTemplate(template)">
+          <ion-icon name="eye-outline"></ion-icon> Preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && templates.length === 0 && !editingTemplate" class="empty-state">
+    <ion-icon name="mail-outline"></ion-icon>
+    <p>No email templates found</p>
+  </div>
+</div>

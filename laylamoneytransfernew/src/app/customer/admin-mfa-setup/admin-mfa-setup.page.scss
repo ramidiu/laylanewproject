@@ -1,0 +1,133 @@
+.setup-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f1 100%);
+}
+
+.setup-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 36px 32px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1B3A6B;
+  margin: 0 0 12px;
+}
+
+.intro {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.qr-block {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 20px;
+  img {
+    width: 200px;
+    height: 200px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+  }
+}
+
+.secret-block {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.secret-label {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.secret-value {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: #111827;
+  word-break: break-all;
+}
+
+.code-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+
+  input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 18px;
+    font-family: ui-monospace, monospace;
+    letter-spacing: 4px;
+    text-align: center;
+
+    &:focus {
+      outline: none;
+      border-color: #1B3A6B;
+      box-shadow: 0 0 0 3px rgba(27, 53, 113, 0.1);
+    }
+  }
+}
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.cancel-link {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px;
+  margin-top: 8px;
+  display: block;
+  width: 100%;
+  text-align: center;
+
+  &:hover { color: #1B3A6B; }
+}
+
+.fb-btn {
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &--primary {
+    background: #1B3A6B;
+    border-color: #1B3A6B;
+    color: #fff;
+    &:hover:not(:disabled) { background: #15295a; }
+  }
+}

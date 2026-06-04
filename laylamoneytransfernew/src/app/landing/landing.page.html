@@ -1,0 +1,210 @@
+<ion-content>
+<!-- Header / Navbar -->
+<header class="landing-header">
+  <div class="landing-header__inner">
+    <a class="landing-header__logo" href="/">
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="landing-header__logo-img" />
+    </a>
+
+    <nav class="landing-header__nav">
+      <a (click)="scrollTo('how-it-works')" class="landing-header__link">How It Works</a>
+      <a href="#" class="landing-header__link">FAQ</a>
+    </nav>
+
+    <div class="landing-header__actions">
+      <a href="/login" class="landing-header__btn landing-header__btn--ghost">Login</a>
+      <a href="/register" class="landing-header__btn landing-header__btn--primary">Create account</a>
+    </div>
+  </div>
+</header>
+
+<!-- Hero Section -->
+<section class="landing-hero" id="rates">
+  <div class="landing-hero__inner">
+    <div class="landing-hero__content">
+      <h1 class="landing-hero__title">Send Money Abroad with Confidence</h1>
+      <p class="landing-hero__subtitle">
+        Fast, Secure &amp; Transparent International Money Transfers from the UK
+      </p>
+      <ul class="landing-hero__bullets">
+        <li>Low fees | Competitive exchange rates | Trusted &amp; regulated</li>
+        <li>Send money to friends and family across the world — directly from your phone or browser.</li>
+      </ul>
+      <div class="landing-hero__cta-group">
+        <a href="/register" class="landing-hero__cta landing-hero__cta--primary">
+          Get Started
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </a>
+        <a href="/register" class="landing-hero__cta landing-hero__cta--secondary">Register Now</a>
+      </div>
+    </div>
+    <div class="landing-hero__calculator">
+      <app-fx-calculator></app-fx-calculator>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="landing-steps" id="how-it-works">
+  <div class="landing-steps__inner">
+    <h2 class="landing-section-title">How It Works</h2>
+    <p class="landing-section-subtitle">Send money abroad in 3 simple steps</p>
+
+    <div class="landing-steps__grid">
+      <div class="landing-step">
+        <div class="landing-step__icon">
+          <ion-icon name="person-add-outline"></ion-icon>
+        </div>
+        <div class="landing-step__number">1</div>
+        <h3 class="landing-step__title">Create Account</h3>
+        <p class="landing-step__desc">Sign up in minutes with just your email and ID. Quick verification gets you started fast.</p>
+      </div>
+
+      <div class="landing-step">
+        <div class="landing-step__icon">
+          <ion-icon name="people-outline"></ion-icon>
+        </div>
+        <div class="landing-step__number">2</div>
+        <h3 class="landing-step__title">Add Recipient</h3>
+        <p class="landing-step__desc">Enter your recipient's bank details or mobile wallet. We support all major banks worldwide.</p>
+      </div>
+
+      <div class="landing-step">
+        <div class="landing-step__icon">
+          <ion-icon name="paper-plane-outline"></ion-icon>
+        </div>
+        <div class="landing-step__number">3</div>
+        <h3 class="landing-step__title">Send Money</h3>
+        <p class="landing-step__desc">Choose the amount, confirm the rate, and send. Your recipient gets the money within minutes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Why Choose Us -->
+<section class="landing-features">
+  <div class="landing-features__inner">
+    <h2 class="landing-section-title">Why Choose Layla Money Transfer</h2>
+    <p class="landing-section-subtitle">Trusted by thousands for international money transfers</p>
+
+    <div class="landing-features__grid">
+      <div class="landing-feature">
+        <div class="landing-feature__icon landing-feature__icon--sky">
+          <ion-icon name="trending-up-outline"></ion-icon>
+        </div>
+        <h3 class="landing-feature__title">Best Exchange Rates</h3>
+        <p class="landing-feature__desc">We source rates directly from the interbank market, saving you up to 8x compared to traditional banks.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature__icon landing-feature__icon--green">
+          <ion-icon name="wallet-outline"></ion-icon>
+        </div>
+        <h3 class="landing-feature__title">Low Fees</h3>
+        <p class="landing-feature__desc">Transparent, flat-fee pricing. No hidden charges, no surprises. What you see is what you pay.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature__icon landing-feature__icon--amber">
+          <ion-icon name="flash-outline"></ion-icon>
+        </div>
+        <h3 class="landing-feature__title">Fast Transfers</h3>
+        <p class="landing-feature__desc">Most transfers arrive within minutes. Track your money in real-time from send to delivery.</p>
+      </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature__icon landing-feature__icon--navy">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+        <h3 class="landing-feature__title">Bank-Level Security</h3>
+        <p class="landing-feature__desc">256-bit encryption, two-factor authentication, and FCA regulation keep your money safe.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Supported Corridors -->
+<section class="landing-corridors" *ngIf="supportedCountries.length > 0">
+  <div class="landing-corridors__inner">
+    <h2 class="landing-section-title">Supported Countries</h2>
+    <p class="landing-section-subtitle">We support transfers to {{ supportedCountries.length }}+ countries</p>
+
+    <div class="landing-corridors__grid">
+      <div class="landing-corridor" *ngFor="let country of supportedCountries">
+        <img class="landing-corridor__flag-img" [src]="country.code | countryFlagUrl:32" [alt]="country.name" width="32" height="24" loading="lazy" onerror="this.style.display='none'" />
+        <span class="landing-corridor__flag" aria-hidden="true">{{ country.flag }}</span>
+        <span class="landing-corridor__name">{{ country.name }}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="landing-footer">
+  <div class="landing-footer__inner">
+    <div class="landing-footer__grid">
+      <!-- Brand -->
+      <div class="landing-footer__col landing-footer__col--brand">
+        <div class="landing-footer__brand">
+          <img src="assets/images/layla-logo.webp" alt="Layla" class="landing-footer__logo" />
+        </div>
+        <p class="landing-footer__about">
+          At Layla Money Transfer, we redefine borders, bridging distances with swift, secure and transparent money transfers, ensuring trust and convenience.
+        </p>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="landing-footer__col">
+        <h4 class="landing-footer__heading">Quick Links</h4>
+        <a href="#" class="landing-footer__link">About Us</a>
+        <a (click)="scrollTo('how-it-works')" class="landing-footer__link">How It Works</a>
+        <a href="#" class="landing-footer__link">FAQ</a>
+        <a href="#" class="landing-footer__link">Contact</a>
+        <a href="#" class="landing-footer__link">Privacy Policy</a>
+        <a href="#" class="landing-footer__link">Terms &amp; Conditions</a>
+      </div>
+
+      <!-- My Accounts -->
+      <div class="landing-footer__col">
+        <h4 class="landing-footer__heading">My Accounts</h4>
+        <a href="/home" class="landing-footer__link">Overview</a>
+        <a href="/transactions" class="landing-footer__link">Transaction History</a>
+        <a href="/profile" class="landing-footer__link">My Profile</a>
+      </div>
+
+      <!-- Legal -->
+      <div class="landing-footer__col">
+        <h4 class="landing-footer__heading">Legal</h4>
+        <a href="#" class="landing-footer__link">Complaint Policy</a>
+        <a href="#" class="landing-footer__link">Cookie Policy</a>
+        <a href="#" class="landing-footer__link">Mobile Terms and Conditions</a>
+        <a href="#" class="landing-footer__link">Mobile Privacy Policy</a>
+        <a href="#" class="landing-footer__link">User Agreement</a>
+        <span class="landing-footer__legal-badge">FCA Reference: 520583</span>
+        <span class="landing-footer__legal-badge">HMRC Registration: XAML00000177279</span>
+      </div>
+
+      <!-- Contact Us -->
+      <div class="landing-footer__col">
+        <h4 class="landing-footer__heading">Contact Us</h4>
+        <a href="tel:+442072728722" class="landing-footer__link landing-footer__link--icon">
+          <ion-icon name="call-outline"></ion-icon>
+          +442072728722
+        </a>
+        <a href="mailto:support@laylamoneytransfer.com" class="landing-footer__link landing-footer__link--icon">
+          <ion-icon name="mail-outline"></ion-icon>
+          support@laylamoneytransfer.com
+        </a>
+        <p class="landing-footer__address">
+          <ion-icon name="location-outline"></ion-icon>
+          193 Seven Sisters Road, Finsbury Park, London N4 3NG
+        </p>
+      </div>
+    </div>
+
+    <div class="landing-footer__bottom">
+      <p>&copy; 2026 Layla Money Transfer. All Rights Reserved.</p>
+    </div>
+  </div>
+</footer>
+</ion-content>

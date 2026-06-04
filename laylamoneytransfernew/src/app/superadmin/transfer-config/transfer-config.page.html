@@ -1,0 +1,148 @@
+<div class="transfer-config-page">
+  <h1 class="page-title">Transfer Configuration</h1>
+  <p class="page-subtitle">Manage payout types and payment methods by country</p>
+
+  <ion-segment [(ngModel)]="activeSegment" class="config-tabs">
+    <ion-segment-button value="payout"><ion-label>Payout Types</ion-label></ion-segment-button>
+    <ion-segment-button value="payment"><ion-label>Payment Methods</ion-label></ion-segment-button>
+    <ion-segment-button value="points"><ion-label>Collection Points</ion-label></ion-segment-button>
+  </ion-segment>
+
+  <!-- Payout Types -->
+  <div *ngIf="activeSegment === 'payout'" class="tab-content">
+    <div class="info-card">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <span>How receivers get money — per receiving country</span>
+    </div>
+
+    <div *ngIf="payoutLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div *ngIf="!payoutLoading">
+      <div class="country-group" *ngFor="let group of payoutGroups">
+        <div class="country-header">
+          <div class="country-header__info">
+            <span class="country-code-badge">{{ group.countryCode }}</span>
+            <strong>{{ group.countryName }}</strong>
+            <span class="currency-chip">{{ group.currency }}</span>
+          </div>
+          <button class="toggle-btn" [class.toggle-btn--on]="isGroupActive(group)" (click)="togglePayoutCountry(group)">
+            <span class="toggle-btn__track"><span class="toggle-btn__thumb"></span></span>
+          </button>
+        </div>
+        <div class="type-list">
+          <div class="type-item" *ngFor="let item of group.items" [class.disabled-item]="!isGroupActive(group)">
+            <div class="type-item__left">
+              <ion-icon [name]="getPayoutIcon(item.payoutType)" [color]="item.isActive ? 'primary' : 'medium'" class="type-icon"></ion-icon>
+              <div class="type-item__text">
+                <h3>{{ formatPayoutType(item.payoutType) }}</h3>
+                <p>{{ item.countryName }} — {{ item.currency }}</p>
+              </div>
+            </div>
+            <button class="toggle-btn" [class.toggle-btn--on]="item.isActive" (click)="togglePayoutType(item)" [disabled]="!isGroupActive(group)">
+              <span class="toggle-btn__track"><span class="toggle-btn__thumb"></span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!payoutLoading && payoutGroups.length === 0" class="empty-state">
+      <ion-icon name="settings-outline"></ion-icon>
+      <p>No payout types configured</p>
+    </div>
+  </div>
+
+  <!-- Payment Methods -->
+  <div *ngIf="activeSegment === 'payment'" class="tab-content">
+    <div class="info-card">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <span>How senders pay — per sending country</span>
+    </div>
+
+    <div *ngIf="paymentLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div *ngIf="!paymentLoading">
+      <div class="country-group" *ngFor="let group of paymentGroups">
+        <div class="country-header">
+          <div class="country-header__info">
+            <span class="country-code-badge">{{ group.countryCode }}</span>
+            <strong>{{ group.countryName }}</strong>
+            <span class="currency-chip">{{ group.currency }}</span>
+          </div>
+          <button class="toggle-btn" [class.toggle-btn--on]="isGroupActive(group)" (click)="togglePaymentCountry(group)">
+            <span class="toggle-btn__track"><span class="toggle-btn__thumb"></span></span>
+          </button>
+        </div>
+        <div class="type-list">
+          <div class="type-item" *ngFor="let item of group.items" [class.disabled-item]="!isGroupActive(group)">
+            <div class="type-item__left">
+              <ion-icon [name]="getPaymentIcon(item.paymentMethod)" [color]="item.isActive ? 'primary' : 'medium'" class="type-icon"></ion-icon>
+              <div class="type-item__text">
+                <h3>{{ formatPaymentMethod(item.paymentMethod) }}</h3>
+                <p>{{ item.countryName }} — {{ item.currency }}</p>
+              </div>
+            </div>
+            <button class="toggle-btn" [class.toggle-btn--on]="item.isActive" (click)="togglePaymentMethod(item)" [disabled]="!isGroupActive(group)">
+              <span class="toggle-btn__track"><span class="toggle-btn__thumb"></span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!paymentLoading && paymentGroups.length === 0" class="empty-state">
+      <ion-icon name="card-outline"></ion-icon>
+      <p>No payment methods configured</p>
+    </div>
+  </div>
+
+  <!-- Collection Points -->
+  <div *ngIf="activeSegment === 'points'" class="tab-content">
+    <div class="ccp-info">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      Add cash collection points per payout country. These appear in the customer's Cash Pickup recipient form.
+    </div>
+
+    <!-- Add form -->
+    <div class="ccp-add">
+      <h3>Add Collection Point</h3>
+      <div class="ccp-grid">
+        <input [(ngModel)]="newPoint.countryCode" placeholder="Country code (e.g. SD)" maxlength="3" />
+        <input [(ngModel)]="newPoint.countryName" placeholder="Country name (e.g. Sudan)" />
+        <input [(ngModel)]="newPoint.pointName" placeholder="Point name (e.g. Bank of Khartoum - Main)" />
+        <input [(ngModel)]="newPoint.city" placeholder="City" />
+        <input [(ngModel)]="newPoint.address" placeholder="Address" />
+        <input [(ngModel)]="newPoint.contactNumber" placeholder="Contact number" />
+      </div>
+      <button class="ccp-btn ccp-btn--primary" (click)="addCashPoint()" [disabled]="savingPoint">
+        <ion-icon name="add-outline"></ion-icon> {{ savingPoint ? 'Adding…' : 'Add Point' }}
+      </button>
+    </div>
+
+    <!-- List -->
+    <div *ngIf="cashPointsLoading" class="empty-state"><p>Loading…</p></div>
+    <table *ngIf="!cashPointsLoading && cashPoints.length" class="ccp-table">
+      <thead>
+        <tr><th>Country</th><th>Point Name</th><th>City</th><th>Contact</th><th>Active</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of cashPoints">
+          <td>{{ p.countryCode }} <span class="ccp-muted">{{ p.countryName }}</span></td>
+          <td>{{ p.pointName }}</td>
+          <td>{{ p.city || '—' }}</td>
+          <td>{{ p.contactNumber || '—' }}</td>
+          <td><ion-toggle [checked]="p.isActive" (ionChange)="toggleCashPoint(p)"></ion-toggle></td>
+          <td><button class="ccp-del" (click)="deleteCashPoint(p)"><ion-icon name="trash-outline"></ion-icon></button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div *ngIf="!cashPointsLoading && cashPoints.length === 0" class="empty-state">
+      <ion-icon name="cash-outline"></ion-icon>
+      <p>No collection points yet</p>
+    </div>
+  </div>
+</div>

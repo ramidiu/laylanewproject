@@ -1,0 +1,88 @@
+<ion-content class="otp-content">
+  <div class="otp-container">
+    <!-- Brand -->
+    <div class="otp-brand">
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="otp-brand__logo" style="width:200px;height:auto" />
+      <p class="otp-brand__tagline">{{ 'APP.TAGLINE' | translate }}</p>
+    </div>
+
+    <!-- Header -->
+    <div class="otp-header">
+      <div class="otp-header__icon">
+        <ion-icon name="mail-open-outline"></ion-icon>
+      </div>
+      <h1 class="otp-header__title">{{ 'OTP.TITLE' | translate }}</h1>
+      <p class="otp-header__subtitle">
+        {{ 'OTP.SUBTITLE' | translate }}<br />
+        <strong>{{ email }}</strong>
+      </p>
+    </div>
+
+    <!-- OTP Card -->
+    <div class="otp-card">
+      <!-- Timer -->
+      <div class="otp-timer" [class.otp-timer--expired]="timerSeconds <= 0">
+        <ion-icon [name]="timerSeconds > 0 ? 'time-outline' : 'alert-circle-outline'"></ion-icon>
+        <span *ngIf="timerSeconds > 0">Code expires in {{ timerDisplay }}</span>
+        <span *ngIf="timerSeconds <= 0">Code has expired</span>
+      </div>
+
+      <!-- OTP Inputs -->
+      <div class="otp-inputs" (paste)="onPaste($event)">
+        <input
+          *ngFor="let digit of otpDigits; let i = index; trackBy: trackByIndex"
+          #otpInput
+          type="text"
+          inputmode="numeric"
+          maxlength="1"
+          class="otp-digit"
+          [attr.autofocus]="i === 0 ? '' : null"
+          (keydown)="onDigitKeydown($event, i)"
+          (focus)="onDigitFocus($event, i)"
+        />
+      </div>
+
+      <!-- Verify Button -->
+      <button
+        type="button"
+        class="otp-verify-btn"
+        [disabled]="!isOtpComplete || timerSeconds <= 0 || isVerifying"
+        (click)="onVerify()"
+      >
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        {{ isVerifying ? ('COMMON.LOADING' | translate) : ('OTP.VERIFY' | translate) }}
+      </button>
+
+      <!-- Resend -->
+      <div class="otp-resend">
+        <span class="otp-resend__text">Didn't receive the code?</span>
+        <button
+          type="button"
+          class="otp-resend__btn"
+          [disabled]="resendCooldown > 0"
+          (click)="onResendOtp()"
+        >
+          <span *ngIf="resendCooldown > 0">{{ 'OTP.RESEND_IN' | translate }} {{ resendCooldown }}s</span>
+          <span *ngIf="resendCooldown <= 0">{{ 'OTP.RESEND' | translate }}</span>
+        </button>
+      </div>
+
+      <!-- Back link -->
+      <div class="otp-back">
+        <a href="/register">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+          {{ 'COMMON.BACK' | translate }}
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="otp-footer">
+      <p class="otp-footer__brand">{{ 'APP.NAME' | translate }}</p>
+      <p class="otp-footer__links">
+        Need help? <a href="mailto:support@laylamoneytransfer.com">support@laylamoneytransfer.com</a>
+      </p>
+      <p class="otp-footer__copy">&copy; {{ currentYear }} Layla Money Transfer. All rights reserved.</p>
+    </div>
+  </div>
+</ion-content>

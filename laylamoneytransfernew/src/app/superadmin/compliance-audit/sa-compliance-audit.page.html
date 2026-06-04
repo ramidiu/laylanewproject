@@ -1,0 +1,95 @@
+<div class="audit-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Compliance Audit</h1>
+      <p class="page-subtitle">Who cleared whom, when, and why — sanction &amp; PEP dispositions</p>
+    </div>
+    <div class="page-header__actions">
+      <button class="fb-btn fb-btn--ghost" (click)="exportCsv()">
+        <ion-icon name="download-outline"></ion-icon> Export CSV
+      </button>
+      <button class="fb-btn fb-btn--ghost" (click)="loadAudit()">
+        <ion-icon name="refresh-outline"></ion-icon> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-row">
+    <div class="filter-tabs">
+      <button class="filter-tab" [class.filter-tab--active]="actionFilter === ''" (click)="setAction('')">All</button>
+      <button class="filter-tab" [class.filter-tab--active]="actionFilter === 'CLOSED_FALSE_POSITIVE'" (click)="setAction('CLOSED_FALSE_POSITIVE')">False Positive</button>
+      <button class="filter-tab" [class.filter-tab--active]="actionFilter === 'CLOSED_SAR_FILED'" (click)="setAction('CLOSED_SAR_FILED')">Confirmed</button>
+      <button class="filter-tab" [class.filter-tab--active]="actionFilter === 'ESCALATED'" (click)="setAction('ESCALATED')">Escalated</button>
+      <button class="filter-tab" [class.filter-tab--active]="actionFilter === 'CLOSED_NO_ACTION'" (click)="setAction('CLOSED_NO_ACTION')">No Action</button>
+    </div>
+    <div class="filter-selects">
+      <select class="fb-select" [ngModel]="typeFilter" (ngModelChange)="setType($event)">
+        <option value="">All Types</option>
+        <option value="SANCTIONS">Sanctions</option>
+        <option value="PEP">PEP</option>
+      </select>
+      <input class="fb-select" type="date" [(ngModel)]="startDate" (ngModelChange)="onDateChange()" placeholder="From" />
+      <input class="fb-select" type="date" [(ngModel)]="endDate" (ngModelChange)="onDateChange()" placeholder="To" />
+      <button class="fb-btn fb-btn--ghost" *ngIf="startDate || endDate" (click)="clearDates()">Clear dates</button>
+    </div>
+  </div>
+
+  <div class="audit-panel">
+    <div class="empty-row" *ngIf="loading">Loading audit trail…</div>
+    <div class="empty-row" *ngIf="!loading && filteredEntries.length === 0">
+      No audit entries match the selected filters.
+    </div>
+    <table class="audit-table" *ngIf="!loading && filteredEntries.length > 0">
+      <thead>
+        <tr>
+          <th>Closed</th>
+          <th>Alert</th>
+          <th>Action</th>
+          <th>Type</th>
+          <th>Customer</th>
+          <th>Matched</th>
+          <th>Source</th>
+          <th>Reviewer</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let e of filteredEntries">
+          <td>{{ e.resolvedAt | date:'medium' }}</td>
+          <td class="mono">#{{ e.alertId }}</td>
+          <td>
+            <span class="badge badge--{{ actionColor(e.status) }}">
+              {{ actionLabel(e.status) }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge--{{ listTypeColor(e.listType) }}" *ngIf="e.listType">
+              {{ e.listType }}
+            </span>
+          </td>
+          <td>
+            <div class="cell-primary">{{ e.customerName || '—' }}</div>
+            <div class="cell-secondary">#{{ e.customerId }} · {{ e.customerEmail }}</div>
+          </td>
+          <td>
+            <div class="cell-primary">{{ e.matchedName || '—' }}</div>
+          </td>
+          <td class="source">{{ e.source || '—' }}</td>
+          <td>
+            <div class="cell-primary" *ngIf="e.reviewerName">{{ e.reviewerName }}</div>
+            <div class="cell-primary" *ngIf="!e.reviewerName && e.reviewerId">#{{ e.reviewerId }}</div>
+            <div class="cell-primary" *ngIf="!e.reviewerId">—</div>
+            <div class="cell-secondary" *ngIf="e.reviewerEmail">{{ e.reviewerEmail }}</div>
+          </td>
+          <td class="reason" [title]="e.reason">{{ e.reason || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pager" *ngIf="!loading && totalPages > 0">
+      <button class="fb-btn fb-btn--ghost" [disabled]="page === 0" (click)="prevPage()">Prev</button>
+      <span>Page {{ page + 1 }} of {{ totalPages }} ({{ totalElements }} entries)</span>
+      <button class="fb-btn fb-btn--ghost" [disabled]="page + 1 >= totalPages" (click)="nextPage()">Next</button>
+    </div>
+  </div>
+</div>

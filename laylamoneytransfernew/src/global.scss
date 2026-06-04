@@ -1,0 +1,685 @@
+@import 'theme/remitzai-design-tokens';
+
+// Global styles using design tokens
+
+* {
+  font-family: $fb-font-body;
+}
+
+body {
+  background-color: $fb-gray-50;
+  color: $fb-gray-800;
+  margin: 0;
+  padding: 0;
+}
+
+// ─────────────────────────────────────────────
+// Safe area inset utilities (iOS notch / Android nav bars)
+// ─────────────────────────────────────────────
+:root {
+  --fb-safe-top: env(safe-area-inset-top, 0px);
+  --fb-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --fb-safe-left: env(safe-area-inset-left, 0px);
+  --fb-safe-right: env(safe-area-inset-right, 0px);
+}
+
+// Mobile-first responsive breakpoint mixins (used inline)
+// Use: @media (max-width: 600px) { ... } for mobile
+// Use: @media (min-width: 769px) { ... } for desktop
+
+
+// Status chips
+.fb-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: $fb-radius-full;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &--paid, &--approved, &--verified, &--completed {
+    background: $fb-success-bg;
+    color: #065F46;
+  }
+  &--pending, &--processing, &--queued {
+    background: $fb-warning-bg;
+    color: #92400E;
+  }
+  &--failed, &--cancelled, &--rejected, &--closed {
+    background: $fb-danger-bg;
+    color: #991B1B;
+  }
+  &--compliance-hold, &--under-review {
+    background: #FEF3C7;
+    color: #92400E;
+  }
+  &--created {
+    background: $fb-sky-pale;
+    color: $fb-navy;
+  }
+  &--sent-to-payout {
+    background: #EDE9FE;
+    color: #5B21B6;
+  }
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+// Button styles
+.fb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-2;
+  min-height: 48px;
+  padding: $fb-space-3 $fb-space-6;
+  border-radius: $fb-radius-md;
+  font-family: $fb-font-body;
+  font-size: $fb-text-base;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+  transition: all $fb-transition-fast;
+  border: none;
+  outline: none;
+
+  &--primary {
+    background: $fb-navy;
+    color: $fb-white;
+    &:hover { background: $fb-navy-dark; }
+  }
+  &--secondary {
+    background: transparent;
+    border: 1.5px solid $fb-navy;
+    color: $fb-navy;
+    &:hover { background: $fb-sky-pale; }
+  }
+  &--danger {
+    background: $fb-danger;
+    color: $fb-white;
+    &:hover { background: darken($fb-danger, 10%); }
+  }
+  &--disabled, &:disabled {
+    background: $fb-gray-200;
+    color: $fb-gray-400;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// Card styles
+.fb-card {
+  background: $fb-white;
+  border-radius: $fb-radius-lg;
+  box-shadow: $fb-shadow-card;
+  transition: box-shadow $fb-transition-base;
+  padding: $fb-space-4;
+
+  &:hover {
+    box-shadow: $fb-shadow-card-hover;
+  }
+
+  &--status {
+    border-left: 4px solid;
+    &.success { border-left-color: $fb-success; }
+    &.warning { border-left-color: $fb-warning; }
+    &.danger  { border-left-color: $fb-danger; }
+    &.info    { border-left-color: $fb-info; }
+    &.navy    { border-left-color: $fb-navy; }
+  }
+}
+
+// KPI card
+.fb-kpi-card {
+  background: $fb-white;
+  border-radius: $fb-radius-lg;
+  box-shadow: $fb-shadow-card;
+  padding: $fb-space-6;
+  border-top: 3px solid $fb-navy;
+
+  .kpi-value {
+    font-family: $fb-font-mono;
+    font-size: $fb-text-4xl;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-900;
+  }
+
+  .kpi-label {
+    color: $fb-gray-500;
+    font-size: $fb-text-sm;
+    margin-top: $fb-space-1;
+  }
+
+  .kpi-trend {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    margin-top: $fb-space-2;
+
+    &.up { color: $fb-success; }
+    &.down { color: $fb-danger; }
+  }
+
+  &--sky { border-top-color: $fb-sky; }
+  &--success { border-top-color: $fb-success; }
+  &--warning { border-top-color: $fb-warning; }
+}
+
+// Data table styles
+.fb-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    background: $fb-sky-wash;
+    color: $fb-gray-500;
+    font-size: $fb-text-xs;
+    font-weight: $fb-font-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: $fb-space-3 $fb-space-4;
+    text-align: left;
+    border-bottom: 1px solid $fb-gray-200;
+  }
+
+  td {
+    padding: $fb-space-3 $fb-space-4;
+    border-bottom: 1px solid $fb-gray-100;
+    font-size: $fb-text-sm;
+  }
+
+  tr:nth-child(even) {
+    background: $fb-gray-50;
+  }
+
+  tr:hover {
+    background: $fb-sky-wash;
+  }
+}
+
+// Form input styles
+.fb-input {
+  width: 100%;
+  height: 48px;
+  padding: $fb-space-3 $fb-space-4;
+  background: $fb-white;
+  border: 1.5px solid $fb-gray-200;
+  border-radius: $fb-radius-md;
+  font-family: $fb-font-body;
+  font-size: $fb-text-base;
+  color: $fb-gray-800;
+  transition: all $fb-transition-fast;
+  outline: none;
+
+  &:focus {
+    border-color: $fb-sky-dark;
+    box-shadow: 0 0 0 3px rgba($fb-sky, 0.2);
+  }
+
+  &::placeholder {
+    color: $fb-gray-400;
+  }
+}
+
+// Transaction timeline
+.fb-timeline {
+  position: relative;
+  padding-left: $fb-space-8;
+
+  &-item {
+    position: relative;
+    padding-bottom: $fb-space-6;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -25px;
+      top: 24px;
+      bottom: 0;
+      width: 2px;
+      background: $fb-gray-300;
+    }
+
+    &:last-child::before {
+      display: none;
+    }
+
+    &-dot {
+      position: absolute;
+      left: -32px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid $fb-gray-300;
+      background: $fb-white;
+    }
+
+    &.completed .fb-timeline-item-dot {
+      background: $fb-success;
+      border-color: $fb-success;
+    }
+
+    &.current .fb-timeline-item-dot {
+      background: $fb-sky-dark;
+      border-color: $fb-sky-dark;
+      animation: pulse 2s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba($fb-sky-dark, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba($fb-sky-dark, 0); }
+  100% { box-shadow: 0 0 0 0 rgba($fb-sky-dark, 0); }
+}
+
+// Send money wizard progress
+.fb-wizard-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $fb-space-4 0;
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: $fb-text-sm;
+      font-weight: $fb-font-bold;
+      background: $fb-gray-200;
+      color: $fb-gray-500;
+    }
+
+    .step-label {
+      font-size: $fb-text-sm;
+      color: $fb-gray-500;
+    }
+
+    &.active .step-circle {
+      background: $fb-navy;
+      color: $fb-white;
+    }
+    &.active .step-label {
+      color: $fb-navy;
+      font-weight: $fb-font-bold;
+    }
+    &.completed .step-circle {
+      background: $fb-success;
+      color: $fb-white;
+    }
+  }
+
+  .step-connector {
+    flex: 1;
+    height: 2px;
+    background: $fb-gray-200;
+    margin: 0 $fb-space-2;
+
+    &.completed {
+      background: $fb-success;
+    }
+  }
+}
+
+// FX Quote card
+.fb-quote-card {
+  background: $fb-white;
+  border-radius: $fb-radius-xl;
+  box-shadow: $fb-shadow-lg;
+  padding: $fb-space-6;
+  text-align: center;
+
+  .rate-display {
+    font-family: $fb-font-mono;
+    font-size: $fb-text-3xl;
+    font-weight: $fb-font-bold;
+    color: $fb-navy;
+    margin: $fb-space-4 0;
+  }
+
+  .fee-row {
+    display: flex;
+    justify-content: space-between;
+    padding: $fb-space-2 0;
+    border-bottom: 1px dashed $fb-gray-200;
+    font-size: $fb-text-sm;
+
+    .label { color: $fb-gray-500; }
+    .value { font-weight: $fb-font-medium; }
+  }
+
+  .total-row {
+    display: inline-block;
+    padding: $fb-space-2 $fb-space-6;
+    background: $fb-navy;
+    color: $fb-white;
+    border-radius: $fb-radius-full;
+    font-weight: $fb-font-bold;
+    margin-top: $fb-space-4;
+  }
+
+  .receive-amount {
+    font-size: $fb-text-2xl;
+    font-weight: $fb-font-bold;
+    color: $fb-success;
+    margin-top: $fb-space-4;
+  }
+
+  .rate-lock-bar {
+    height: 4px;
+    background: $fb-gray-200;
+    border-radius: $fb-radius-full;
+    margin-top: $fb-space-4;
+    overflow: hidden;
+
+    .fill {
+      height: 100%;
+      background: $fb-sky;
+      border-radius: $fb-radius-full;
+      transition: width 1s linear;
+    }
+  }
+}
+
+// Skeleton loading
+.fb-skeleton {
+  background: linear-gradient(90deg, $fb-gray-100 25%, $fb-gray-200 50%, $fb-gray-100 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: $fb-radius-md;
+
+  &--text { height: 16px; margin-bottom: $fb-space-2; }
+  &--title { height: 24px; width: 60%; margin-bottom: $fb-space-3; }
+  &--card { height: 120px; margin-bottom: $fb-space-4; }
+  &--circle { width: 48px; height: 48px; border-radius: 50%; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// Toast styles
+.fb-toast {
+  border-radius: $fb-radius-md;
+  padding: $fb-space-3 $fb-space-4;
+  border-left: 4px solid;
+  font-size: $fb-text-sm;
+
+  &--success {
+    background: $fb-success-bg;
+    border-left-color: $fb-success;
+    color: #065F46;
+  }
+  &--error {
+    background: $fb-danger-bg;
+    border-left-color: $fb-danger;
+    color: #991B1B;
+  }
+  &--warning {
+    background: $fb-warning-bg;
+    border-left-color: $fb-warning;
+    color: #92400E;
+  }
+}
+
+// Utility: currency display
+.fb-currency {
+  font-family: $fb-font-mono;
+}
+
+// Trust badges
+.fb-trust-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $fb-space-6;
+  padding: $fb-space-4;
+  color: $fb-gray-500;
+  font-size: $fb-text-xs;
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-1;
+  }
+}
+
+// =============================================================
+// Global toast styles — high visibility, clears header/notch
+// =============================================================
+ion-toast {
+  // Make toasts always sit ABOVE app bars
+  --box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  z-index: 99999;
+}
+
+// All variants share strong text colors + proper offset from top edge
+ion-toast.fb-toast {
+  --border-radius: 10px;
+  --color: #ffffff !important;
+  // Default dark background so white toast text is NEVER invisible on a white page,
+  // even for colours (navy/sky/info) that aren't built-in Ionic colours. Variant
+  // classes below override this with their specific colour.
+  --background: #{$fb-navy} !important;
+  --button-color: #ffffff !important;
+  --min-height: 56px;
+  --start: 16px;
+  --end: 16px;
+  --max-width: 640px;
+  font-weight: 600;
+  font-size: 15px;
+
+  &::part(message) {
+    font-weight: 600;
+    font-size: 15px;
+    color: #ffffff !important;
+  }
+  &::part(icon),
+  &::part(button) {
+    color: #ffffff !important;
+  }
+  // Push the visible toast container below the system/notch + header bar
+  &::part(container) {
+    margin-top: calc(env(safe-area-inset-top, 0px) + 12px);
+    padding: 12px 16px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  }
+}
+
+ion-toast.fb-toast-success {
+  --background: #059669 !important;
+  --box-shadow: 0 6px 24px rgba(5, 150, 105, 0.45);
+}
+
+ion-toast.fb-toast-danger {
+  --background: #dc2626 !important;
+  --box-shadow: 0 6px 24px rgba(220, 38, 38, 0.45);
+}
+
+ion-toast.fb-toast-warning {
+  --background: #d97706 !important;
+  --box-shadow: 0 6px 24px rgba(217, 119, 6, 0.45);
+}
+
+ion-toast.fb-toast-primary,
+ion-toast.fb-toast-navy {
+  --background: #{$fb-navy} !important;
+  --box-shadow: 0 6px 24px rgba(27, 58, 107, 0.45);
+}
+
+ion-toast.fb-toast-sky {
+  --background: #{$fb-sky} !important;
+  --box-shadow: 0 6px 24px rgba(192, 32, 62, 0.45);
+}
+
+ion-toast.fb-toast-info {
+  --background: #2563EB !important;
+  --box-shadow: 0 6px 24px rgba(37, 99, 235, 0.45);
+}
+
+// Safety net: a toast WITHOUT our fb-toast class gets dark text on a light bg
+// (so it's readable too). fb-toast variants above keep white text on a dark bg.
+ion-toast:not(.fb-toast) {
+  --color: #111827;
+  --background: #ffffff;
+}
+
+// ─────────────────────────────────────────────
+// Global print styles — hide app shell, show receipt
+// ─────────────────────────────────────────────
+@media print {
+  // Hide sidebar, topbar, bottom tabs, and all shell chrome
+  .sidebar,
+  .sidebar--mobile,
+  .sidebar-overlay,
+  .topbar,
+  .tabs-bar,
+  ion-tab-bar,
+  ion-header {
+    display: none !important;
+  }
+
+  // Let the main content fill the page
+  .shell {
+    display: block !important;
+    padding: 0 !important;
+  }
+
+  .main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .content {
+    padding: 0 !important;
+  }
+
+  ion-app,
+  ion-router-outlet,
+  .ion-page {
+    overflow: visible !important;
+    contain: none !important;
+    position: static !important;
+  }
+
+  ion-content {
+    --overflow: visible;
+    overflow: visible !important;
+    contain: none !important;
+  }
+
+  ion-content::part(scroll) {
+    overflow: visible !important;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Arabic RTL Support
+// ─────────────────────────────────────────────
+
+[dir="rtl"],
+:lang(ar) {
+  font-family: $fb-font-arabic;
+  direction: rtl;
+  text-align: right;
+
+  // Flip flex/grid row directions
+  .fb-btn,
+  .fb-card,
+  .fb-table,
+  .fb-timeline {
+    direction: rtl;
+  }
+
+  // Table headers right-aligned
+  .fb-table th,
+  .fb-table td {
+    text-align: right;
+  }
+
+  // Timeline mirror
+  .fb-timeline {
+    padding-inline-start: $fb-space-8;
+    padding-inline-end: 0;
+  }
+
+  .fb-timeline-item::before {
+    inset-inline-start: -25px;
+    inset-inline-end: auto;
+  }
+
+  .fb-timeline-item-dot {
+    inset-inline-start: -32px;
+    inset-inline-end: auto;
+  }
+
+  // Wizard steps
+  .fb-wizard-progress .step-connector {
+    transform: scaleX(-1);
+  }
+
+  // Sidebar icon spacing
+  .admin-sidenav__item ion-icon,
+  .partner-sidenav__item ion-icon {
+    margin-inline-end: $fb-space-3;
+    margin-inline-start: 0;
+  }
+
+  // Input icons
+  .fb-field__icon {
+    inset-inline-start: $fb-space-3;
+    inset-inline-end: auto;
+  }
+
+  .fb-field__toggle {
+    inset-inline-end: $fb-space-3;
+    inset-inline-start: auto;
+  }
+
+  .fb-input--with-icon {
+    padding-inline-start: $fb-space-10;
+    padding-inline-end: $fb-space-4;
+  }
+
+  // Ionic overrides for RTL
+  ion-item {
+    --padding-start: 0;
+    --padding-end: #{$fb-space-4};
+    --inner-padding-start: #{$fb-space-4};
+    --inner-padding-end: 0;
+  }
+}
+
+// Arabic-specific typography
+:lang(ar) * {
+  font-family: $fb-font-arabic !important;
+  letter-spacing: 0 !important;
+  line-height: 1.8;
+}
+
+// Preserve monospace for numbers/amounts in RTL
+[dir="rtl"] .fb-currency,
+[dir="rtl"] .kpi-value,
+[dir="rtl"] .rate-display {
+  font-family: $fb-font-mono;
+  direction: ltr;
+  display: inline-block;
+}
+

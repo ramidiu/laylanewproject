@@ -1,0 +1,103 @@
+<div class="settlements-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Settlements</h1>
+      <p class="page-subtitle">Manage partner settlement transactions</p>
+    </div>
+    <button class="fb-btn fb-btn--primary" (click)="showInitiateForm = !showInitiateForm">
+      <ion-icon name="add-outline"></ion-icon>
+      Initiate Settlement
+    </button>
+  </div>
+
+  <!-- Initiate Form -->
+  <div class="fb-card add-form-card" *ngIf="showInitiateForm">
+    <h3 class="section-title">New Settlement</h3>
+    <div class="form-grid">
+      <div class="fb-field">
+        <label class="fb-field__label">Direction</label>
+        <select class="fb-input" [(ngModel)]="newSettlement.direction" (ngModelChange)="onDirectionChange()">
+          <option value="ADMIN_TO_PAYOUT">Admin to Payout Partner</option>
+          <option value="PAYIN_TO_ADMIN">Pay-In Partner to Admin</option>
+        </select>
+      </div>
+      <div class="fb-field">
+        <label class="fb-field__label">Partner</label>
+        <select class="fb-input" [(ngModel)]="newSettlement.partnerId">
+          <option [ngValue]="null">Select Partner</option>
+          <option *ngFor="let p of partners" [ngValue]="p.id">{{ p.partnerName || p.name }}</option>
+        </select>
+      </div>
+      <div class="fb-field">
+        <label class="fb-field__label">Amount</label>
+        <input class="fb-input" type="number" [(ngModel)]="newSettlement.amount" step="0.01" placeholder="0.00" />
+      </div>
+      <div class="fb-field">
+        <label class="fb-field__label">Currency</label>
+        <input class="fb-input" [(ngModel)]="newSettlement.currency" placeholder="USD" />
+      </div>
+      <div class="fb-field fb-field--full">
+        <label class="fb-field__label">Notes</label>
+        <input class="fb-input" [(ngModel)]="newSettlement.notes" placeholder="Settlement notes" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="fb-btn fb-btn--primary" [disabled]="!newSettlement.partnerId || !newSettlement.amount" (click)="initiateSettlement()">Initiate</button>
+      <button class="fb-btn fb-btn--secondary" (click)="showInitiateForm = false">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Settlements Table -->
+  <div class="fb-card table-card">
+    <div *ngIf="loading" class="table-loading">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5,6]"></div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!loading">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Partner</th>
+            <th>Direction</th>
+            <th>Amount</th>
+            <th>Currency</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of settlements">
+            <td class="ref-cell">#{{ s.id }}</td>
+            <td>{{ getPartnerName(s.partnerId) }}</td>
+            <td>
+              <ion-badge color="secondary">{{ s.direction || 'N/A' }}</ion-badge>
+            </td>
+            <td class="fb-currency">{{ s.amount | number:'1.2-2' }}</td>
+            <td>{{ s.currency }}</td>
+            <td>
+              <ion-badge [color]="getStatusColor(s.status)">{{ s.status }}</ion-badge>
+            </td>
+            <td>{{ s.createdAt | date:'MMM d, y' }}</td>
+            <td>
+              <div class="action-buttons" *ngIf="s.status === 'PENDING'">
+                <ion-button fill="clear" size="small" color="success" (click)="approveSettlement(s)">
+                  <ion-icon name="checkmark-circle-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+                <ion-button fill="clear" size="small" color="danger" (click)="rejectSettlement(s)">
+                  <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading && settlements.length === 0" class="empty-state">
+      <ion-icon name="wallet-outline"></ion-icon>
+      <p>No settlements found</p>
+    </div>
+  </div>
+</div>

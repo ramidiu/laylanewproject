@@ -1,0 +1,14 @@
+@import '../../../../theme/remitzai-design-tokens';
+
+:host {
+  display: block;
+}
+
+.kpi-icon {
+  margin-bottom: $fb-space-3;
+
+  ion-icon {
+    font-size: $fb-text-2xl;
+    color: $fb-navy;
+  }
+}

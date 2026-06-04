@@ -1,0 +1,2 @@
+ALTER TABLE kyc_audit_log
+    MODIFY COLUMN action VARCHAR(50) NOT NULL;

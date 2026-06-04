@@ -1,0 +1,108 @@
+<div class="admin-dash">
+  <h1 class="admin-dash__title">Dashboard</h1>
+  <p class="admin-dash__subtitle">Overview of your remittance platform</p>
+
+  <!-- KPI Row -->
+  <div class="kpi-grid">
+    <app-kpi-card
+      [value]="kpis.totalTransactions"
+      label="Total Transactions"
+      trend="+12.5% from last month"
+      trendDirection="up"
+      icon="swap-horizontal"
+    ></app-kpi-card>
+
+    <app-kpi-card
+      [value]="kpis.revenue"
+      label="Revenue (Fees)"
+      trend="+8.3% from last month"
+      trendDirection="up"
+      variant="sky"
+      icon="cash"
+    ></app-kpi-card>
+
+    <app-kpi-card
+      [value]="kpis.activeUsers"
+      label="Active Users"
+      trend="+5.1% from last month"
+      trendDirection="up"
+      variant="success"
+      icon="people"
+    ></app-kpi-card>
+
+    <app-kpi-card
+      [value]="kpis.pendingCompliance"
+      label="Pending Compliance"
+      trend="Requires attention"
+      trendDirection="up"
+      variant="warning"
+      icon="shield-checkmark"
+    ></app-kpi-card>
+  </div>
+
+  <!-- Charts Placeholder & Alerts -->
+  <div class="admin-dash__grid">
+    <!-- Chart Placeholder -->
+    <div class="fb-card chart-card">
+      <h3 class="card-title">Transaction Volume</h3>
+      <div class="chart-placeholder">
+        <ion-icon name="bar-chart-outline"></ion-icon>
+        <p>Chart visualization area</p>
+        <span>Integrate with Chart.js or ngx-charts</span>
+      </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="fb-card alerts-card">
+      <div class="card-header">
+        <h3 class="card-title">Recent Compliance Alerts</h3>
+        <a routerLink="/admin/compliance" class="card-link">View All</a>
+      </div>
+
+      <div *ngIf="loading" class="alerts-loading">
+        <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+      </div>
+
+      <div *ngIf="!loading && recentAlerts.length === 0" class="alerts-empty">
+        <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
+        <p>No open alerts</p>
+      </div>
+
+      <div class="alert-list" *ngIf="!loading">
+        <div class="alert-item" *ngFor="let alert of recentAlerts" routerLink="/admin/compliance">
+          <ion-badge [color]="getSeverityColor(alert.severity)" class="alert-item__severity">
+            {{ alert.severity }}
+          </ion-badge>
+          <div class="alert-item__info">
+            <span class="alert-item__type">{{ alert.alertType }}</span>
+            <span class="alert-item__ref">{{ alert.referenceNumber }}</span>
+          </div>
+          <span class="alert-item__time">{{ alert.createdAt | date:'MMM d' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="fb-card quick-actions-card">
+    <h3 class="card-title">Quick Actions</h3>
+    <div class="quick-actions-grid">
+      <button class="quick-action" routerLink="/admin/users">
+        <ion-icon name="people-outline"></ion-icon>
+        <span>Manage Users</span>
+      </button>
+      <button class="quick-action" routerLink="/admin/transactions">
+        <ion-icon name="swap-horizontal-outline"></ion-icon>
+        <span>View Transactions</span>
+      </button>
+      <button class="quick-action" routerLink="/admin/compliance">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>Compliance Queue</span>
+      </button>
+      <button class="quick-action" routerLink="/admin/fx">
+        <ion-icon name="trending-up-outline"></ion-icon>
+        <span>FX Rates</span>
+      </button>
+    </div>
+  </div>
+</div>

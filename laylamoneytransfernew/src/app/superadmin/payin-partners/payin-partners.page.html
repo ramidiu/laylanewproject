@@ -1,0 +1,89 @@
+<div class="partners-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Pay-In Partners</h1>
+      <p class="page-subtitle">Manage pay-in collection partners</p>
+    </div>
+    <button class="fb-btn fb-btn--primary" (click)="showAddForm = !showAddForm">
+      <ion-icon name="add-outline"></ion-icon>
+      Add Partner
+    </button>
+  </div>
+
+  <!-- Add Form -->
+  <div class="fb-card add-form-card" *ngIf="showAddForm">
+    <h3 class="section-title">New Pay-In Partner</h3>
+    <div class="form-grid">
+      <div class="fb-field">
+        <label class="fb-field__label">Partner Name</label>
+        <input class="fb-input" [(ngModel)]="newPartner.partnerName" placeholder="Partner company name" />
+      </div>
+      <div class="fb-field">
+        <label class="fb-field__label">Email</label>
+        <input class="fb-input" type="email" [(ngModel)]="newPartner.contactEmail" placeholder="partner@company.com" />
+      </div>
+      <div class="fb-field">
+        <label class="fb-field__label">Phone</label>
+        <input class="fb-input" [(ngModel)]="newPartner.contactPhone" placeholder="+1234567890" />
+      </div>
+      <div class="fb-field">
+        <label class="fb-field__label">Password</label>
+        <input class="fb-input" type="password" [(ngModel)]="newPartner.password" placeholder="Login password for partner" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="fb-btn fb-btn--primary" [disabled]="!newPartner.partnerName || !newPartner.contactEmail || !newPartner.password || newPartner.password.length < 8" (click)="addPartner()">Create Partner</button>
+      <button class="fb-btn fb-btn--secondary" (click)="showAddForm = false">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="fb-card table-card">
+    <div *ngIf="loading" class="table-loading">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!loading">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let partner of partners">
+            <td class="partner-name">{{ partner.partnerName }}</td>
+            <td>{{ partner.contactEmail }}</td>
+            <td>{{ partner.contactPhone || '-' }}</td>
+            <td>
+              <span class="status-badge" [class.status-badge--active]="partner.isActive" [class.status-badge--inactive]="!partner.isActive">
+                {{ partner.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn" [class.action-btn--warning]="partner.isActive" [class.action-btn--success]="!partner.isActive" (click)="toggleActive(partner)">
+                  <ion-icon [name]="partner.isActive ? 'pause-circle-outline' : 'play-circle-outline'"></ion-icon>
+                  {{ partner.isActive ? 'Pause' : 'Activate' }}
+                </button>
+                <button class="action-btn action-btn--login" (click)="loginAsPartner(partner)">
+                  <ion-icon name="log-in-outline"></ion-icon>
+                  Login as Partner
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading && partners.length === 0" class="empty-state">
+      <ion-icon name="cash-outline"></ion-icon>
+      <p>No pay-in partners configured</p>
+    </div>
+  </div>
+</div>

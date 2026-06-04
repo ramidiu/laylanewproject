@@ -1,0 +1,265 @@
+@import 'remitzai-design-tokens';
+
+// ============================================================
+// Ionic CSS Custom Properties - Layla Money Transfer Theme
+// ============================================================
+
+:root {
+  // --- Primary (Deep Navy) ---
+  --ion-color-primary: #{$fb-navy};
+  --ion-color-primary-rgb: 27, 58, 107;
+  --ion-color-primary-contrast: #{$fb-white};
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #{$fb-navy-dark};
+  --ion-color-primary-tint: #{$fb-navy-light};
+
+  // --- Secondary (Crimson Red) ---
+  --ion-color-secondary: #{$fb-sky};
+  --ion-color-secondary-rgb: 192, 32, 62;
+  --ion-color-secondary-contrast: #{$fb-white};
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #{$fb-sky-dark};
+  --ion-color-secondary-tint: #{$fb-sky-light};
+
+  // --- Tertiary ---
+  --ion-color-tertiary: #{$fb-navy-light};
+  --ion-color-tertiary-rgb: 45, 90, 155;
+  --ion-color-tertiary-contrast: #{$fb-white};
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #{$fb-navy};
+  --ion-color-tertiary-tint: #{$fb-navy-light};
+
+  // --- Success ---
+  --ion-color-success: #{$fb-success};
+  --ion-color-success-rgb: 16, 185, 129;
+  --ion-color-success-contrast: #{$fb-white};
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #0ea572;
+  --ion-color-success-tint: #28c08e;
+
+  // --- Warning ---
+  --ion-color-warning: #{$fb-warning};
+  --ion-color-warning-rgb: 245, 158, 11;
+  --ion-color-warning-contrast: #{$fb-white};
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #d88b0a;
+  --ion-color-warning-tint: #f6a823;
+
+  // --- Danger ---
+  --ion-color-danger: #{$fb-danger};
+  --ion-color-danger-rgb: 239, 68, 68;
+  --ion-color-danger-contrast: #{$fb-white};
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #d23c3c;
+  --ion-color-danger-tint: #f15757;
+
+  // --- Medium ---
+  --ion-color-medium: #{$fb-gray-500};
+  --ion-color-medium-rgb: 107, 114, 128;
+  --ion-color-medium-contrast: #{$fb-white};
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5e6470;
+  --ion-color-medium-tint: #7a818d;
+
+  // --- Light ---
+  --ion-color-light: #{$fb-gray-50};
+  --ion-color-light-rgb: 248, 250, 252;
+  --ion-color-light-contrast: #{$fb-gray-800};
+  --ion-color-light-contrast-rgb: 31, 41, 55;
+  --ion-color-light-shade: #dbdcdd;
+  --ion-color-light-tint: #fafbfc;
+
+  // --- Global Overrides ---
+  --ion-font-family: #{$fb-font-body};
+  --ion-background-color: #{$fb-gray-50};
+  --ion-text-color: #{$fb-gray-800};
+  --ion-toolbar-background: #{$fb-navy};
+  --ion-toolbar-color: #{$fb-white};
+  --ion-tab-bar-background: #{$fb-white};
+  --ion-tab-bar-color: #{$fb-gray-400};
+  --ion-tab-bar-color-selected: #{$fb-navy};
+  --ion-item-background: #{$fb-white};
+  --ion-card-background: #{$fb-white};
+  --ion-border-color: #{$fb-gray-200};
+
+  // --- Layla Brand CSS Variables ---
+  --ly-navy: #{$fb-navy};
+  --ly-navy-dark: #{$fb-navy-dark};
+  --ly-red: #{$fb-sky};
+  --ly-red-dark: #{$fb-sky-dark};
+}
+
+// --- Ionic Component Overrides ---
+
+ion-toolbar {
+  --background: #{$fb-navy};
+  --color: #{$fb-white};
+  --border-width: 0;
+  --min-height: 56px;
+}
+
+ion-header ion-toolbar:first-of-type {
+  --background: #{$fb-navy};
+}
+
+ion-tab-bar {
+  --background: #{$fb-white};
+  --border: 1px solid #{$fb-gray-100};
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+  height: 64px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+ion-tab-button {
+  --color: #{$fb-gray-400};
+  --color-selected: #{$fb-navy};
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-medium;
+
+  &.tab-selected {
+    --color: #{$fb-navy};
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 25%;
+      right: 25%;
+      height: 3px;
+      background: #{$fb-sky};
+      border-radius: 0 0 $fb-radius-full $fb-radius-full;
+    }
+  }
+}
+
+ion-card {
+  --background: #{$fb-white};
+  border-radius: $fb-radius-lg;
+  box-shadow: $fb-shadow-card;
+  margin: $fb-space-3;
+}
+
+ion-item {
+  --background: transparent;
+  --border-color: #{$fb-gray-100};
+  --padding-start: #{$fb-space-4};
+  --padding-end: #{$fb-space-4};
+  --inner-padding-end: 0;
+  font-size: $fb-text-base;
+}
+
+ion-input, ion-textarea {
+  --background: #{$fb-white};
+  --color: #{$fb-gray-800};
+  --placeholder-color: #{$fb-gray-400};
+  --padding-start: #{$fb-space-4};
+  --padding-end: #{$fb-space-4};
+  --border-radius: #{$fb-radius-md};
+  font-family: $fb-font-body;
+}
+
+ion-button {
+  --border-radius: #{$fb-radius-md};
+  --padding-start: #{$fb-space-6};
+  --padding-end: #{$fb-space-6};
+  font-family: $fb-font-body;
+  font-weight: $fb-font-semibold;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 48px;
+}
+
+ion-button[fill="solid"] {
+  --background: #{$fb-navy};
+  --background-hover: #{$fb-navy-dark};
+  --background-activated: #{$fb-navy-dark};
+  --color: #{$fb-white};
+}
+
+ion-button[fill="outline"] {
+  --border-color: #{$fb-navy};
+  --color: #{$fb-navy};
+  --border-width: 1.5px;
+}
+
+ion-searchbar {
+  --background: #{$fb-white};
+  --border-radius: #{$fb-radius-lg};
+  --box-shadow: #{$fb-shadow-card};
+  --placeholder-color: #{$fb-gray-400};
+  --icon-color: #{$fb-gray-400};
+  --color: #{$fb-gray-800};
+  font-family: $fb-font-body;
+}
+
+ion-segment {
+  --background: #{$fb-gray-100};
+  border-radius: $fb-radius-lg;
+}
+
+ion-segment-button {
+  --background-checked: #{$fb-navy};
+  --color-checked: #{$fb-white};
+  --indicator-color: transparent;
+  --border-radius: #{$fb-radius-md};
+  font-weight: $fb-font-semibold;
+  text-transform: none;
+  min-height: 36px;
+}
+
+ion-badge {
+  --background: #{$fb-navy};
+  --color: #{$fb-white};
+  border-radius: $fb-radius-full;
+  font-weight: $fb-font-semibold;
+  padding: 4px 10px;
+}
+
+ion-chip {
+  --background: #{$fb-sky-pale};
+  --color: #{$fb-navy};
+  border-radius: $fb-radius-full;
+  font-weight: $fb-font-medium;
+}
+
+ion-toast {
+  --border-radius: #{$fb-radius-md};
+  font-family: $fb-font-body;
+}
+
+ion-alert {
+  --backdrop-opacity: 0.4;
+  .alert-wrapper {
+    border-radius: $fb-radius-xl !important;
+  }
+}
+
+ion-modal {
+  --border-radius: #{$fb-radius-xl} #{$fb-radius-xl} 0 0;
+}
+
+ion-fab-button {
+  --background: #{$fb-navy};
+  --background-activated: #{$fb-navy-dark};
+  --color: #{$fb-white};
+}
+
+ion-refresher-content {
+  --color: #{$fb-navy};
+}
+
+// Scrollbar styles
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #{$fb-gray-100};
+}
+::-webkit-scrollbar-thumb {
+  background: #{$fb-gray-300};
+  border-radius: $fb-radius-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #{$fb-gray-400};
+}

@@ -1,0 +1,147 @@
+<div class="wallet-mgmt-page">
+  <h1 class="page-title">User Wallets</h1>
+  <p class="page-subtitle">View and manage all user wallets, balances, and transactions</p>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <ion-icon name="search-outline" class="search-icon"></ion-icon>
+    <input type="text" class="form-input search-input" placeholder="Search by name, email, wallet number, or user ID..."
+           [(ngModel)]="searchTerm" (ngModelChange)="applyFilter()" />
+  </div>
+
+  <!-- Wallet List -->
+  <div class="fb-card table-card" *ngIf="!selectedWallet">
+    <div *ngIf="walletsLoading" class="table-loading">
+      <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4,5]"></div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!walletsLoading">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Wallet Number</th>
+            <th>Balance</th>
+            <th>Currency</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let w of filteredWallets">
+            <td class="user-cell">
+              <span class="user-name">{{ w.userName || w.userEmail || 'User #' + w.userId }}</span>
+              <span class="user-email" *ngIf="w.userEmail && w.userName">{{ w.userEmail }}</span>
+            </td>
+            <td class="mono-value">{{ w.walletNumber || '-' }}</td>
+            <td class="mono-value balance-value">{{ w.balance | number:'1.2-2' }}</td>
+            <td>{{ w.currency || 'USD' }}</td>
+            <td>
+              <ion-badge [color]="getStatusColor(w.status)">{{ w.status || 'ACTIVE' }}</ion-badge>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn--navy btn--sm" (click)="viewLedger(w)">Ledger</button>
+                <button class="btn btn--success btn--sm" (click)="openModal('CREDIT', w)">Credit</button>
+                <button class="btn btn--danger btn--sm" (click)="openModal('DEBIT', w)">Debit</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!walletsLoading && filteredWallets.length === 0" class="empty-state">
+      <ion-icon name="wallet-outline"></ion-icon>
+      <p>No wallets found</p>
+    </div>
+  </div>
+
+  <!-- Ledger Detail View -->
+  <div *ngIf="selectedWallet" class="ledger-detail">
+    <div class="ledger-detail__header">
+      <div>
+        <h2 class="ledger-detail__title">
+          Wallet Ledger &mdash; {{ selectedWallet.userName || selectedWallet.userEmail || 'User #' + selectedWallet.userId }}
+        </h2>
+        <p class="ledger-detail__subtitle">
+          Wallet: {{ selectedWallet.walletNumber || '-' }} | Balance: {{ selectedWallet.balance | number:'1.2-2' }} {{ selectedWallet.currency || 'USD' }}
+        </p>
+      </div>
+      <div class="ledger-detail__actions">
+        <button class="btn btn--success btn--sm" (click)="openModal('CREDIT', selectedWallet)">Credit</button>
+        <button class="btn btn--danger btn--sm" (click)="openModal('DEBIT', selectedWallet)">Debit</button>
+        <button class="btn btn--outline" (click)="closeLedger()">Back to Wallets</button>
+      </div>
+    </div>
+
+    <div class="fb-card table-card">
+      <div *ngIf="ledgerLoading" class="table-loading">
+        <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4]"></div>
+      </div>
+
+      <div class="table-wrapper" *ngIf="!ledgerLoading">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Balance After</th>
+              <th>Description</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of ledgerEntries">
+              <td>{{ entry.createdAt | date:'MMM d, y HH:mm' }}</td>
+              <td>
+                <ion-badge [color]="getEntryTypeColor(entry.type || entry.entryType)">{{ entry.type || entry.entryType }}</ion-badge>
+              </td>
+              <td class="mono-value" [class.credit]="(entry.type || entry.entryType) === 'CREDIT'" [class.debit]="(entry.type || entry.entryType) === 'DEBIT'">
+                {{ (entry.type || entry.entryType) === 'CREDIT' ? '+' : '-' }}{{ entry.amount | number:'1.2-2' }}
+              </td>
+              <td class="mono-value">{{ entry.balanceAfter | number:'1.2-2' }}</td>
+              <td>{{ entry.description || '-' }}</td>
+              <td class="ref-cell">{{ entry.referenceId || entry.reference || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!ledgerLoading && ledgerEntries.length === 0" class="empty-state">
+        <ion-icon name="document-text-outline"></ion-icon>
+        <p>No ledger entries for this wallet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credit / Debit Modal -->
+  <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-card__header" [class.modal-card__header--credit]="modalMode === 'CREDIT'" [class.modal-card__header--debit]="modalMode === 'DEBIT'">
+        <h3>{{ modalMode === 'CREDIT' ? 'Credit' : 'Debit' }} Wallet</h3>
+        <button class="modal-close" (click)="closeModal()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="modal-card__body">
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <input type="number" class="form-input" [(ngModel)]="modalAmount" placeholder="0.00" min="0.01" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" class="form-input" [(ngModel)]="modalDescription" placeholder="Reason for {{ modalMode === 'CREDIT' ? 'credit' : 'debit' }}" />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--outline" (click)="closeModal()">Cancel</button>
+          <button class="btn" [class.btn--success]="modalMode === 'CREDIT'" [class.btn--danger]="modalMode === 'DEBIT'"
+                  (click)="submitModal()" [disabled]="modalSubmitting || !modalAmount || !modalDescription">
+            {{ modalSubmitting ? 'Processing...' : (modalMode === 'CREDIT' ? 'Credit' : 'Debit') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

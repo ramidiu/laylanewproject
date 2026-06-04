@@ -1,0 +1,174 @@
+<div class="admin-fx">
+  <h1 class="page-title">FX Rates & Margins</h1>
+  <p class="page-subtitle">Manage exchange rates and corridor margins</p>
+
+  <!-- Rate Mode Toggle -->
+  <div class="rate-mode-card" [class.rate-mode-card--manual]="manualMode">
+    <div class="rate-mode-card__left">
+      <div class="rate-mode-card__icon">
+        <ion-icon [name]="manualMode ? 'hand-left-outline' : 'cloud-download-outline'"></ion-icon>
+      </div>
+      <div class="rate-mode-card__info">
+        <div class="rate-mode-card__title">Rate Source Mode</div>
+        <div class="rate-mode-card__desc" *ngIf="!manualMode">
+          <strong>Automatic</strong> — Exchange rates are fetched live from the API every 5 minutes.
+        </div>
+        <div class="rate-mode-card__desc" *ngIf="manualMode">
+          <strong>Manual Override</strong> — Exchange rates are set manually below. API rates are ignored.
+        </div>
+      </div>
+    </div>
+    <div class="rate-mode-card__right">
+      <button class="rate-mode-btn" [class.rate-mode-btn--on]="manualMode" [disabled]="modeToggling" (click)="toggleRateMode()">
+        <span *ngIf="modeToggling"><ion-spinner name="dots" style="width:16px;height:16px;"></ion-spinner></span>
+        <span *ngIf="!modeToggling">{{ manualMode ? 'MANUAL ON' : 'AUTO ON' }}</span>
+      </button>
+      <div class="rate-mode-hint">Click to switch to {{ manualMode ? 'Automatic' : 'Manual' }}</div>
+    </div>
+  </div>
+
+  <!-- Manual Rate Override (shown when manual mode is ON) -->
+  <div class="fb-card table-card manual-rates-card" *ngIf="manualMode && !loading">
+    <div class="section-header-row">
+      <h3 class="section-title">
+        <ion-icon name="create-outline" style="margin-right:6px;vertical-align:middle;"></ion-icon>
+        Set Manual Exchange Rates
+      </h3>
+      <ion-badge color="warning" style="font-size:11px;">MANUAL MODE ACTIVE</ion-badge>
+    </div>
+    <div class="table-wrapper">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th>Pair</th>
+            <th>Current Manual Rate</th>
+            <th>API Rate</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let pair of pairs">
+            <td><span class="pair-badge">{{ pair.base }}/{{ pair.target }}</span></td>
+            <td>
+              <ng-container *ngIf="editingRate !== pairKey(pair)">
+                <span class="manual-rate-value" *ngIf="getManualRate(pair) !== null">
+                  {{ getManualRate(pair) | number:'1.4-4' }}
+                  <ion-badge color="warning" style="font-size:10px;margin-left:4px;">SET</ion-badge>
+                </span>
+                <span class="manual-rate-empty" *ngIf="getManualRate(pair) === null">—</span>
+              </ng-container>
+              <div class="rate-edit-row" *ngIf="editingRate === pairKey(pair)">
+                <input type="number" class="fb-input rate-input" [(ngModel)]="editRateValue"
+                  placeholder="e.g. 605.50" step="0.0001" min="0.0001" />
+              </div>
+            </td>
+            <td class="fb-currency api-rate-col">
+              <span *ngFor="let rate of rates">
+                <span *ngIf="rate.baseCurrency === pair.base && rate.targetCurrency === pair.target">
+                  {{ rate.rate | number:'1.4-4' }}
+                </span>
+              </span>
+            </td>
+            <td>
+              <ng-container *ngIf="editingRate !== pairKey(pair)">
+                <button class="tbl-btn tbl-btn--primary" (click)="startEditRate(pair)">
+                  <ion-icon name="create-outline"></ion-icon>
+                  Set Rate
+                </button>
+                <button class="tbl-btn tbl-btn--ghost-danger"
+                  *ngIf="getManualRate(pair) !== null"
+                  (click)="clearRate(pair)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </button>
+              </ng-container>
+              <div class="rate-edit-actions" *ngIf="editingRate === pairKey(pair)">
+                <button class="tbl-btn tbl-btn--success" [disabled]="savingRate" (click)="saveRate(pair)">
+                  <ion-icon name="checkmark"></ion-icon>
+                  Save
+                </button>
+                <button class="tbl-btn tbl-btn--medium" (click)="cancelRateEdit()">
+                  Cancel
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+  </div>
+
+  <!-- Live / Active Rates -->
+  <div class="fb-card table-card" *ngIf="!loading">
+    <div class="section-header-row">
+      <h3 class="section-title">
+        <ion-icon [name]="manualMode ? 'hand-left-outline' : 'trending-up-outline'" style="margin-right:6px;vertical-align:middle;"></ion-icon>
+        {{ manualMode ? 'Active Rates (Manual Override)' : 'Live Exchange Rates (API)' }}
+      </h3>
+      <ion-badge [color]="manualMode ? 'warning' : 'success'" style="font-size:11px;">
+        {{ manualMode ? 'MANUAL MODE' : 'AUTO MODE' }}
+      </ion-badge>
+    </div>
+    <div class="table-wrapper">
+      <table class="fb-table">
+        <thead>
+          <tr><th>Pair</th><th>Rate</th><th>Source</th><th>Fetched At</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let rate of rates">
+            <td><span class="pair-badge">{{ rate.baseCurrency }}/{{ rate.targetCurrency }}</span></td>
+            <td class="fb-currency">{{ rate.rate | number:'1.4-4' }}</td>
+            <td>
+              <ion-badge [color]="rate.source === 'MANUAL' ? 'warning' : 'success'" style="font-size:11px;">
+                {{ rate.source || 'API' }}
+              </ion-badge>
+            </td>
+            <td>{{ rate.fetchedAt | date:'MMM d, y HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Corridor Margins (only shown in auto mode) -->
+  <div class="fb-card table-card" *ngIf="!loading && !manualMode && margins.length > 0" style="margin-top: 24px;">
+    <h3 class="section-title">Corridor Margins</h3>
+    <div class="table-wrapper">
+      <table class="fb-table">
+        <thead>
+          <tr><th>Corridor</th><th>Margin %</th><th>Fixed Margin</th><th>Delivery Method</th><th>Active</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let margin of margins">
+            <td><span class="pair-badge">{{ margin.sendCurrency }}/{{ margin.receiveCurrency }}</span></td>
+            <td>
+              <span *ngIf="editingMargin !== margin.id">{{ margin.marginPercentage | number:'1.2-2' }}%</span>
+              <div class="margin-edit" *ngIf="editingMargin === margin.id">
+                <input type="number" class="fb-input margin-input" [(ngModel)]="editMarginValue" step="0.01" min="0" max="100" />
+                <div class="margin-edit-actions">
+                  <button class="tbl-btn tbl-btn--success" (click)="saveMargin(margin)">
+                    <ion-icon name="checkmark"></ion-icon>
+                  </button>
+                  <button class="tbl-btn tbl-btn--medium" (click)="cancelEdit()">
+                    <ion-icon name="close"></ion-icon>
+                  </button>
+                </div>
+              </div>
+            </td>
+            <td>{{ margin.marginFixed | number:'1.2-4' }}</td>
+            <td>{{ margin.deliveryMethod || 'All' }}</td>
+            <td><ion-badge [color]="margin.isActive ? 'success' : 'medium'">{{ margin.isActive ? 'Active' : 'Inactive' }}</ion-badge></td>
+            <td>
+              <button class="tbl-btn tbl-btn--primary" (click)="startEditMargin(margin)" *ngIf="editingMargin !== margin.id">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

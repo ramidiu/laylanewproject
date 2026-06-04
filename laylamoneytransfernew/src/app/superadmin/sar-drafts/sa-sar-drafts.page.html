@@ -1,0 +1,55 @@
+<div class="sar-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">SAR Draft Generator</h1>
+      <p class="page-subtitle">Turn a closed compliance alert into a structured Suspicious Activity Report draft for review and filing</p>
+    </div>
+  </div>
+
+  <div class="generator-card">
+    <div class="form-row">
+      <label class="form-label">Alert ID</label>
+      <input
+        class="form-input"
+        type="number"
+        [(ngModel)]="alertIdInput"
+        placeholder="e.g. 42"
+        (keyup.enter)="generate()"
+        [disabled]="generating" />
+      <button class="fb-btn fb-btn--primary" (click)="generate()" [disabled]="generating">
+        <ion-icon name="document-text-outline"></ion-icon>
+        {{ generating ? 'Generating…' : 'Generate SAR draft' }}
+      </button>
+      <button class="fb-btn fb-btn--ghost" (click)="clear()" *ngIf="draft || errorMessage">
+        Clear
+      </button>
+    </div>
+    <div class="hint">
+      Accepts any alert id — preferably one already closed as <strong>CLOSED_SAR_FILED</strong>. The draft is stored with filing_status=DRAFT
+      in sar_reports and must be manually reviewed before filing to the regulator.
+    </div>
+    <div class="error" *ngIf="errorMessage">{{ errorMessage }}</div>
+  </div>
+
+  <div class="draft-panel" *ngIf="draft">
+    <div class="draft-header">
+      <div>
+        <div class="draft-title">SAR Draft #{{ draft.sarReportId }}</div>
+        <div class="draft-meta">
+          Status: <span class="badge badge--warning">{{ draft.filingStatus }}</span>
+          <span *ngIf="draft.caseReference"> · Case: <span class="mono">{{ draft.caseReference }}</span></span>
+        </div>
+      </div>
+      <div class="draft-actions">
+        <button class="fb-btn fb-btn--ghost" (click)="copyJson()">
+          <ion-icon name="copy-outline"></ion-icon> Copy JSON
+        </button>
+        <button class="fb-btn fb-btn--primary" (click)="downloadJson()">
+          <ion-icon name="download-outline"></ion-icon> Download .json
+        </button>
+      </div>
+    </div>
+
+    <pre class="json-viewer">{{ draft.reportContent }}</pre>
+  </div>
+</div>

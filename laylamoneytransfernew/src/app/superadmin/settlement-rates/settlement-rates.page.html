@@ -1,0 +1,126 @@
+<div class="settlement-rates-page">
+  <h1 class="page-title">Settlement Rates</h1>
+  <p class="page-subtitle">Manage global settlement rates and partner overrides</p>
+
+  <ion-segment [(ngModel)]="activeSegment" class="rates-tabs">
+    <ion-segment-button value="global"><ion-label>Global Rates</ion-label></ion-segment-button>
+    <ion-segment-button value="partner"><ion-label>Partner Overrides</ion-label></ion-segment-button>
+  </ion-segment>
+
+  <!-- Global Rates -->
+  <div *ngIf="activeSegment === 'global'" class="tab-content">
+    <div class="tab-header">
+      <button class="fb-btn fb-btn--primary btn-sm" (click)="showAddRate = !showAddRate">
+        <ion-icon name="add-outline"></ion-icon> Add Rate
+      </button>
+    </div>
+
+    <!-- Add Rate Form -->
+    <div class="fb-card add-form-card" *ngIf="showAddRate">
+      <div class="inline-form">
+        <div class="fb-field">
+          <label class="fb-field__label">Currency</label>
+          <input class="fb-input" [(ngModel)]="newRate.currency" placeholder="e.g. NGN" />
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Rate to USD</label>
+          <input class="fb-input" type="number" [(ngModel)]="newRate.rateToUsd" step="0.0001" />
+        </div>
+        <div class="inline-form__actions">
+          <button class="fb-btn fb-btn--primary btn-sm" [disabled]="!newRate.currency" (click)="addGlobalRate()">Add</button>
+          <button class="fb-btn fb-btn--secondary btn-sm" (click)="showAddRate = false">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fb-card table-card">
+      <div *ngIf="globalLoading" class="table-loading">
+        <div class="fb-skeleton fb-skeleton--text" *ngFor="let i of [1,2,3,4]"></div>
+      </div>
+
+      <div class="table-wrapper" *ngIf="!globalLoading">
+        <table class="fb-table">
+          <thead>
+            <tr>
+              <th>Currency</th>
+              <th>Rate to USD</th>
+              <th>Updated By</th>
+              <th>Updated At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rate of globalRates">
+              <td>
+                <span class="currency-tag">{{ rate.currency }}</span>
+              </td>
+              <td>
+                <span *ngIf="editingRate !== rate.currency" class="fb-currency">{{ rate.rateToUsd | number:'1.4-4' }}</span>
+                <div class="rate-edit" *ngIf="editingRate === rate.currency">
+                  <input type="number" class="fb-input rate-input" [(ngModel)]="editRateValue" step="0.0001" />
+                  <div class="rate-edit-actions">
+                    <ion-button fill="solid" size="small" color="success" (click)="saveRate(rate)">
+                      <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+                    </ion-button>
+                    <ion-button fill="solid" size="small" color="medium" (click)="cancelEdit()">
+                      <ion-icon name="close" slot="icon-only"></ion-icon>
+                    </ion-button>
+                  </div>
+                </div>
+              </td>
+              <td>{{ rate.updatedBy || '-' }}</td>
+              <td>{{ rate.updatedAt | date:'MMM d, y HH:mm' }}</td>
+              <td>
+                <ion-button fill="clear" size="small" color="primary" (click)="startEditRate(rate)" *ngIf="editingRate !== rate.currency">
+                  <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!globalLoading && globalRates.length === 0" class="empty-state">
+        <ion-icon name="calculator-outline"></ion-icon>
+        <p>No settlement rates configured</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partner Overrides -->
+  <div *ngIf="activeSegment === 'partner'" class="tab-content">
+    <div *ngIf="partnerLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2,3]"></div>
+    </div>
+
+    <div *ngIf="!partnerLoading">
+      <div class="fb-card partner-rate-card" *ngFor="let partner of partners">
+        <div class="partner-rate-card__header" (click)="viewPartnerRates(partner)">
+          <div class="partner-rate-card__name">{{ partner.name }}</div>
+          <ion-icon [name]="expandedPartner === partner.id ? 'chevron-up' : 'chevron-down'"></ion-icon>
+        </div>
+        <div class="partner-rate-card__body" *ngIf="expandedPartner === partner.id">
+          <div class="rate-comparison" *ngFor="let pr of partnerRateList">
+            <div class="rate-comparison__currency">{{ pr.currency }}</div>
+            <div class="rate-comparison__values">
+              <div class="rate-value">
+                <span class="rate-label">Partner Rate</span>
+                <span class="rate-number">{{ pr.rateToUsd | number:'1.4-4' }}</span>
+              </div>
+              <div class="rate-value">
+                <span class="rate-label">Global Rate</span>
+                <span class="rate-number rate-number--global">{{ pr.globalRate | number:'1.4-4' }}</span>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="partnerRateList.length === 0" class="empty-text">No custom rates for this partner</div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!partnerLoading && partners.length === 0" class="empty-state">
+      <ion-icon name="people-outline"></ion-icon>
+      <p>No partners configured</p>
+    </div>
+  </div>
+</div>

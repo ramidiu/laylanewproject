@@ -1,0 +1,29 @@
+# Dependencies
+/node_modules
+
+# Build
+/www
+/dist
+/out-tsc
+
+# IDE
+/.idea
+/.vscode
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Coverage
+/coverage
+
+# Capacitor
+/android
+/ios
+
+# Misc
+*.log
+npm-debug.log*
+/.angular

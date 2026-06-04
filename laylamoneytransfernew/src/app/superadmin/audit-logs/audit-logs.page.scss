@@ -1,0 +1,44 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.audit-logs-page { max-width: 1400px; }
+
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: $fb-space-6;
+}
+.page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
+.page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }
+
+.filters-bar {
+  display: flex; gap: $fb-space-3; margin-bottom: $fb-space-4; flex-wrap: wrap;
+}
+
+.filter-select { min-width: 180px; cursor: pointer; }
+.filter-date { min-width: 140px; }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-wrapper { overflow-x: auto; }
+.table-loading { padding: $fb-space-6; display: flex; flex-direction: column; gap: $fb-space-3; }
+
+.timestamp-cell {
+  white-space: nowrap; font-size: $fb-text-xs; font-family: $fb-font-mono; color: $fb-gray-600;
+}
+
+.ref-cell { font-family: $fb-font-mono; font-size: $fb-text-xs; color: $fb-gray-500; }
+
+.details-cell {
+  max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: $fb-text-sm; color: $fb-gray-500;
+}
+
+.table-pagination {
+  display: flex; align-items: center; justify-content: center; gap: $fb-space-3;
+  padding: $fb-space-4; border-top: 1px solid $fb-gray-100;
+}
+.pagination-btn { min-height: 36px; padding: $fb-space-2 $fb-space-3; }
+.pagination-info { font-size: $fb-text-sm; color: $fb-gray-500; }
+
+.empty-state {
+  text-align: center; padding: $fb-space-10; color: $fb-gray-400;
+  ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
+  p { margin: 0; font-size: $fb-text-sm; }
+}

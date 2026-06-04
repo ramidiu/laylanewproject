@@ -1,0 +1,693 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.kyc-review {
+  max-width: 1200px;
+}
+
+.page-header {
+  margin-bottom: $fb-space-6;
+}
+
+.page-title {
+  font-size: $fb-text-2xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-900;
+  margin: 0 0 $fb-space-1;
+}
+
+.page-subtitle {
+  font-size: $fb-text-sm;
+  color: $fb-gray-500;
+  margin: 0;
+}
+
+// Search Bar
+.search-bar {
+  position: relative;
+  margin-bottom: $fb-space-4;
+
+  &__icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: $fb-gray-400;
+    pointer-events: none;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 10px 16px 10px 38px;
+    border: 1px solid $fb-gray-200;
+    border-radius: $fb-radius-lg;
+    font-size: $fb-text-sm;
+    background: #fff;
+    color: $fb-gray-900;
+    outline: none;
+    box-sizing: border-box;
+
+    &:focus {
+      border-color: $fb-navy;
+      box-shadow: 0 0 0 3px rgba(27, 58, 107, 0.08);
+    }
+
+    &::placeholder { color: $fb-gray-400; }
+  }
+}
+
+// Stats Row
+.stats-row {
+  display: flex;
+  gap: $fb-space-4;
+  margin-bottom: $fb-space-6;
+}
+
+.stat-card {
+  flex: 1;
+  background: #fff;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-4 $fb-space-5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-left: 4px solid transparent;
+
+  &--warning {
+    border-left-color: $fb-warning;
+  }
+  &--success {
+    border-left-color: $fb-success;
+  }
+  &--danger {
+    border-left-color: $fb-danger;
+  }
+
+  &__value {
+    font-size: $fb-text-2xl;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-900;
+  }
+
+  &__label {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    margin-top: $fb-space-1;
+  }
+}
+
+// Filter Tabs
+.filter-tabs {
+  display: flex;
+  gap: $fb-space-2;
+  margin-bottom: $fb-space-5;
+}
+
+.filter-tab {
+  padding: $fb-space-2 $fb-space-4;
+  border: 1px solid $fb-gray-200;
+  border-radius: $fb-radius-md;
+  background: #fff;
+  color: $fb-gray-600;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-medium;
+  cursor: pointer;
+  transition: all $fb-transition-fast;
+
+  &:hover {
+    background: $fb-gray-50;
+  }
+
+  &--active {
+    background: $fb-navy;
+    color: #fff;
+    border-color: $fb-navy;
+
+    &:hover {
+      background: darken($fb-navy, 5%);
+    }
+  }
+}
+
+// Loading / Empty
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-3;
+  padding: $fb-space-6;
+}
+
+.empty-state {
+  text-align: center;
+  padding: $fb-space-12 $fb-space-6;
+
+  &__icon {
+    font-size: 48px;
+    color: $fb-gray-300;
+    margin-bottom: $fb-space-3;
+  }
+
+  &__text {
+    color: $fb-gray-500;
+    font-size: $fb-text-sm;
+    margin: 0;
+  }
+}
+
+// KYC Cards
+.kyc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-3;
+}
+
+.kyc-card {
+  background: #fff;
+  border-radius: $fb-radius-lg;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $fb-space-4 $fb-space-5;
+    cursor: pointer;
+    transition: background $fb-transition-fast;
+
+    &:hover {
+      background: $fb-gray-50;
+    }
+  }
+
+  &__user-info {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+  }
+
+  &__user-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__name {
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-900;
+    font-size: $fb-text-sm;
+  }
+
+  &__email {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+  }
+
+  &__date {
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+  }
+
+  &__body {
+    border-top: 1px solid $fb-gray-100;
+    padding: $fb-space-4 $fb-space-5;
+    background: $fb-gray-50;
+  }
+}
+
+// User Avatar
+.user-avatar-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: $fb-sky-pale;
+  color: $fb-navy;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-bold;
+  flex-shrink: 0;
+}
+
+// Expand button
+.expand-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $fb-gray-400;
+  transition: transform $fb-transition-fast;
+  padding: 0;
+
+  &--open {
+    transform: rotate(180deg);
+  }
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+// Status badges
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: $fb-radius-full;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
+  &--warning {
+    background: rgba($fb-warning, 0.12);
+    color: darken($fb-warning, 15%);
+  }
+  &--success {
+    background: rgba($fb-success, 0.12);
+    color: darken($fb-success, 10%);
+  }
+  &--danger {
+    background: rgba($fb-danger, 0.12);
+    color: $fb-danger;
+  }
+  &--medium {
+    background: $fb-gray-100;
+    color: $fb-gray-500;
+  }
+}
+
+// Tier badge
+.tier-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $fb-radius-md;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-medium;
+  background: $fb-sky-pale;
+  color: $fb-navy;
+}
+
+// Documents
+.docs-loading {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-2;
+}
+
+.docs-empty {
+  font-size: $fb-text-sm;
+  color: $fb-gray-400;
+  padding: $fb-space-2 0;
+}
+
+.docs-list {
+  display: flex;
+  flex-direction: column;
+  gap: $fb-space-2;
+}
+
+.doc-row {
+  display: flex;
+  flex-direction: column;
+  padding: $fb-space-3 $fb-space-4;
+  background: #fff;
+  border-radius: $fb-radius-md;
+  border: 1px solid $fb-gray-100;
+  gap: $fb-space-2;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__details {
+    display: flex;
+    gap: 20px;
+    padding: 10px 14px;
+    background: $fb-gray-50;
+    border-radius: $fb-radius-md;
+    flex-wrap: wrap;
+  }
+
+  &__preview {
+    margin: $fb-space-2 0;
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+    flex-wrap: wrap;
+  }
+
+  &__type {
+    font-weight: $fb-font-semibold;
+    font-size: $fb-text-sm;
+    color: $fb-gray-800;
+    text-transform: capitalize;
+  }
+
+  &__filename {
+    font-size: $fb-text-xs;
+    color: $fb-gray-500;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__date {
+    font-size: $fb-text-xs;
+    color: $fb-gray-400;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+  }
+
+  &__rejection {
+    font-size: $fb-text-xs;
+    color: $fb-danger;
+    font-style: italic;
+  }
+}
+
+// Action buttons
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: $fb-space-1 $fb-space-3;
+  border-radius: $fb-radius-md;
+  font-size: $fb-text-xs;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all $fb-transition-fast;
+
+  ion-icon {
+    font-size: 14px;
+  }
+
+  &--success {
+    background: rgba($fb-success, 0.1);
+    color: darken($fb-success, 10%);
+    border-color: rgba($fb-success, 0.3);
+
+    &:hover {
+      background: $fb-success;
+      color: #fff;
+    }
+  }
+
+  &--danger {
+    background: rgba($fb-danger, 0.1);
+    color: $fb-danger;
+    border-color: rgba($fb-danger, 0.3);
+
+    &:hover {
+      background: $fb-danger;
+      color: #fff;
+    }
+  }
+
+  &--link {
+    background: none;
+    color: $fb-navy;
+    border: none;
+    padding: $fb-space-1 $fb-space-2;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.doc-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $fb-gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__value {
+    font-size: 14px;
+    font-weight: 500;
+    color: $fb-gray-900;
+  }
+}
+
+.doc-preview-img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: $fb-radius-md;
+  border: 1px solid $fb-gray-200;
+  object-fit: contain;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.doc-preview-pdf {
+  width: 100%;
+  height: 300px;
+  border-radius: $fb-radius-md;
+  border: 1px solid $fb-gray-200;
+  cursor: pointer;
+}
+
+.doc-preview-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $fb-space-6;
+  border-radius: $fb-radius-md;
+  border: 1px dashed $fb-gray-300;
+  color: $fb-gray-500;
+  cursor: pointer;
+  font-size: $fb-text-sm;
+
+  ion-icon { font-size: 32px; margin-bottom: $fb-space-2; color: $fb-navy; }
+
+  &:hover { background: $fb-gray-50; }
+}
+
+// Profile Changed Banner
+.profile-changed-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  margin: 0 16px 12px;
+  padding: 16px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #92400e;
+    font-size: 14px;
+
+    ion-icon { font-size: 20px; color: #d97706; }
+  }
+
+  &__details {
+    background: rgba(255,255,255,0.7);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+}
+
+.profile-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  font-size: 13px;
+
+  &:last-child { border-bottom: none; }
+
+  &__label { color: #6b7280; }
+  &__value { font-weight: 500; color: #1f2937; }
+}
+
+.compliance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+
+  ion-icon { font-size: 14px; }
+
+  &:hover { background: #fecaca; }
+}
+
+.kyc-card__user-id {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+  vertical-align: middle;
+}
+
+.kyc-card__date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: $fb-gray-400;
+  margin-top: 2px;
+
+  ion-icon { font-size: 12px; }
+}
+
+.doc-preview-pdf {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 180px;
+  padding: 18px 20px;
+  background: #f3f4f6;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #1B3A6B;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  ion-icon {
+    font-size: 32px;
+    color: #1B3A6B;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 400;
+  }
+
+  &:hover {
+    background: #eef2ff;
+    border-color: #1B3A6B;
+    border-style: solid;
+  }
+}
+
+// Main tab switcher
+.main-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0;
+}
+.main-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  &--active { color: #1B3A6B; border-bottom-color: #1B3A6B; font-weight: 700; }
+  &:hover:not(&--active) { color: #374151; }
+}
+
+// PayIn KYC layout
+.payin-kyc-layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+.payin-kyc-list { overflow-y: auto; max-height: 70vh; }
+.payin-kyc-list-header { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-size: 0.8rem; color: #6b7280; }
+.payin-count { font-weight: 600; }
+.payin-customer-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6;
+  &:hover { background: #f9fafb; }
+  &--selected { background: #eff6ff; border-left: 3px solid #1B3A6B; }
+}
+.payin-customer-name { font-weight: 600; font-size: 0.875rem; }
+.payin-customer-email, .payin-customer-phone { font-size: 0.78rem; color: #6b7280; }
+.payin-customer-badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+
+.payin-kyc-docs {
+  padding: 20px;
+  &--placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; color: #9ca3af; text-align: center; }
+}
+.placeholder-icon { font-size: 48px; margin-bottom: 12px; }
+.payin-docs-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.payin-docs-header h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.payin-docs-id { font-family: monospace; font-size: 0.75rem; color: #6b7280; }
+.payin-docs-meta { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 16px; font-size: 0.85rem; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; }
+.payin-doc-list { display: flex; flex-direction: column; gap: 12px; }
+.payin-doc-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; }
+.payin-doc-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.82rem; }
+.payin-doc-type { font-weight: 600; }
+.payin-doc-filename { color: #6b7280; }
+.payin-doc-view-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; background: #eff6ff; color: #1B3A6B; border-radius: 6px; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
+
+// PayIn customer card extras
+.doc-row__filename { font-size: 0.78rem; color: #6b7280; font-style: italic; }
+
+@media (max-width: 768px) {
+  .payin-kyc-layout { grid-template-columns: 1fr; }
+}
+
+.kyc-pagination {
+  display: flex; align-items: center; justify-content: center; gap: $fb-space-3;
+  padding: $fb-space-4;
+  margin-top: $fb-space-4;
+}
+.pagination-btn { min-height: 36px; padding: $fb-space-2 $fb-space-3; }
+.pagination-info { font-size: $fb-text-sm; color: $fb-gray-500; }

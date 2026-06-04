@@ -1,0 +1,66 @@
+<ion-content class="referral-content">
+  <div class="referral-container">
+    <div class="referral-header">
+      <div class="referral-header__icon">
+        <ion-icon name="gift-outline"></ion-icon>
+      </div>
+      <h1 class="referral-header__title">{{ 'REFERRAL.TITLE' | translate }}</h1>
+      <p class="referral-header__subtitle">{{ 'HOME.REFERRAL_SHARE_EARN' | translate }}</p>
+    </div>
+
+    <div class="referral-card">
+      <!-- How it works -->
+      <div class="referral-steps">
+        <h3 class="referral-steps__title">{{ 'REFERRAL.HOW_IT_WORKS' | translate }}</h3>
+        <div class="referral-step">
+          <div class="referral-step__num">1</div>
+          <div class="referral-step__text">
+            <strong>{{ 'HOME.REFERRAL_STEP1' | translate }}</strong>
+          </div>
+        </div>
+        <div class="referral-step">
+          <div class="referral-step__num">2</div>
+          <div class="referral-step__text">
+            <strong>{{ 'HOME.REFERRAL_STEP2' | translate }}</strong>
+          </div>
+        </div>
+        <div class="referral-step">
+          <div class="referral-step__num">3</div>
+          <div class="referral-step__text">
+            <strong>{{ 'HOME.REFERRAL_STEP3' | translate }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code display -->
+      <div class="referral-code-section">
+        <label class="referral-code-label">{{ 'REFERRAL.YOUR_CODE' | translate }}</label>
+        <div class="referral-code-box" *ngIf="!loading">
+          <span class="referral-code-value">{{ referralCode || 'N/A' }}</span>
+          <button class="referral-copy-btn" (click)="copyCode()" *ngIf="referralCode">
+            <ion-icon [name]="copied ? 'checkmark-outline' : 'copy-outline'"></ion-icon>
+            {{ copied ? ('HOME.COPIED' | translate) : ('HOME.COPY_CODE' | translate) }}
+          </button>
+        </div>
+        <div class="referral-code-box" *ngIf="loading">
+          <span class="referral-code-value">{{ 'COMMON.LOADING' | translate }}</span>
+        </div>
+      </div>
+
+      <!-- Share buttons -->
+      <div class="referral-share" *ngIf="referralCode">
+        <label class="referral-share__label">{{ 'REFERRAL.SHARE' | translate }}</label>
+        <div class="referral-share__buttons">
+          <button class="referral-share-btn referral-share-btn--whatsapp" (click)="shareWhatsApp()">
+            <ion-icon name="logo-whatsapp"></ion-icon>
+            WhatsApp
+          </button>
+          <button class="referral-share-btn referral-share-btn--email" (click)="shareEmail()">
+            <ion-icon name="mail-outline"></ion-icon>
+            Email
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,660 @@
+@import '../../theme/remitzai-design-tokens';
+
+// ============================================================
+// AstraRemit Landing Page Styles
+// ============================================================
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: $fb-font-body;
+  color: $fb-gray-800;
+  overflow-x: hidden;
+}
+
+// --- Section Helpers ---
+.landing-section-title {
+  font-size: $fb-text-3xl;
+  font-weight: $fb-font-bold;
+  color: $fb-gray-800;
+  text-align: center;
+  margin: 0 0 $fb-space-2;
+
+  @media (min-width: $fb-breakpoint-md) {
+    font-size: $fb-text-4xl;
+  }
+}
+
+.landing-section-subtitle {
+  font-size: $fb-text-base;
+  color: $fb-gray-500;
+  text-align: center;
+  margin: 0 0 $fb-space-10;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+
+  @media (min-width: $fb-breakpoint-md) {
+    font-size: $fb-text-lg;
+  }
+}
+
+// ============================================================
+// Header — white navbar matching AstraRemit design
+// ============================================================
+.landing-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: $fb-white;
+  border-bottom: 1px solid $fb-gray-200;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  &__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $fb-space-3 $fb-space-6;
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  // Remitz header logo height
+  &__logo-img {
+    height: 44px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  &__nav {
+    display: none;
+    gap: $fb-space-8;
+
+    @media (min-width: $fb-breakpoint-md) {
+      display: flex;
+    }
+  }
+
+  &__link {
+    color: $fb-gray-700;
+    text-decoration: none;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-medium;
+    cursor: pointer;
+    transition: color $fb-transition-fast;
+
+    &:hover {
+      color: $fb-navy;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-3;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    padding: $fb-space-2 $fb-space-5;
+    border-radius: $fb-radius-lg;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    text-decoration: none;
+    transition: all $fb-transition-fast;
+    cursor: pointer;
+
+    &--ghost {
+      color: $fb-navy;
+      border: 1.5px solid $fb-navy;
+      background: transparent;
+
+      &:hover {
+        background: rgba($fb-navy, 0.06);
+      }
+    }
+
+    &--primary {
+      color: $fb-white;
+      background: $fb-gradient-primary;
+      border: none;
+      box-shadow: 0 4px 14px rgba($fb-navy, 0.3);
+
+      &:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba($fb-navy, 0.35);
+      }
+    }
+  }
+}
+
+// ============================================================
+// Hero
+// ============================================================
+.landing-hero {
+  background: linear-gradient(170deg, $fb-navy 0%, $fb-navy-dark 55%, $fb-sky 100%);
+  padding-top: $fb-space-4;
+  padding-bottom: $fb-space-16;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 15% 50%, rgba($fb-sky, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 85% 20%, rgba($fb-sky-light, 0.08) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  &__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: $fb-space-10 $fb-space-6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $fb-space-10;
+
+    @media (min-width: $fb-breakpoint-lg) {
+      flex-direction: row;
+      align-items: center;
+      gap: $fb-space-12;
+      padding: $fb-space-16 $fb-space-6;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    text-align: center;
+
+    @media (min-width: $fb-breakpoint-lg) {
+      text-align: left;
+    }
+  }
+
+  &__title {
+    font-size: $fb-text-3xl;
+    font-weight: $fb-font-bold;
+    color: $fb-white;
+    margin: 0 0 $fb-space-4;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+
+    @media (min-width: $fb-breakpoint-md) {
+      font-size: $fb-text-4xl;
+    }
+
+    @media (min-width: $fb-breakpoint-lg) {
+      font-size: 2.75rem;
+    }
+  }
+
+  &__subtitle {
+    font-size: $fb-text-base;
+    color: rgba($fb-white, 0.85);
+    margin: 0 0 $fb-space-3;
+    line-height: 1.6;
+    max-width: 500px;
+    font-weight: $fb-font-medium;
+
+    @media (min-width: $fb-breakpoint-lg) {
+      margin-left: 0;
+    }
+
+    @media (max-width: $fb-breakpoint-lg) {
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  &__bullets {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 $fb-space-8;
+    color: rgba($fb-white, 0.75);
+    font-size: $fb-text-sm;
+    line-height: 1.8;
+    text-align: left;
+
+    @media (max-width: $fb-breakpoint-lg) {
+      text-align: center;
+    }
+
+    li::before {
+      content: '• ';
+      color: $fb-sky-light;
+    }
+  }
+
+  &__cta-group {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-4;
+    flex-wrap: wrap;
+
+    @media (max-width: $fb-breakpoint-lg) {
+      justify-content: center;
+    }
+  }
+
+  &__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: $fb-space-2;
+    padding: $fb-space-4 $fb-space-8;
+    border-radius: $fb-radius-lg;
+    font-size: $fb-text-base;
+    font-weight: $fb-font-bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all $fb-transition-fast;
+
+    &--primary {
+      background: $fb-white;
+      color: $fb-navy;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+
+      &:hover {
+        background: $fb-gray-100;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      ion-icon { font-size: 20px; }
+    }
+
+    &--secondary {
+      background: transparent;
+      color: $fb-white;
+      border: 1.5px solid rgba($fb-white, 0.5);
+
+      &:hover {
+        border-color: $fb-white;
+        background: rgba($fb-white, 0.1);
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  &__calculator {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 420px;
+
+    @media (min-width: $fb-breakpoint-lg) {
+      max-width: 440px;
+    }
+  }
+}
+
+// ============================================================
+// How It Works
+// ============================================================
+.landing-steps {
+  background: $fb-gray-50;
+  padding: $fb-space-16 $fb-space-6;
+
+  &__inner {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $fb-space-8;
+
+    @media (min-width: $fb-breakpoint-md) {
+      grid-template-columns: repeat(3, 1fr);
+      gap: $fb-space-6;
+    }
+  }
+}
+
+.landing-step {
+  text-align: center;
+  position: relative;
+
+  &__icon {
+    width: 64px;
+    height: 64px;
+    border-radius: $fb-radius-2xl;
+    background: $fb-gradient-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto $fb-space-5;
+    box-shadow: 0 8px 24px rgba($fb-navy, 0.25);
+
+    ion-icon {
+      font-size: 28px;
+      color: $fb-white;
+    }
+  }
+
+  &__number {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    margin-left: 24px;
+    width: 28px;
+    height: 28px;
+    border-radius: $fb-radius-full;
+    background: $fb-sky;
+    color: $fb-white;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba($fb-sky, 0.4);
+  }
+
+  &__title {
+    font-size: $fb-text-lg;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-800;
+    margin: 0 0 $fb-space-2;
+  }
+
+  &__desc {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+// ============================================================
+// Why Choose Us
+// ============================================================
+.landing-features {
+  background: $fb-white;
+  padding: $fb-space-16 $fb-space-6;
+
+  &__inner {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $fb-space-6;
+
+    @media (min-width: $fb-breakpoint-sm) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: $fb-breakpoint-lg) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+}
+
+.landing-feature {
+  text-align: center;
+  padding: $fb-space-6 $fb-space-4;
+  border-radius: $fb-radius-xl;
+  background: $fb-gray-50;
+  border: 1px solid $fb-gray-200;
+  transition: all $fb-transition-base;
+
+  &:hover {
+    background: $fb-white;
+    box-shadow: $fb-shadow-lg;
+    transform: translateY(-4px);
+    border-color: transparent;
+  }
+
+  &__icon {
+    width: 52px;
+    height: 52px;
+    border-radius: $fb-radius-xl;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto $fb-space-4;
+
+    ion-icon { font-size: 24px; }
+
+    &--sky {
+      background: $fb-sky-pale;
+      ion-icon { color: $fb-sky-dark; }
+    }
+    &--green {
+      background: $fb-success-bg;
+      ion-icon { color: $fb-success; }
+    }
+    &--amber {
+      background: $fb-warning-bg;
+      ion-icon { color: $fb-warning; }
+    }
+    &--navy {
+      background: rgba($fb-navy, 0.08);
+      ion-icon { color: $fb-navy; }
+    }
+  }
+
+  &__title {
+    font-size: $fb-text-base;
+    font-weight: $fb-font-bold;
+    color: $fb-gray-800;
+    margin: 0 0 $fb-space-2;
+  }
+
+  &__desc {
+    font-size: $fb-text-sm;
+    color: $fb-gray-500;
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+// ============================================================
+// Supported Corridors
+// ============================================================
+.landing-corridors {
+  background: $fb-gray-50;
+  padding: $fb-space-16 $fb-space-6;
+
+  &__inner {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  &__grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $fb-space-3;
+  }
+}
+
+.landing-corridor {
+  display: inline-flex;
+  align-items: center;
+  gap: $fb-space-2;
+  padding: $fb-space-2 $fb-space-4;
+  background: $fb-white;
+  border-radius: $fb-radius-full;
+  box-shadow: $fb-shadow-card;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-medium;
+  color: $fb-gray-700;
+  transition: all $fb-transition-fast;
+
+  &:hover {
+    box-shadow: $fb-shadow-card-hover;
+    transform: translateY(-1px);
+  }
+
+  &__flag-img {
+    width: 24px;
+    height: 18px;
+    border-radius: 2px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+  }
+
+  &__flag {
+    font-size: $fb-text-lg;
+    display: none;
+  }
+
+  &__name { white-space: nowrap; }
+}
+
+// ============================================================
+// Remitz dark footer
+// ============================================================
+.landing-footer {
+  background: $fb-navy-dark;
+  color: rgba($fb-white, 0.75);
+  padding: $fb-space-16 $fb-space-6 $fb-space-8;
+
+  &__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $fb-space-8;
+    margin-bottom: $fb-space-10;
+
+    @media (min-width: $fb-breakpoint-md) {
+      grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
+      gap: $fb-space-6;
+    }
+  }
+
+  &__col {
+    display: flex;
+    flex-direction: column;
+    gap: $fb-space-1;
+
+    &--brand {
+      gap: $fb-space-3;
+    }
+  }
+
+  &__brand {
+    margin-bottom: $fb-space-1;
+  }
+
+  &__logo {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  &__about {
+    font-size: $fb-text-sm;
+    line-height: 1.7;
+    margin: 0;
+    color: rgba($fb-white, 0.65);
+    max-width: 280px;
+  }
+
+  &__heading {
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-bold;
+    color: $fb-white;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 $fb-space-3;
+    position: relative;
+    padding-bottom: $fb-space-2;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 32px;
+      height: 2px;
+      background: $fb-sky;
+    }
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: $fb-space-2;
+    font-size: $fb-text-sm;
+    color: rgba($fb-white, 0.70);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 2px 0;
+    transition: color $fb-transition-fast;
+
+    &:hover {
+      color: $fb-sky;
+    }
+
+    &--icon {
+      ion-icon {
+        font-size: 15px;
+        color: $fb-sky;
+        flex-shrink: 0;
+      }
+    }
+  }
+
+  &__address {
+    display: flex;
+    align-items: flex-start;
+    gap: $fb-space-2;
+    font-size: $fb-text-sm;
+    color: rgba($fb-white, 0.70);
+    margin: 0;
+    line-height: 1.5;
+
+    ion-icon {
+      font-size: 15px;
+      color: $fb-sky;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+  }
+
+  &__legal-badge {
+    font-size: $fb-text-xs;
+    color: rgba($fb-white, 0.55);
+    padding: 2px 0;
+  }
+
+  &__bottom {
+    border-top: 1px solid rgba($fb-white, 0.12);
+    padding-top: $fb-space-6;
+    text-align: center;
+
+    p {
+      font-size: $fb-text-sm;
+      color: rgba($fb-white, 0.55);
+      margin: 0;
+    }
+  }
+}

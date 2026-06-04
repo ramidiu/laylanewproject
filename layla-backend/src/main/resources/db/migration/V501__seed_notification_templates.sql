@@ -1,0 +1,29 @@
+-- Transaction lifecycle email templates
+INSERT INTO notification_templates (template_code, channel, language, subject, body_template) VALUES
+('TX_CREATED', 'EMAIL', 'en', 'Transfer Created - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour transfer {{referenceNumber}} for {{sendAmount}} {{sendCurrency}} to {{beneficiaryName}} has been created.\n\nAmount to receive: {{receiveAmount}} {{receiveCurrency}}\nExchange rate: {{exchangeRate}}\nFee: {{feeAmount}} {{feeCurrency}}\n\nThank you for using Forex Bridge.'),
+('TX_PENDING', 'EMAIL', 'en', 'Transfer Pending - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour transfer {{referenceNumber}} is now pending processing.\n\nWe will notify you once your payment has been received.\n\nThank you for using Forex Bridge.'),
+('TX_COMPLIANCE_HOLD', 'EMAIL', 'en', 'Transfer Under Review - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour transfer {{referenceNumber}} is currently under review by our compliance team. This is a routine check and we will update you shortly.\n\nThank you for your patience.'),
+('TX_PROCESSING', 'EMAIL', 'en', 'Transfer Processing - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour payment for transfer {{referenceNumber}} has been received and is now being processed.\n\nThank you for using Forex Bridge.'),
+('TX_FUNDS_RECEIVED', 'EMAIL', 'en', 'Funds Received - {{referenceNumber}}', 'Dear {{firstName}},\n\nWe have received your funds for transfer {{referenceNumber}}. Your transfer is being sent to our payout partner.\n\nThank you for using Forex Bridge.'),
+('TX_SENT_TO_PAYOUT', 'EMAIL', 'en', 'Transfer Sent for Payout - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour transfer {{referenceNumber}} has been sent to our payout partner for delivery.\n\nExpected delivery: within {{deliveryTime}} hours.\n\nThank you for using Forex Bridge.'),
+('TX_PAID', 'EMAIL', 'en', 'Transfer Completed - {{referenceNumber}}', 'Dear {{firstName}},\n\nGreat news! Your transfer {{referenceNumber}} has been successfully delivered.\n\n{{receiveAmount}} {{receiveCurrency}} has been sent to {{beneficiaryName}}.\n\nThank you for using Forex Bridge.'),
+('TX_FAILED', 'EMAIL', 'en', 'Transfer Failed - {{referenceNumber}}', 'Dear {{firstName}},\n\nUnfortunately, your transfer {{referenceNumber}} could not be completed. Reason: {{reason}}\n\nPlease contact our support team for assistance.\n\nThank you for using Forex Bridge.'),
+('TX_CANCELLED', 'EMAIL', 'en', 'Transfer Cancelled - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour transfer {{referenceNumber}} has been cancelled as requested.\n\nIf you did not request this cancellation, please contact us immediately.\n\nThank you for using Forex Bridge.'),
+('TX_REFUNDED', 'EMAIL', 'en', 'Transfer Refunded - {{referenceNumber}}', 'Dear {{firstName}},\n\nYour transfer {{referenceNumber}} has been refunded. {{refundAmount}} {{refundCurrency}} will be returned to your original payment method.\n\nThank you for using Forex Bridge.'),
+('KYC_DOCUMENT_APPROVED', 'EMAIL', 'en', 'KYC Document Approved', 'Dear {{firstName}},\n\nYour {{documentType}} has been verified and approved. Your account limits have been updated.\n\nThank you for using Forex Bridge.'),
+('KYC_DOCUMENT_REJECTED', 'EMAIL', 'en', 'KYC Document Rejected', 'Dear {{firstName}},\n\nUnfortunately, your {{documentType}} could not be verified. Reason: {{rejectionReason}}\n\nPlease upload a new document.\n\nThank you for using Forex Bridge.'),
+('KYC_TIER_UPGRADED', 'EMAIL', 'en', 'Account Upgraded - {{newTier}}', 'Dear {{firstName}},\n\nCongratulations! Your account has been upgraded to {{newTier}}. You now have higher transaction limits.\n\nThank you for using Forex Bridge.'),
+('WELCOME', 'EMAIL', 'en', 'Welcome to Forex Bridge', 'Dear {{firstName}},\n\nWelcome to Forex Bridge! Your account has been created successfully.\n\nTo get started, complete your identity verification to unlock higher transfer limits.\n\nThank you for choosing Forex Bridge.'),
+('PASSWORD_RESET', 'EMAIL', 'en', 'Password Reset Request', 'Dear {{firstName}},\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n{{resetLink}}\n\nThis link expires in 1 hour. If you did not request this, please ignore this email.\n\nThank you for using Forex Bridge.'),
+('MFA_CODE', 'SMS', 'en', NULL, 'Your Forex Bridge verification code is: {{code}}. Valid for 5 minutes. Do not share this code.'),
+('NOSTRO_LOW_BALANCE', 'EMAIL', 'en', 'ALERT: Low Nostro Balance - {{currency}}', 'ALERT: Nostro account for {{currency}} ({{country}}) has fallen below the threshold.\n\nCurrent balance: {{currentBalance}}\nThreshold: {{threshold}}\n\nPlease arrange funding immediately.'),
+('COMPLIANCE_ALERT', 'EMAIL', 'en', 'Compliance Alert - {{alertType}}', 'A new compliance alert has been raised.\n\nType: {{alertType}}\nSeverity: {{severity}}\nUser: {{userEmail}}\nTransaction: {{referenceNumber}}\n\nPlease review in the compliance portal.');
+
+-- In-app notification templates
+INSERT INTO notification_templates (template_code, channel, language, subject, body_template) VALUES
+('TX_CREATED', 'IN_APP', 'en', 'Transfer Created', 'Your transfer {{referenceNumber}} for {{sendAmount}} {{sendCurrency}} has been created.'),
+('TX_PAID', 'IN_APP', 'en', 'Transfer Completed', '{{receiveAmount}} {{receiveCurrency}} delivered to {{beneficiaryName}}.'),
+('TX_FAILED', 'IN_APP', 'en', 'Transfer Failed', 'Transfer {{referenceNumber}} failed. Please contact support.'),
+('KYC_DOCUMENT_APPROVED', 'IN_APP', 'en', 'Document Approved', 'Your {{documentType}} has been approved.'),
+('KYC_DOCUMENT_REJECTED', 'IN_APP', 'en', 'Document Rejected', 'Your {{documentType}} was rejected: {{rejectionReason}}'),
+('KYC_TIER_UPGRADED', 'IN_APP', 'en', 'Account Upgraded', 'You have been upgraded to {{newTier}}!');
