@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { AlertController, ToastController } from '@ionic/angular';
 import { TransactionService } from '../../core/services/transaction.service';
 import { PartnerService } from '../../core/services/partner.service';
@@ -40,8 +41,14 @@ export class SATransactionsPage implements OnInit {
     private transactionService: TransactionService,
     private partnerService: PartnerService,
     private toastCtrl: ToastController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private router: Router
   ) {}
+
+  /** Open the receipt viewer (print + download PDF) for a transaction. */
+  openReceipt(txn: TransactionResponse): void {
+    if (txn?.id != null) this.router.navigate(['/receipt', txn.id]);
+  }
 
   ngOnInit(): void {
     this.loadTransactions();

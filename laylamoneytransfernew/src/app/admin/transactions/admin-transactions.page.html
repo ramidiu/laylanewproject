@@ -75,7 +75,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let txn of transactions">
-            <td class="fb-currency ref-cell">{{ txn.referenceNumber }}</td>
+            <td class="fb-currency ref-cell"><a class="ref-link" (click)="openReceipt(txn)" title="View receipt">{{ txn.referenceNumber }}</a></td>
             <td>{{ txn.senderName }}</td>
             <td>{{ txn.beneficiaryName }}</td>
             <td class="fb-currency">{{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}</td>
