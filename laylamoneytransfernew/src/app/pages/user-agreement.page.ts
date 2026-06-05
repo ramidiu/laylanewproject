@@ -5,12 +5,12 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>User Agreement</h1>
       <p>Effective Date: 24 June 2025</p>
     </div>
     <div class="info-body">
-      <p>This User Agreement covers your Layla Money Transfer account and your relationship with Layla (London) Limited (Companies House 9672013, FCA 740120). It should be read together with our <a routerLink="/terms">Terms of Use</a> and <a routerLink="/privacy-policy">Privacy Policy</a>.</p>
+      <p>This User Agreement covers your Layla Money Transfer account and your relationship with Layla (London) Limited (Companies House 9672013, FCA 740120). It should be read together with our <a href="/terms">Terms of Use</a> and <a href="/privacy-policy">Privacy Policy</a>.</p>
 
       <h2>1. Your Account</h2>
       <p>You are responsible for keeping your login credentials confidential and for all activity under your account. Notify us immediately of any unauthorised access. You must provide accurate information and keep it up to date.</p>
@@ -34,7 +34,7 @@ import { Component } from '@angular/core';
       <p>We may update this agreement from time to time. Continued use of your account after changes are posted means you accept them.</p>
 
       <h2>8. Contact</h2>
-      <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or visit our <a routerLink="/contact-us">Contact page</a>.</p>
+      <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or visit our <a href="/contact-us">Contact page</a>.</p>
     </div>
   </div>`
 })

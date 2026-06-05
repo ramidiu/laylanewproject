@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>About Us</h1>
       <p>Seamless global transfers you can trust</p>
     </div>
@@ -26,7 +26,7 @@ import { Component } from '@angular/core';
       <h2>Visit Us</h2>
       <p>133 Broadley St, Marylebone, London NW8 8BA<br>
       Opening Hours: Monday – Saturday 11:00am to 7:00pm · Sunday: Closed</p>
-      <p><a routerLink="/contact-us">Contact us &rarr;</a></p>
+      <p><a href="/contact-us">Contact us &rarr;</a></p>
     </div>
   </div>`
 })

@@ -12,7 +12,6 @@ import { CookiePolicyPage } from './pages/cookie-policy.page';
 import { UserAgreementPage } from './pages/user-agreement.page';
 import { MobileTermsPage } from './pages/mobile-terms.page';
 import { MobilePrivacyPage } from './pages/mobile-privacy.page';
-import { ReceiptViewPage } from './pages/receipt-view.page';
 
 const routes: Routes = [
   {
@@ -30,8 +29,12 @@ const routes: Routes = [
   { path: 'user-agreement', component: UserAgreementPage },
   { path: 'mobile-terms', component: MobileTermsPage },
   { path: 'mobile-privacy', component: MobilePrivacyPage },
-  // Staff receipt viewer (print + download PDF) — opened from admin/superadmin transactions.
-  { path: 'receipt/:id', component: ReceiptViewPage, canActivate: [AuthGuard] },
+  // Staff receipt viewer (print + download PDF) — lazy module so it renders under ion-router-outlet on SPA nav.
+  {
+    path: 'receipt/:id',
+    loadChildren: () => import('./pages/receipt-view.module').then(m => m.ReceiptViewModule),
+    canActivate: [AuthGuard]
+  },
   {
     path: 'login',
     loadChildren: () => import('./customer/login/login.module').then(m => m.LoginPageModule)

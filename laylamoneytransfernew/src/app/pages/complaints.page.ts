@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Complaint Policy</h1>
       <p>We take complaints seriously and aim to resolve them fairly and quickly</p>
     </div>

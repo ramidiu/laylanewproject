@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Frequently Asked Questions</h1>
       <p>Everything you need to know about sending money with Layla</p>
     </div>
@@ -29,13 +29,13 @@ import { Component } from '@angular/core';
       <p>As an FCA-regulated business, we are legally required to verify customers (KYC) and comply with Anti-Money Laundering rules. You may be asked to upload an ID document and proof of address.</p>
 
       <h2>Can I cancel a transfer?</h2>
-      <p>You can request cancellation of a transfer that has not yet been paid out to the beneficiary. Completed transfers cannot be reversed. See our <a routerLink="/terms">Terms of Use</a>.</p>
+      <p>You can request cancellation of a transfer that has not yet been paid out to the beneficiary. Completed transfers cannot be reversed. See our <a href="/terms">Terms of Use</a>.</p>
 
       <h2>How do I get a receipt?</h2>
       <p>Open the transaction in your account and tap <strong>View Receipt</strong> or <strong>Download Receipt</strong>.</p>
 
       <h2>How do I contact support?</h2>
-      <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or see our <a routerLink="/contact-us">Contact page</a>.</p>
+      <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or see our <a href="/contact-us">Contact page</a>.</p>
     </div>
   </div>`
 })

@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Cookie Policy</h1>
       <p>Effective Date: 24 June 2025</p>
     </div>
@@ -32,7 +32,7 @@ import { Component } from '@angular/core';
       <p>We may update this Cookie Policy from time to time. Changes will be posted on this page with an updated "Effective Date."</p>
 
       <h2>Contact</h2>
-      <p>Questions about cookies? Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a routerLink="/privacy-policy">Privacy Policy</a>.</p>
+      <p>Questions about cookies? Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a href="/privacy-policy">Privacy Policy</a>.</p>
     </div>
   </div>`
 })

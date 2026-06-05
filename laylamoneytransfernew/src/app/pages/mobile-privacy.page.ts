@@ -5,12 +5,12 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Mobile Privacy Policy</h1>
       <p>How the Layla mobile app handles your data</p>
     </div>
     <div class="info-body">
-      <p>This Mobile Privacy Policy explains how the Layla Money Transfer mobile application collects and uses your information. It supplements our main <a routerLink="/privacy-policy">Privacy Policy</a>.</p>
+      <p>This Mobile Privacy Policy explains how the Layla Money Transfer mobile application collects and uses your information. It supplements our main <a href="/privacy-policy">Privacy Policy</a>.</p>
 
       <h2>Information the App Collects</h2>
       <ul>

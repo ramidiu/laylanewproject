@@ -5,12 +5,12 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Mobile Terms &amp; Conditions</h1>
       <p>Terms governing use of the Layla Money Transfer mobile app</p>
     </div>
     <div class="info-body">
-      <p>These Mobile Terms &amp; Conditions apply to your use of the Layla Money Transfer mobile application, in addition to our general <a routerLink="/terms">Terms of Use</a>.</p>
+      <p>These Mobile Terms &amp; Conditions apply to your use of the Layla Money Transfer mobile application, in addition to our general <a href="/terms">Terms of Use</a>.</p>
 
       <h2>1. Licence to Use the App</h2>
       <p>We grant you a personal, non-transferable, revocable licence to install and use the app on a device you own or control, solely for accessing our money transfer services.</p>
@@ -31,7 +31,7 @@ import { Component } from '@angular/core';
       <p>You must not misuse the app, attempt to reverse engineer it, or use it for unlawful activity. We may suspend access for breach of these terms.</p>
 
       <h2>7. Contact</h2>
-      <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a routerLink="/mobile-privacy">Mobile Privacy Policy</a>.</p>
+      <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a href="/mobile-privacy">Mobile Privacy Policy</a>.</p>
     </div>
   </div>`
 })

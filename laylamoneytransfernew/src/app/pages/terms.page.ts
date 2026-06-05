@@ -5,7 +5,7 @@ import { Component } from '@angular/core';
   template: `
   <div class="info-page">
     <div class="info-hero">
-      <a class="info-back" routerLink="/">&larr; Back to Home</a>
+      <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Terms of Use</h1>
       <p>Effective Date: 24 June 2025</p>
     </div>
@@ -34,13 +34,13 @@ import { Component } from '@angular/core';
       <p>To the extent permitted by law, Layla is not liable for indirect or consequential losses, or for delays caused by third parties, payment networks, or incorrect information you provide. Nothing in these terms excludes liability that cannot be excluded under law.</p>
 
       <h2>8. Privacy</h2>
-      <p>Your use of the Service is also governed by our <a routerLink="/privacy-policy">Privacy Policy</a>, which explains how we handle your personal data.</p>
+      <p>Your use of the Service is also governed by our <a href="/privacy-policy">Privacy Policy</a>, which explains how we handle your personal data.</p>
 
       <h2>9. Changes to These Terms</h2>
       <p>We may update these Terms from time to time. Continued use of the Service after changes are posted constitutes acceptance of the updated Terms.</p>
 
       <h2>10. Contact</h2>
-      <p>Questions about these Terms? Contact us at <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or see our <a routerLink="/contact-us">Contact page</a>.</p>
+      <p>Questions about these Terms? Contact us at <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or see our <a href="/contact-us">Contact page</a>.</p>
     </div>
   </div>`
 })
