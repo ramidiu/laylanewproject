@@ -159,7 +159,14 @@ export async function generateStripeStyleInvoice(
   drawFooter(doc);
 
   const fileName = `invoice-${safe(txn.referenceNumber || txn.id)}.pdf`;
-  doc.save(fileName);
+  // Native Layla WebView bridge: post base64 so the app saves to Downloads; else browser download.
+  const bridge = (window as any).ReactNativeWebView;
+  if (bridge?.postMessage) {
+    const base64 = doc.output('dataurlstring').split(',')[1];
+    bridge.postMessage(JSON.stringify({ type: 'PDF_BASE64', payload: base64, fileName }));
+  } else {
+    doc.save(fileName);
+  }
 }
 
 // ─── HEADER ──────────────────────────────────────────────────────────────────

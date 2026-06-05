@@ -5,6 +5,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { TransactionService } from '../../core/services/transaction.service';
+import { PdfService } from '../../core/services/pdf.service';
 import { BeneficiaryService } from '../../core/services/beneficiary.service';
 import { FxService } from '../../core/services/fx.service';
 import { UserService } from '../../core/services/user.service';
@@ -68,7 +69,8 @@ export class HomePage implements OnInit {
     private router: Router,
     private datePipe: DatePipe,
     private decimalPipe: DecimalPipe,
-    private titleCasePipe: TitleCasePipe
+    private titleCasePipe: TitleCasePipe,
+    private pdfService: PdfService
   ) {}
 
   ngOnInit(): void {
@@ -236,14 +238,8 @@ ${t.referralCodeUsed ? `<div class="row"><span class="rl">Referral Code</span><s
     // Primary: download the backend-rendered branded PDF receipt (the Layla receipt design).
     this.transactionService.downloadReceipt(t.id!).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `receipt-${t.referenceNumber || t.id}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // Native WebView bridge when present, else normal browser download.
+        this.pdfService.saveBlob(blob, `receipt-${t.referenceNumber || t.id}.pdf`);
       },
       error: () => {
         // Fallback: client-side print view if the backend PDF can't be fetched.

@@ -10,6 +10,7 @@ import { TransactionResponse, StatusHistoryResponse } from '../../../core/models
 import { BeneficiaryService } from '../../../core/services/beneficiary.service';
 import { BeneficiaryResponse } from '../../../core/models/beneficiary.model';
 import { generateStripeStyleInvoice } from './invoice-generator';
+import { PdfService } from '../../../core/services/pdf.service';
 
 @Component({
   selector: 'app-transaction-detail',
@@ -39,7 +40,8 @@ export class TransactionDetailPage implements OnInit {
     private decimalPipe: DecimalPipe,
     private titleCasePipe: TitleCasePipe,
     private toastCtrl: ToastController,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private pdfService: PdfService
   ) {}
 
   ngOnInit(): void {
@@ -91,14 +93,8 @@ export class TransactionDetailPage implements OnInit {
     this.downloading = true;
     this.transactionService.downloadReceipt(this.transaction.id!).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `receipt-${this.transaction?.referenceNumber || this.transaction?.id}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // Saves via the native WebView bridge when present, else normal browser download.
+        this.pdfService.saveBlob(blob, `receipt-${this.transaction?.referenceNumber || this.transaction?.id}.pdf`);
         this.downloading = false;
       },
       error: async () => {

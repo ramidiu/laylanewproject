@@ -6,6 +6,7 @@ import { PartnerService } from '../../core/services/partner.service';
 import { FxService } from '../../core/services/fx.service';
 import { UsiMoneyService } from '../../core/services/usi-money.service';
 import { ConfigService } from '../../core/services/config.service';
+import { PdfService } from '../../core/services/pdf.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -942,6 +943,7 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     private usiMoneyService: UsiMoneyService,
     private configService: ConfigService,
     private sanitizer: DomSanitizer,
+    private pdfService: PdfService,
     public router: Router
   ) {}
 
@@ -1544,15 +1546,13 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     });
   }
 
-  /** Download the same receipt to disk (fallback / save). */
+  /** Download the receipt — native WebView bridge when present, else browser download. */
   downloadReceipt(): void {
-    if (!this.receiptObjectUrl) { this.loadReceiptInline(); return; }
-    const a = document.createElement('a');
-    a.href = this.receiptObjectUrl;
-    a.download = `receipt-${this.receiptTransactionId}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    if (!this.receiptTransactionId) return;
+    this.partnerService.downloadPayinReceipt(this.receiptTransactionId).subscribe({
+      next: (blob: Blob) => this.pdfService.saveBlob(blob, `receipt-${this.receiptTransactionId}.pdf`),
+      error: () => { this.stepError = 'Failed to download receipt.'; }
+    });
   }
 
   resetForm(): void {
