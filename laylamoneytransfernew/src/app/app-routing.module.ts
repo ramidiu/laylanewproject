@@ -6,6 +6,12 @@ import { PrivacyPolicyPage } from './pages/privacy-policy.page';
 import { AboutPage } from './pages/about.page';
 import { ContactUsPage } from './pages/contact-us.page';
 import { TermsPage } from './pages/terms.page';
+import { FaqPage } from './pages/faq.page';
+import { ComplaintsPage } from './pages/complaints.page';
+import { CookiePolicyPage } from './pages/cookie-policy.page';
+import { UserAgreementPage } from './pages/user-agreement.page';
+import { MobileTermsPage } from './pages/mobile-terms.page';
+import { MobilePrivacyPage } from './pages/mobile-privacy.page';
 
 const routes: Routes = [
   {
@@ -17,6 +23,12 @@ const routes: Routes = [
   { path: 'about-us', component: AboutPage },
   { path: 'contact-us', component: ContactUsPage },
   { path: 'terms', component: TermsPage },
+  { path: 'faq', component: FaqPage },
+  { path: 'complaints', component: ComplaintsPage },
+  { path: 'cookie-policy', component: CookiePolicyPage },
+  { path: 'user-agreement', component: UserAgreementPage },
+  { path: 'mobile-terms', component: MobileTermsPage },
+  { path: 'mobile-privacy', component: MobilePrivacyPage },
   {
     path: 'login',
     loadChildren: () => import('./customer/login/login.module').then(m => m.LoginPageModule)

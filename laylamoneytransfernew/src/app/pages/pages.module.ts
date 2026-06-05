@@ -7,10 +7,22 @@ import { PrivacyPolicyPage } from './privacy-policy.page';
 import { AboutPage } from './about.page';
 import { ContactUsPage } from './contact-us.page';
 import { TermsPage } from './terms.page';
+import { FaqPage } from './faq.page';
+import { ComplaintsPage } from './complaints.page';
+import { CookiePolicyPage } from './cookie-policy.page';
+import { UserAgreementPage } from './user-agreement.page';
+import { MobileTermsPage } from './mobile-terms.page';
+import { MobilePrivacyPage } from './mobile-privacy.page';
+
+const PAGES = [
+  PrivacyPolicyPage, AboutPage, ContactUsPage, TermsPage,
+  FaqPage, ComplaintsPage, CookiePolicyPage, UserAgreementPage,
+  MobileTermsPage, MobilePrivacyPage
+];
 
 @NgModule({
   imports: [CommonModule, RouterModule, IonicModule],
-  declarations: [PrivacyPolicyPage, AboutPage, ContactUsPage, TermsPage],
-  exports: [PrivacyPolicyPage, AboutPage, ContactUsPage, TermsPage]
+  declarations: [...PAGES],
+  exports: [...PAGES]
 })
 export class PagesModule {}
