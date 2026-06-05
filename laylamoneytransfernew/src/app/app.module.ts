@@ -7,6 +7,7 @@ import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
+import { PagesModule } from './pages/pages.module';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 import { ApiResponseUnwrapInterceptor } from './core/interceptors/api-response-unwrap.interceptor';
 import { ErrorInterceptor } from './core/interceptors/error.interceptor';
@@ -34,6 +35,7 @@ export function initLanguage(langService: LanguageService) {
     HttpClientModule,
     IonicModule.forRoot(),
     AppRoutingModule,
+    PagesModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

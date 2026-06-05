@@ -698,3 +698,22 @@ ion-toast:not(.fb-toast) {
   display: inline-block;
 }
 
+
+/* ── Public info/legal pages (Privacy, Terms, About, Contact) ── */
+.info-page { max-width: 860px; margin: 0 auto; padding: 0 0 48px; color: #1f2937; }
+.info-hero { background: #1B3A6B; color: #fff; padding: 28px 20px; text-align: center; }
+.info-hero a.info-back { color: #cdd9f0; text-decoration: none; font-size: 0.85rem; display:inline-block; margin-bottom: 8px; }
+.info-hero h1 { margin: 0; font-size: 1.7rem; font-weight: 700; }
+.info-hero p { margin: 6px 0 0; color: #cdd9f0; font-size: 0.9rem; }
+.info-body { padding: 24px 20px; line-height: 1.7; font-size: 0.95rem; }
+.info-body h2 { color: #1B3A6B; font-size: 1.15rem; margin: 24px 0 8px; }
+.info-body h3 { color: #1B3A6B; font-size: 1rem; margin: 16px 0 6px; }
+.info-body ul { margin: 8px 0 8px 18px; }
+.info-body li { margin: 4px 0; }
+.info-body a { color: #C0203E; }
+.info-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin: 16px 0; }
+.info-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; }
+.info-card h3 { margin: 0 0 6px; }
+.info-contact-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+.info-contact-row ion-icon { color: #1B3A6B; font-size: 1.2rem; margin-top: 2px; }
+.info-muted { color: #6b7280; font-size: 0.85rem; }

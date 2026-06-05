@@ -2,12 +2,21 @@ import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
+import { PrivacyPolicyPage } from './pages/privacy-policy.page';
+import { AboutPage } from './pages/about.page';
+import { ContactUsPage } from './pages/contact-us.page';
+import { TermsPage } from './pages/terms.page';
 
 const routes: Routes = [
   {
     path: '',
     loadChildren: () => import('./landing/landing.module').then(m => m.LandingPageModule)
   },
+  // Public info / legal pages
+  { path: 'privacy-policy', component: PrivacyPolicyPage },
+  { path: 'about-us', component: AboutPage },
+  { path: 'contact-us', component: ContactUsPage },
+  { path: 'terms', component: TermsPage },
   {
     path: 'login',
     loadChildren: () => import('./customer/login/login.module').then(m => m.LoginPageModule)
