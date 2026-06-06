@@ -3,7 +3,7 @@
   <aside class="sidebar" [class.sidebar--collapsed]="sidebarCollapsed" *ngIf="!isFullscreenPage">
     <!-- Brand -->
     <div class="sidebar__brand">
-      <img src="assets/images/layla-logo.webp" alt="Layla" class="sidebar__brand-logo-img logo-white" style="" [style.width]="sidebarCollapsed ? '40px' : '100px'" style="height:auto" />
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="sidebar__brand-logo-img" style="" [style.width]="sidebarCollapsed ? '40px' : '100px'" style="height:auto" />
     </div>
 
     <!-- Main Nav -->
@@ -48,7 +48,7 @@
   <!-- Mobile sidebar drawer -->
   <aside class="sidebar sidebar--mobile" [class.sidebar--mobile-open]="mobileMenuOpen" *ngIf="!isFullscreenPage">
     <div class="sidebar__brand">
-      <img src="assets/images/layla-logo.webp" alt="Layla" class="sidebar__brand-logo-img logo-white" style="width:100px;height:auto" />
+      <img src="assets/images/layla-logo.webp" alt="Layla" class="sidebar__brand-logo-img" style="width:100px;height:auto" />
       <button class="sidebar__close" (click)="closeMobileMenu()" style="margin-left:auto">
         <ion-icon name="close-outline"></ion-icon>
       </button>
