@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-terms',
   template: `
-  <div class="info-page">
+  <ion-content><div class="info-page">
     <div class="info-hero">
       <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Terms of Use</h1>
@@ -42,6 +42,6 @@ import { Component } from '@angular/core';
       <h2>10. Contact</h2>
       <p>Questions about these Terms? Contact us at <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or see our <a href="/contact-us">Contact page</a>.</p>
     </div>
-  </div>`
+  </div></ion-content>`
 })
 export class TermsPage {}

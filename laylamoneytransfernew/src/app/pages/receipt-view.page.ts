@@ -7,7 +7,7 @@ import { PdfService } from '../core/services/pdf.service';
 @Component({
   selector: 'app-receipt-view',
   template: `
-  <div class="rv-page">
+  <ion-content><div class="rv-page">
     <div class="rv-bar">
       <button class="rv-btn rv-btn--ghost" (click)="back()"><ion-icon name="arrow-back-outline"></ion-icon> Back</button>
       <div class="rv-actions">
@@ -20,7 +20,7 @@ import { PdfService } from '../core/services/pdf.service';
       <div *ngIf="error" class="rv-loading">{{ error }}</div>
       <iframe *ngIf="receiptHtml && !loading" #frame [srcdoc]="receiptHtml" class="rv-frame" title="Receipt"></iframe>
     </div>
-  </div>`,
+  </div></ion-content>`,
   styles: [`
     .rv-page { max-width: 900px; margin: 0 auto; padding: 16px; }
     .rv-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap; }

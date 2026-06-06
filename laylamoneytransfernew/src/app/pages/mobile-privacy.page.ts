@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-mobile-privacy',
   template: `
-  <div class="info-page">
+  <ion-content><div class="info-page">
     <div class="info-hero">
       <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Mobile Privacy Policy</h1>
@@ -42,6 +42,6 @@ import { Component } from '@angular/core';
       <h2>Changes</h2>
       <p>We may update this policy and will post changes here. Continued use of the app means you accept the updated policy.</p>
     </div>
-  </div>`
+  </div></ion-content>`
 })
 export class MobilePrivacyPage {}

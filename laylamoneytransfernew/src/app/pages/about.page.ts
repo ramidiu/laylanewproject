@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-about',
   template: `
-  <div class="info-page">
+  <ion-content><div class="info-page">
     <div class="info-hero">
       <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>About Us</h1>
@@ -28,6 +28,6 @@ import { Component } from '@angular/core';
       Opening Hours: Monday – Saturday 11:00am to 7:00pm · Sunday: Closed</p>
       <p><a href="/contact-us">Contact us &rarr;</a></p>
     </div>
-  </div>`
+  </div></ion-content>`
 })
 export class AboutPage {}

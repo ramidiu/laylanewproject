@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-complaints',
   template: `
-  <div class="info-page">
+  <ion-content><div class="info-page">
     <div class="info-hero">
       <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Complaint Policy</h1>
@@ -38,6 +38,6 @@ import { Component } from '@angular/core';
 
       <p class="info-muted">Layla (London) Limited · Companies House 9672013 · FCA 740120</p>
     </div>
-  </div>`
+  </div></ion-content>`
 })
 export class ComplaintsPage {}

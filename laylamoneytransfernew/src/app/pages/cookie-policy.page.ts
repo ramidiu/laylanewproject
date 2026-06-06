@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-cookie-policy',
   template: `
-  <div class="info-page">
+  <ion-content><div class="info-page">
     <div class="info-hero">
       <a class="info-back" href="/">&larr; Back to Home</a>
       <h1>Cookie Policy</h1>
@@ -34,6 +34,6 @@ import { Component } from '@angular/core';
       <h2>Contact</h2>
       <p>Questions about cookies? Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a href="/privacy-policy">Privacy Policy</a>.</p>
     </div>
-  </div>`
+  </div></ion-content>`
 })
 export class CookiePolicyPage {}

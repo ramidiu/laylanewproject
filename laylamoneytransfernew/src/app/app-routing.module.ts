@@ -20,6 +20,7 @@ const routes: Routes = [
   },
   // Public info / legal pages
   { path: 'privacy-policy', component: PrivacyPolicyPage },
+  { path: 'privacypolicy', component: PrivacyPolicyPage }, // Play Store-submitted URL
   { path: 'about-us', component: AboutPage },
   { path: 'contact-us', component: ContactUsPage },
   { path: 'terms', component: TermsPage },
