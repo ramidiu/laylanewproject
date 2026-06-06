@@ -11,7 +11,7 @@ import { LanguageService } from '../../core/services/language.service';
       <aside class="partner-sidenav">
         <div class="partner-sidenav__header">
           <div class="partner-sidenav__logo">
-            <img src="assets/images/layla-logo.webp" alt="Layla Money Transfer" [style.width]="sidenavCollapsed ? '40px' : '140px'" style="height:auto;" />
+            <img src="assets/images/layla-logo.webp" class="logo-white" alt="Layla Money Transfer" [style.width]="sidenavCollapsed ? '40px' : '140px'" style="height:auto;" />
           </div>
           <span class="partner-sidenav__role" *ngIf="!sidenavCollapsed">Payout Partner</span>
           <span class="partner-sidenav__admin-badge" *ngIf="!sidenavCollapsed && isAdminViewing">Viewing: {{ adminPartnerName }}</span>

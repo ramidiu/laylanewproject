@@ -13,7 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
         <ion-title>
           <div class="fb-toolbar__title">
-            <img *ngIf="showLogo" src="assets/images/layla-logo.webp" alt="Layla Money Transfer" class="fb-toolbar__logo" />
+            <img *ngIf="showLogo" src="assets/images/layla-logo.webp" alt="Layla Money Transfer" class="fb-toolbar__logo logo-white" />
             <span>{{ title }}</span>
           </div>
         </ion-title>

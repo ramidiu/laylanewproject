@@ -8,7 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
       <aside class="agent-sidenav">
         <div class="agent-sidenav__header">
           <div class="agent-sidenav__logo">
-            <img src="assets/images/layla-logo.webp" alt="Layla Money Transfer" style="width:140px;height:auto;" />
+            <img src="assets/images/layla-logo.webp" class="logo-white" alt="Layla Money Transfer" style="width:140px;height:auto;" />
           </div>
           <span class="agent-sidenav__role">Agent Portal</span>
         </div>

@@ -717,3 +717,6 @@ ion-toast:not(.fb-toast) {
 .info-contact-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
 .info-contact-row ion-icon { color: #1B3A6B; font-size: 1.2rem; margin-top: 2px; }
 .info-muted { color: #6b7280; font-size: 0.85rem; }
+
+/* Render the (transparent) logo in solid white on dark/navy surfaces (login, sidebars, navbar) */
+.logo-white { filter: brightness(0) invert(1); }
