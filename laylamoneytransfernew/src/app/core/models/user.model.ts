@@ -15,6 +15,8 @@ export interface UserResponse {
   preferredLanguage: string;
   kycTier: KycTier;
   status: UserStatus;
+  accountStatus?: 'ACTIVE' | 'DELETE_REQUESTED' | 'DELETED';
+  deleteRequestedAt?: string;
   roles: string[];
   mfaEnabled: boolean;
   emailVerified: boolean;

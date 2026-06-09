@@ -46,6 +46,10 @@ const routes: Routes = [
         loadChildren: () => import('../mfa-setup/mfa-setup.module').then(m => m.MfaSetupPageModule)
       },
       {
+        path: 'delete-account',
+        loadChildren: () => import('../delete-account/delete-account.module').then(m => m.DeleteAccountPageModule)
+      },
+      {
         path: 'wallet',
         canActivate: [RequireKycSubmittedGuard],
         loadChildren: () => import('../wallet/wallet.module').then(m => m.WalletPageModule)

@@ -223,16 +223,73 @@ public class PayoutPartnerController {
             @RequestHeader(value = "X-Partner-Id", required = false) Long adminPartnerId) {
         PayoutPartner partner = findPartnerForUser(userUuid, userId, userEmail, adminPartnerId);
 
-        List<TransactionEntity> transactions = transactionRepository.findByPayoutPartnerIdAndStatusIn(
-                partner.getId(),
-                java.util.List.of(
-                        TransactionStatus.PROCESSING,
-                        TransactionStatus.FUNDS_RECEIVED,
-                        TransactionStatus.SENT_TO_PAYOUT));
+        // A pay-out partner is the RECEIVING side: they are responsible for every
+        // transaction landing in their country's currency (Sudan -> SDG), not only the
+        // ones explicitly tagged with their payout_partner_id (mostly null on historical
+        // data). Scope by receive currency; fall back to the partner-id filter when the
+        // currency can't be resolved.
+        java.util.List<TransactionStatus> pending = java.util.List.of(
+                TransactionStatus.PROCESSING,
+                TransactionStatus.FUNDS_RECEIVED,
+                TransactionStatus.SENT_TO_PAYOUT);
+        String receiveCurrency = receiveCurrencyForPartnerName(partner.getPartnerName());
+        List<TransactionEntity> transactions = receiveCurrency != null
+                ? transactionRepository.findByReceiveCurrencyAndStatusInOrderByCreatedAtDesc(receiveCurrency, pending)
+                : transactionRepository.findByPayoutPartnerIdAndStatusIn(partner.getId(), pending);
         return ResponseEntity.ok(ApiResponse.<List<Map<String, Object>>>builder()
                 .success(true)
                 .data(transactions.stream().map(this::enrichWithBeneficiary).toList())
                 .build());
+    }
+
+    /**
+     * Maps a pay-out partner's country name to the currency it pays out in. The
+     * payout_partner_countries table is unpopulated, so this bridges the gap; extend as
+     * new pay-out countries are onboarded.
+     */
+    private String receiveCurrencyForPartnerName(String partnerName) {
+        if (partnerName == null) return null;
+        String n = partnerName.trim().toUpperCase().replace(" ", "");
+        switch (n) {
+            case "SUDAN":
+                return "SDG";
+            case "UK":
+            case "GB":
+            case "UNITEDKINGDOM":
+            case "GREATBRITAIN":
+            case "ENGLAND":
+                return "GBP";
+            default:
+                log.warn("No pay-out receive currency mapped for partner '{}' — falling back to partner-id filter", partnerName);
+                return null;
+        }
+    }
+
+    /** Resolve the acting user's id for the audit trail: the X-User-Id header if present,
+     *  otherwise the JWT principal (the frontend doesn't send X-User-Id). */
+    private Long resolveActorUserId(Long headerUserId) {
+        if (headerUserId != null) return headerUserId;
+        try {
+            org.springframework.security.core.Authentication auth =
+                    org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                return userRepository.findByUuid(auth.getName()).map(u -> u.getId()).orElse(null);
+            }
+        } catch (Exception e) {
+            log.warn("Could not resolve actor user id for audit: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /** Real client IP for the audit trail. Host nginx proxies the API, so getRemoteAddr()
+     *  is localhost — the originating IP arrives in X-Forwarded-For / X-Real-IP. */
+    private String extractClientIp(jakarta.servlet.http.HttpServletRequest req) {
+        if (req == null) return null;
+        String xff = req.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
+        String real = req.getHeader("X-Real-IP");
+        if (real != null && !real.isBlank()) return real.trim();
+        return req.getRemoteAddr();
     }
 
     /**
@@ -286,9 +343,12 @@ public class PayoutPartnerController {
             @RequestHeader(value = "X-Partner-Id", required = false) Long adminPartnerId) {
         PayoutPartner partner = findPartnerForUser(userUuid, userId, userEmail, adminPartnerId);
 
-        List<TransactionEntity> transactions = transactionRepository.findByPayoutPartnerIdAndStatusIn(
-                partner.getId(),
-                java.util.List.of(TransactionStatus.PAID, TransactionStatus.COMPLETED));
+        java.util.List<TransactionStatus> completed =
+                java.util.List.of(TransactionStatus.PAID, TransactionStatus.COMPLETED);
+        String receiveCurrency = receiveCurrencyForPartnerName(partner.getPartnerName());
+        List<TransactionEntity> transactions = receiveCurrency != null
+                ? transactionRepository.findByReceiveCurrencyAndStatusInOrderByCreatedAtDesc(receiveCurrency, completed)
+                : transactionRepository.findByPayoutPartnerIdAndStatusIn(partner.getId(), completed);
         return ResponseEntity.ok(ApiResponse.<List<Map<String, Object>>>builder()
                 .success(true)
                 .data(transactions.stream().map(this::enrichWithBeneficiary).toList())
@@ -320,9 +380,16 @@ public class PayoutPartnerController {
                                                          @RequestHeader(value = "X-User-UUID", required = false) String userUuid,
                                                          @RequestHeader(value = "X-User-Id", required = false) Long userId,
                                                          @RequestHeader(value = "X-User-Email", required = false) String userEmail,
-                                                         @RequestHeader(value = "X-Partner-Id", required = false) Long adminPartnerId) {
+                                                         @RequestHeader(value = "X-Partner-Id", required = false) Long adminPartnerId,
+                                                         jakarta.servlet.http.HttpServletRequest httpRequest) {
         ensurePayoutEnabled();
         PayoutPartner partner = findPartnerForUser(userUuid, userId, userEmail, adminPartnerId);
+
+        // Audit: record WHO marked it paid and from WHICH IP. The frontend doesn't send
+        // X-User-Id, so resolve the actor from the JWT principal; the real client IP comes
+        // via X-Forwarded-For (host nginx proxies the API, so getRemoteAddr() is localhost).
+        Long actorId = resolveActorUserId(userId);
+        String clientIp = extractClientIp(httpRequest);
 
         TransactionEntity tx = transactionRepository.findById(txnId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", txnId));
@@ -345,14 +412,14 @@ public class PayoutPartnerController {
                             .status(TransactionStatus.SENT_TO_PAYOUT)
                             .reason("Sending to payout by partner")
                             .build(),
-                    userId, com.remitz.common.enums.ActorType.PAYOUT_PARTNER);
+                    actorId, com.remitz.common.enums.ActorType.PAYOUT_PARTNER, clientIp);
         }
         transactionService.updateStatus(txnId,
                 com.remitz.common.dto.TransactionStatusUpdateRequest.builder()
                         .status(TransactionStatus.PAID)
                         .reason("Marked as paid by payout partner")
                         .build(),
-                userId, com.remitz.common.enums.ActorType.PAYOUT_PARTNER);
+                actorId, com.remitz.common.enums.ActorType.PAYOUT_PARTNER, clientIp);
 
         // Create partner ledger CREDIT entry (platform owes partner for the payout)
         java.math.BigDecimal receiveAmount = tx.getReceiveAmount() != null ? tx.getReceiveAmount() : java.math.BigDecimal.ZERO;

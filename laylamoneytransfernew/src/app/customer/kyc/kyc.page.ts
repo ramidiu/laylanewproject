@@ -38,6 +38,7 @@ export class KycPage implements OnInit, OnDestroy {
   existingDocuments: any[] = [];
   loadingStatus = true;
   uploadOnly = false; // true = show only document upload sections (no personal/address forms)
+  private readonly MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB — must match backend multipart cap
   // Code added by Naresh: Veriff removed — flag kept as constant-false for backward compat of existing guards
   readonly veriffAvailable = false;
 
@@ -506,6 +507,15 @@ export class KycPage implements OnInit, OnDestroy {
     return true;
   }
 
+  /** Label of the first selected file that exceeds the 10MB cap, or null if all are OK. */
+  private firstOversizedFile(): string | null {
+    const tooBig = (f: File | null) => !!f && f.size > this.MAX_FILE_BYTES;
+    if (tooBig(this.identityFrontFile)) return 'Your identity document (front)';
+    if (tooBig(this.identityBackFile)) return 'Your identity document (back)';
+    if (tooBig(this.addressFile)) return 'Your proof of address';
+    return null;
+  }
+
   async onSubmitKyc(): Promise<void> {
     this.formSubmitAttempted = true;
     this.validateIdentityDates();
@@ -520,6 +530,14 @@ export class KycPage implements OnInit, OnDestroy {
 
     if (!this.isFormValid) {
       this.showToast('Please fill in all required fields correctly', 'warning');
+      return;
+    }
+
+    // Reject oversized files BEFORE uploading anything — an over-cap file is the most common
+    // reason an upload fails halfway and leaves a partial submission.
+    const oversized = this.firstOversizedFile();
+    if (oversized) {
+      this.showToast(`${oversized} is too large. Each document must be 10MB or less.`, 'warning');
       return;
     }
 
@@ -550,40 +568,54 @@ export class KycPage implements OnInit, OnDestroy {
         await this.http.put(`${this.apiUrl}/users/${userId}`, profilePayload).toPromise();
       }
 
-      // Step 2: Upload identity images only when Veriff is not available.
-      // When Veriff is available, identity photos are captured inside Veriff — no upload here.
-      if (!this.veriffAvailable && this.selectedIdentityDocType && this.identityFrontFile) {
-        await this.kycService.uploadDocument(
-          userId,
-          this.selectedIdentityDocType.code,
-          this.identityFrontFile,
-          this.identityDocNumber,
-          this.identityIssueDate,
-          this.identityExpiryDate
-        ).toPromise();
-
-        if (this.selectedIdentityDocType.sides === 2 && this.identityBackFile) {
-          await this.kycService.uploadDocument(
+      // Steps 2 & 3: upload documents with ROLLBACK. Documents are uploaded as separate
+      // requests, so if a later one fails (e.g. proof-of-address) we delete the ones already
+      // saved — the customer is never left half-submitted (identity saved, address missing).
+      const uploadedDocIds: (string | number)[] = [];
+      try {
+        // Identity images only when Veriff is not available (Veriff captures them itself).
+        if (!this.veriffAvailable && this.selectedIdentityDocType && this.identityFrontFile) {
+          const front = await this.kycService.uploadDocument(
             userId,
             this.selectedIdentityDocType.code,
-            this.identityBackFile,
+            this.identityFrontFile,
             this.identityDocNumber,
             this.identityIssueDate,
             this.identityExpiryDate
           ).toPromise();
-        }
-      }
+          if (front?.id) uploadedDocIds.push(front.id);
 
-      // Step 3: Upload address proof
-      if (this.addressFile && this.selectedAddressDocType) {
-        await this.kycService.uploadDocument(
-          userId,
-          this.selectedAddressDocType.code,
-          this.addressFile,
-          undefined,
-          undefined,
-          undefined
-        ).toPromise();
+          if (this.selectedIdentityDocType.sides === 2 && this.identityBackFile) {
+            const back = await this.kycService.uploadDocument(
+              userId,
+              this.selectedIdentityDocType.code,
+              this.identityBackFile,
+              this.identityDocNumber,
+              this.identityIssueDate,
+              this.identityExpiryDate
+            ).toPromise();
+            if (back?.id) uploadedDocIds.push(back.id);
+          }
+        }
+
+        // Proof of address.
+        if (this.addressFile && this.selectedAddressDocType) {
+          const addr = await this.kycService.uploadDocument(
+            userId,
+            this.selectedAddressDocType.code,
+            this.addressFile,
+            undefined,
+            undefined,
+            undefined
+          ).toPromise();
+          if (addr?.id) uploadedDocIds.push(addr.id);
+        }
+      } catch (uploadErr) {
+        // Roll back every document saved during this submission so nothing partial remains.
+        for (const id of uploadedDocIds) {
+          try { await this.kycService.deleteDocument(userId, id).toPromise(); } catch { /* best-effort */ }
+        }
+        throw uploadErr; // handled by the outer catch: shows an error and stays on the page (no navigation)
       }
 
       // Code added by Naresh: Veriff module removed — KYC flow is document-upload only.

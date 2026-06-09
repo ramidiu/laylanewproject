@@ -164,7 +164,8 @@ public class TransactionEntity {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        // Respect an explicitly-set createdAt (e.g. admin-chosen payin date); else default to now.
+        if (createdAt == null) createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 

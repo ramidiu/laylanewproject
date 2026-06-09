@@ -60,6 +60,15 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     List<TransactionEntity> findByPayinPartnerId(Long payinPartnerId);
 
+    // Pay-in partner view: every transaction collected in a given send currency
+    // (e.g. GBP for the UK pay-in partner), newest first.
+    List<TransactionEntity> findBySendCurrencyOrderByCreatedAtDesc(String sendCurrency);
+
+    // Pay-out partner view: every transaction paid out in a given receive currency
+    // (e.g. SDG for the Sudan pay-out partner), restricted to the relevant statuses.
+    List<TransactionEntity> findByReceiveCurrencyAndStatusInOrderByCreatedAtDesc(
+            String receiveCurrency, java.util.Collection<TransactionStatus> statuses);
+
     /**
      * Has this sender ever had a transaction reach PROCESSING or beyond? If yes, the
      * sender has already been compliance-cleared (either screening passed or admin

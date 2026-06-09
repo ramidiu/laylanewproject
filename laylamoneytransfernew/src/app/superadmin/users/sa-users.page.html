@@ -20,6 +20,7 @@
       <option value="ACTIVE">Active</option>
       <option value="SUSPENDED">Suspended</option>
       <option value="PENDING_VERIFICATION">Pending</option>
+      <option value="CLOSED">Deleted (Archived)</option>
     </select>
     <select class="fb-input filter-select" (change)="onKycFilter($any($event.target).value)">
       <option value="">All KYC</option>
@@ -71,6 +72,7 @@
             </td>
             <td>
               <app-status-chip [status]="user.status"></app-status-chip>
+              <ion-badge color="danger" *ngIf="user.accountStatus === 'DELETE_REQUESTED'" style="margin-left:6px;">Deletion Requested</ion-badge>
             </td>
             <td>{{ user.createdAt | date:'MMM d, y' }}</td>
             <td>

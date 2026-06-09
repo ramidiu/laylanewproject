@@ -1,0 +1,55 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home/profile" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Delete Account</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="da-page">
+    <div class="da-card">
+      <div class="da-icon">
+        <ion-icon name="trash-outline"></ion-icon>
+      </div>
+
+      <h1 class="da-title">Delete Account</h1>
+
+      <p class="da-desc">
+        Deleting your account will permanently remove your profile and disable your access to the
+        Layla Money Transfer app. Your saved recipients and marketing preferences will be removed.
+      </p>
+
+      <div class="da-warning">
+        <ion-icon name="warning-outline"></ion-icon>
+        <span>
+          Certain financial and identity verification (KYC) records may be retained for the legally
+          required retention period under Anti-Money Laundering (AML), KYC, tax, and financial
+          regulations. This action cannot be undone.
+        </span>
+      </div>
+
+      <ion-item lines="none" class="da-reason">
+        <ion-label position="stacked">Reason for leaving (optional)</ion-label>
+        <ion-textarea [(ngModel)]="reason" rows="3" autoGrow="true"
+          placeholder="Let us know why you're deleting your account…" maxlength="1000"></ion-textarea>
+      </ion-item>
+
+      <ion-item lines="none" class="da-confirm">
+        <ion-checkbox slot="start" [(ngModel)]="confirmed"></ion-checkbox>
+        <ion-label class="ion-text-wrap">I understand that this action cannot be undone.</ion-label>
+      </ion-item>
+
+      <button class="fb-btn fb-btn--danger da-delete-btn"
+        [disabled]="!confirmed || submitting" (click)="onDeletePressed()">
+        <ion-spinner *ngIf="submitting" name="crescent"></ion-spinner>
+        <span *ngIf="!submitting"><ion-icon name="trash-outline"></ion-icon> Delete My Account</span>
+      </button>
+
+      <button class="fb-btn fb-btn--secondary da-cancel-btn" [disabled]="submitting" (click)="cancel()">
+        Cancel
+      </button>
+    </div>
+  </div>
+</ion-content>

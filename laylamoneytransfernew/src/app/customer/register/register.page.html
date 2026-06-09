@@ -14,7 +14,7 @@
         <!-- First Name -->
         <div class="fb-field">
           <label class="fb-field__label">{{ 'REGISTER.FIRST_NAME' | translate }}</label>
-          <input type="text" class="fb-input" formControlName="firstName" [placeholder]="'REGISTER.FIRST_NAME' | translate" />
+          <input type="text" appLatinName class="fb-input" formControlName="firstName" [placeholder]="'REGISTER.FIRST_NAME' | translate" />
           <div class="fb-field__error" *ngIf="registerForm.get('firstName')?.touched && registerForm.get('firstName')?.invalid">
             {{ 'REGISTER.FIRST_NAME_ERROR' | translate }}
           </div>
@@ -23,7 +23,7 @@
         <!-- Last Name -->
         <div class="fb-field">
           <label class="fb-field__label">{{ 'REGISTER.LAST_NAME' | translate }}</label>
-          <input type="text" class="fb-input" formControlName="lastName" [placeholder]="'REGISTER.LAST_NAME' | translate" />
+          <input type="text" appLatinName class="fb-input" formControlName="lastName" [placeholder]="'REGISTER.LAST_NAME' | translate" />
           <div class="fb-field__error" *ngIf="registerForm.get('lastName')?.touched && registerForm.get('lastName')?.invalid">
             {{ 'REGISTER.LAST_NAME_ERROR' | translate }}
           </div>

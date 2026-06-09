@@ -27,6 +27,8 @@ import { PartnerService } from '../../core/services/partner.service';
               <option value="PENDING">Pending</option>
               <option value="SUCCESS">Success</option>
               <option value="FAILED">Failed</option>
+              <option value="PAID">Paid</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
             <ion-button fill="clear" size="small" (click)="loadData()">
               <ion-icon name="refresh-outline" slot="start"></ion-icon>
@@ -107,7 +109,8 @@ export class PayinPartnerTransactionsPage implements OnInit {
   filtered: any[] = [];
   loading = true;
   searchTerm = '';
-  statusFilter = '';
+  // Default to the actionable PROCESSING view; "All Statuses" shows everything.
+  statusFilter = 'PROCESSING';
 
   constructor(private partnerService: PartnerService, private toastCtrl: ToastController) {}
 

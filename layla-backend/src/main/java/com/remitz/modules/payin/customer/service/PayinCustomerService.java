@@ -21,4 +21,8 @@ public interface PayinCustomerService {
 
     /** Update an existing payin customer's profile (currently DOB + isVerified). */
     PayinCustomerDto updateProfile(String customerId, LocalDate dob, Boolean isVerified);
+
+    /** One-off backfill: (re)provision login accounts with the default password +
+     *  force-change flag for every existing pay-in customer. Returns the number processed. */
+    int backfillLoginAccounts();
 }

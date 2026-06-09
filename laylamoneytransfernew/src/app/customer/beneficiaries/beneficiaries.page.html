@@ -50,7 +50,7 @@
         <form [formGroup]="addForm" (ngSubmit)="onAddBeneficiary()">
           <div class="fb-field">
             <label class="fb-field__label">{{ 'BENEFICIARIES.FULL_NAME' | translate }} *</label>
-            <input type="text" class="fb-input" formControlName="fullName"
+            <input type="text" appLatinName class="fb-input" formControlName="fullName"
               [placeholder]="'BENEFICIARIES.FULL_NAME_PLACEHOLDER' | translate"
               autocomplete="new-password" autocorrect="off" spellcheck="false"
               [class.fb-input--error]="(addFormSubmitted || addForm.get('fullName')?.touched) && addForm.get('fullName')?.invalid" />
@@ -495,7 +495,7 @@
       <form [formGroup]="editForm" (ngSubmit)="onUpdateBeneficiary()">
         <div class="fb-field">
           <label class="fb-field__label">{{ 'BENEFICIARIES.FULL_NAME' | translate }}</label>
-          <input type="text" class="fb-input" formControlName="fullName"
+          <input type="text" appLatinName class="fb-input" formControlName="fullName"
             [placeholder]="'BENEFICIARIES.FULL_NAME_PLACEHOLDER' | translate" />
         </div>
 

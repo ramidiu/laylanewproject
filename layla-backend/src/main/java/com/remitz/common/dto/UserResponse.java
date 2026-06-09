@@ -1,5 +1,6 @@
 package com.remitz.common.dto;
 
+import com.remitz.common.enums.AccountStatus;
 import com.remitz.common.enums.KycTier;
 import com.remitz.common.enums.UserStatus;
 import com.remitz.common.enums.UserType;
@@ -27,6 +28,8 @@ public class UserResponse {
     private UserType userType;
     private KycTier kycTier;
     private UserStatus status;
+    private AccountStatus accountStatus;
+    private LocalDateTime deleteRequestedAt;
     private String country;
     private String addressLine1;
     private String addressLine2;

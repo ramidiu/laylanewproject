@@ -44,8 +44,9 @@ public class PayinTransactionController {
     @GetMapping("/list")
     @PreAuthorize("hasAnyRole('PAYIN_PARTNER', 'ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "List PayIn transactions", description = "Returns all PayIn transactions")
-    public ResponseEntity<List<PayinTransactionDto>> listTransactions() {
-        return ResponseEntity.ok(service.listTransactions());
+    public ResponseEntity<List<PayinTransactionDto>> listTransactions(
+            @RequestHeader(value = "X-Partner-Id", required = false) Long adminPartnerId) {
+        return ResponseEntity.ok(service.listTransactions(adminPartnerId));
     }
 
     @GetMapping("/processing")

@@ -13,11 +13,12 @@ import { CookiePolicyPage } from './cookie-policy.page';
 import { UserAgreementPage } from './user-agreement.page';
 import { MobileTermsPage } from './mobile-terms.page';
 import { MobilePrivacyPage } from './mobile-privacy.page';
+import { AccountDeletionPage } from './account-deletion.page';
 
 const PAGES = [
   PrivacyPolicyPage, AboutPage, ContactUsPage, TermsPage,
   FaqPage, ComplaintsPage, CookiePolicyPage, UserAgreementPage,
-  MobileTermsPage, MobilePrivacyPage
+  MobileTermsPage, MobilePrivacyPage, AccountDeletionPage
 ];
 
 @NgModule({

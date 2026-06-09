@@ -77,9 +77,14 @@ public class TransactionStateMachine {
     private final RedisPublisher redisPublisher;
     private final RemitOneService remitOneService;
 
-    @Transactional
     public TransactionEntity transition(TransactionEntity tx, TransactionStatus target,
                                         Long actorId, ActorType actorType, String reason) {
+        return transition(tx, target, actorId, actorType, reason, null);
+    }
+
+    @Transactional
+    public TransactionEntity transition(TransactionEntity tx, TransactionStatus target,
+                                        Long actorId, ActorType actorType, String reason, String ipAddress) {
         TransactionStatus currentStatus = tx.getStatus();
 
         // Validate the transition is allowed
@@ -103,6 +108,7 @@ public class TransactionStateMachine {
                 .actorId(actorId)
                 .actorType(actorType)
                 .reason(reason)
+                .ipAddress(ipAddress)
                 .build();
         statusHistoryRepository.save(history);
 

@@ -27,6 +27,8 @@ import com.remitz.modules.transaction.entity.TransactionEntity;
 import com.remitz.modules.transaction.repository.BeneficiaryRepository;
 import com.remitz.modules.transaction.repository.TransactionRepository;
 import com.remitz.modules.transaction.entity.PayoutPartner;
+import com.remitz.modules.transaction.entity.PayinPartner;
+import com.remitz.modules.transaction.repository.PayinPartnerRepository;
 import com.remitz.modules.transaction.repository.PayoutPartnerCountryRepository;
 import com.remitz.modules.transaction.repository.PayoutPartnerRepository;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +55,7 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
     private final CorridorRepository corridorRepository;
     private final PayoutPartnerRepository payoutPartnerRepository;
     private final PayoutPartnerCountryRepository payoutPartnerCountryRepository;
+    private final PayinPartnerRepository payinPartnerRepository;
     private final com.remitz.modules.transaction.service.TransactionReceiptService transactionReceiptService;
 
     @Override
@@ -124,8 +127,15 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 ? PayinTransactionStatus.PROCESSING
                 : PayinTransactionStatus.PENDING;
 
+        // Admin-chosen transaction date (PAYIN only). Keep the current time-of-day so
+        // ordering stays sensible; null → entity defaults createdAt to now().
+        java.time.LocalDateTime customCreatedAt = request.getTransactionDate() != null
+                ? request.getTransactionDate().atTime(java.time.LocalTime.now())
+                : null;
+
         // Create transaction
         PayinTransactionEntity transaction = PayinTransactionEntity.builder()
+                .createdAt(customCreatedAt)
                 .transactionId(UUID.randomUUID().toString())
                 .customerId(customer.getCustomerId())
                 .customerSource(customer.getCreatedSource())
@@ -146,13 +156,14 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 saved.getTransactionId(), saved.getCustomerId(), saved.getCustomerSource());
 
         // Create linked regular transaction so Payout Partner can action it
-        createLinkedTransaction(saved, customer, beneficiary, paymentMode);
+        createLinkedTransaction(saved, customer, beneficiary, paymentMode, customCreatedAt);
 
         return CreatePayinTransactionResponse.success(saved.getTransactionId(), saved.getStatus().name(), saved.getCustomerSource().name());
     }
 
     private void createLinkedTransaction(PayinTransactionEntity payinTxn, PayinCustomerEntity customer,
-                                         PayinBeneficiaryEntity payinBen, PaymentMode paymentMode) {
+                                         PayinBeneficiaryEntity payinBen, PaymentMode paymentMode,
+                                         java.time.LocalDateTime customCreatedAt) {
         try {
             String sendCurrency = payinTxn.getCurrency();
             String receiveCurrency = payinTxn.getReceiveCurrency();
@@ -232,6 +243,7 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                             .orElse(null));
 
             TransactionEntity linked = TransactionEntity.builder()
+                    .createdAt(customCreatedAt)
                     .referenceNumber(ReferenceNumberGenerator.generate())
                     .senderId(senderId)
                     .senderName(customer.getFirstName() + " " + customer.getLastName())
@@ -412,10 +424,122 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
     }
 
     @Override
-    public List<PayinTransactionDto> listTransactions() {
-        return transactionRepository.findAll().stream()
-                .map(this::toDto)
+    public List<PayinTransactionDto> listTransactions(Long adminPartnerId) {
+        // A pay-in partner is the SENDING side of a remittance. They are responsible for
+        // every transaction collected in their country's currency — not only the ones
+        // created through the partner portal, but also those a customer started on the
+        // app frontend. So the list is the regular `transactions` table scoped to the
+        // partner's pay-in (send) currency, e.g. GBP for the UK pay-in partner.
+        String sendCurrency = resolvePayinSendCurrency(adminPartnerId);
+        if (sendCurrency == null) {
+            // Admin / super-admin (they have their own views) or an unmapped caller —
+            // preserve the original behaviour rather than dumping every currency.
+            return transactionRepository.findAll().stream()
+                    .map(this::toDto)
+                    .collect(Collectors.toList());
+        }
+
+        List<TransactionEntity> txns =
+                regularTransactionRepository.findBySendCurrencyOrderByCreatedAtDesc(sendCurrency);
+
+        // Batch-resolve sender UUIDs so the "Customer ID" column matches the rest of the
+        // UI, without an N+1 lookup per row.
+        java.util.Set<Long> senderIds = txns.stream()
+                .map(TransactionEntity::getSenderId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        java.util.Map<Long, String> senderUuid = new java.util.HashMap<>();
+        if (!senderIds.isEmpty()) {
+            userRepository.findAllById(senderIds).forEach(u -> senderUuid.put(u.getId(), u.getUuid()));
+        }
+
+        return txns.stream()
+                .map(t -> regularToDto(t, senderUuid.get(t.getSenderId())))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Resolves the pay-in (send) currency to scope the list by.
+     *
+     * @param adminPartnerId when an admin is "viewing" a specific pay-in partner (the
+     *        frontend sends its id as X-Partner-Id), scope to that partner. Otherwise the
+     *        currency is resolved from the authenticated pay-in partner. Returns null when
+     *        neither resolves (e.g. a plain admin with no partner selected) so the caller
+     *        can fall back to the legacy behaviour.
+     */
+    private String resolvePayinSendCurrency(Long adminPartnerId) {
+        if (adminPartnerId != null) {
+            return payinPartnerRepository.findById(adminPartnerId)
+                    .map(p -> sendCurrencyForPartnerName(p.getPartnerName()))
+                    .orElse(null);
+        }
+        return resolveCurrentPayinSendCurrency();
+    }
+
+    /**
+     * Resolves the pay-in (send) currency for the currently authenticated pay-in partner,
+     * or null when the caller is not a mapped pay-in partner (e.g. an admin). Mirrors the
+     * partner-resolution fallback used elsewhere: JWT principal name is the user UUID.
+     */
+    private String resolveCurrentPayinSendCurrency() {
+        try {
+            org.springframework.security.core.Authentication auth =
+                    org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || auth.getName() == null) return null;
+            Optional<UserEntity> userOpt = userRepository.findByUuid(auth.getName());
+            if (userOpt.isEmpty()) return null;
+            UserEntity u = userOpt.get();
+            Optional<PayinPartner> partner = payinPartnerRepository.findByUserId(u.getId());
+            if (partner.isEmpty() && u.getEmail() != null) {
+                partner = payinPartnerRepository.findByContactEmail(u.getEmail());
+            }
+            return partner.map(p -> sendCurrencyForPartnerName(p.getPartnerName())).orElse(null);
+        } catch (Exception e) {
+            log.warn("Could not resolve pay-in partner send currency: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Maps a pay-in partner's country name to the currency it collects in. The
+     * payin_partners table has no currency column, so this bridges the gap; extend as
+     * new pay-in countries are onboarded.
+     */
+    private String sendCurrencyForPartnerName(String partnerName) {
+        if (partnerName == null) return null;
+        String n = partnerName.trim().toUpperCase().replace(" ", "");
+        switch (n) {
+            case "UK":
+            case "GB":
+            case "UNITEDKINGDOM":
+            case "GREATBRITAIN":
+            case "ENGLAND":
+                return "GBP";
+            case "SUDAN":
+                return "SDG";
+            default:
+                log.warn("No pay-in send currency mapped for partner '{}' — falling back to unscoped list", partnerName);
+                return null;
+        }
+    }
+
+    /** Maps a regular (frontend or partner-created) transaction into the pay-in list DTO. */
+    private PayinTransactionDto regularToDto(TransactionEntity e, String customerUuid) {
+        return PayinTransactionDto.builder()
+                .transactionId(e.getReferenceNumber())
+                .referenceNumber(e.getReferenceNumber())
+                .customerId(customerUuid != null ? customerUuid
+                        : (e.getSenderId() != null ? String.valueOf(e.getSenderId()) : null))
+                .amount(e.getSendAmount())
+                .currency(e.getSendCurrency())
+                .receiveCurrency(e.getReceiveCurrency())
+                .receiveAmount(e.getReceiveAmount())
+                .deliveryMethod(e.getDeliveryMethod() != null ? e.getDeliveryMethod().name() : null)
+                .paymentMode(e.getPaymentMethodType() != null ? e.getPaymentMethodType().name() : null)
+                .status(e.getStatus() != null ? e.getStatus().name() : null)
+                .externalReferenceId(e.getPaymentReference())
+                .createdAt(e.getCreatedAt())
+                .build();
     }
 
     @Override

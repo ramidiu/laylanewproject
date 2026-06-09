@@ -41,6 +41,15 @@ public class PayinCustomerController {
         return ResponseEntity.ok(service.createCustomer(request));
     }
 
+    @PostMapping("/backfill-login")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Backfill login accounts",
+            description = "One-off: (re)provision login accounts with the default password + force-change flag for all existing pay-in customers")
+    public ResponseEntity<java.util.Map<String, Object>> backfillLogins() {
+        int count = service.backfillLoginAccounts();
+        return ResponseEntity.ok(java.util.Map.of("success", true, "processed", count));
+    }
+
     @GetMapping("/list")
     @PreAuthorize("hasAnyRole('PAYIN_PARTNER', 'ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "List customers", description = "Returns payin customers + UK frontend users combined")

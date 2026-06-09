@@ -231,6 +231,8 @@ public class UserService {
                 .userType(user.getUserType())
                 .kycTier(user.getKycTier())
                 .status(user.getStatus())
+                .accountStatus(user.getAccountStatus())
+                .deleteRequestedAt(user.getDeleteRequestedAt())
                 .country(user.getCountry())
                 .addressLine1(user.getAddressLine1())
                 .addressLine2(user.getAddressLine2())

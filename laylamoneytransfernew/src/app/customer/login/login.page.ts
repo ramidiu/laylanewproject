@@ -85,6 +85,12 @@ export class LoginPage implements OnInit {
             this.loginError = 'Staff accounts cannot login here. Please use the Admin Login at /admin-login';
             return;
           }
+          // Default-password accounts must change their password before continuing.
+          if ((response as any).passwordChangeRequired) {
+            sessionStorage.setItem('fb_force_change_password', '1');
+            window.location.href = '/home/profile?changePassword=1';
+            return;
+          }
           this.navigateAfterLogin();
         }
       },

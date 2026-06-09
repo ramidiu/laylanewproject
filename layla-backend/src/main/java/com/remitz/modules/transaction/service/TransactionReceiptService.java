@@ -1,6 +1,8 @@
 package com.remitz.modules.transaction.service;
 
+import com.remitz.common.enums.DeliveryMethod;
 import com.remitz.common.exception.ResourceNotFoundException;
+import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.transaction.entity.BeneficiaryEntity;
 import com.remitz.modules.transaction.entity.TransactionEntity;
 import com.remitz.modules.transaction.repository.BeneficiaryRepository;
@@ -42,6 +44,26 @@ public class TransactionReceiptService {
 
     private final TransactionRepository transactionRepository;
     private final BeneficiaryRepository beneficiaryRepository;
+    private final UserRepository userRepository;
+
+    /**
+     * Resolve the sender's full name. Prefers the real first+last name from the
+     * users table (imported transactions may have stored an email local-part like
+     * "abdulmohammed73" or a null name); falls back to the stored name / email.
+     */
+    private String resolveSenderName(TransactionEntity tx) {
+        if (tx.getSenderId() != null) {
+            String full = userRepository.findById(tx.getSenderId()).map(u -> {
+                String fn = u.getFirstName() != null ? u.getFirstName().trim() : "";
+                String ln = u.getLastName() != null ? u.getLastName().trim() : "";
+                return (fn + " " + ln).trim();
+            }).orElse("");
+            if (full != null && !full.isBlank()) return full;
+        }
+        if (tx.getSenderName() != null && !tx.getSenderName().isBlank()) return tx.getSenderName();
+        if (tx.getSenderEmail() != null && !tx.getSenderEmail().isBlank()) return tx.getSenderEmail();
+        return "—";
+    }
 
     public byte[] generatePdfForTransaction(Long transactionId) {
         TransactionEntity tx = transactionRepository.findById(transactionId)
@@ -102,7 +124,7 @@ public class TransactionReceiptService {
         v.put("updatedAt", formatDateTime(tx.getUpdatedAt()));
         v.put("deliveryMethod", tx.getDeliveryMethod() != null ? tx.getDeliveryMethod().name() : "—");
         v.put("paymentMethodType", tx.getPaymentMethodType() != null ? tx.getPaymentMethodType().name() : "—");
-        v.put("senderName", safe(tx.getSenderName()));
+        v.put("senderName", resolveSenderName(tx));
         v.put("senderEmail", safe(tx.getSenderEmail()));
 
         if (beneficiary != null) {
@@ -128,6 +150,11 @@ public class TransactionReceiptService {
             v.put("beneficiaryBranch", "—");
             v.put("beneficiarySwift", "—");
         }
+
+        // Delivery-method-aware payout block (bank vs cash vs mobile wallet).
+        v.put("deliveryMethodLabel", humanizeDelivery(tx.getDeliveryMethod()));
+        v.put("payoutSectionTitle", payoutSectionTitle(tx.getDeliveryMethod()));
+        v.put("payoutDetailsHtml", buildPayoutDetailsHtml(beneficiary, tx.getDeliveryMethod()));
 
         v.put("sendAmount", formatAmount(tx.getSendAmount()));
         v.put("sendCurrency", safe(tx.getSendCurrency()));
@@ -267,6 +294,65 @@ public class TransactionReceiptService {
                     + "<polyline points=\"12 7 12 12 15.5 14\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"/>"
                     + "</svg>";
         };
+    }
+
+    private String humanizeDelivery(DeliveryMethod dm) {
+        if (dm == null) return "—";
+        return switch (dm) {
+            case BANK_DEPOSIT  -> "Bank Deposit";
+            case MOBILE_WALLET -> "Mobile Wallet";
+            case CASH_PICKUP   -> "Cash Pickup";
+            case HOME_DELIVERY -> "Home Delivery";
+            case AIRTIME_TOPUP -> "Airtime Top-up";
+            case UPI           -> "UPI";
+        };
+    }
+
+    private String payoutSectionTitle(DeliveryMethod dm) {
+        if (dm == DeliveryMethod.MOBILE_WALLET) return "MOBILE WALLET DETAILS";
+        if (dm == DeliveryMethod.CASH_PICKUP || dm == DeliveryMethod.HOME_DELIVERY) return "CASH PAYOUT DETAILS";
+        return "BANK DETAILS";
+    }
+
+    /** Builds the two &lt;td&gt; columns inside the payout-details card, varying the
+     *  rows shown by delivery method. Returned value is raw HTML (key ends in "Html"
+     *  so the templating layer does not escape it) — values are escaped individually. */
+    private String buildPayoutDetailsHtml(BeneficiaryEntity b, DeliveryMethod dm) {
+        if (b == null) {
+            return col2(row("Details", "—"), "", "", "");
+        }
+        String acct = (b.getAccountNumber() != null && !b.getAccountNumber().isBlank())
+                ? b.getAccountNumber() : b.getIban();
+        if (dm == DeliveryMethod.MOBILE_WALLET) {
+            return col2(
+                    row("Mobile Number", safe(b.getMobileNumber())),
+                    row("Provider", safe(b.getMobileProvider())),
+                    row("City", safe(b.getBranchCity())),
+                    row("Country", safe(b.getCountry())));
+        }
+        if (dm == DeliveryMethod.CASH_PICKUP || dm == DeliveryMethod.HOME_DELIVERY) {
+            return col2(
+                    row("Payout Agent", safe(b.getBankName())),
+                    row("Pickup Location", safe(b.getBranchCity())),
+                    row("Branch / Area", safe(b.getBranchState())),
+                    row("Recipient Mobile", safe(b.getMobileNumber())));
+        }
+        // Bank deposit / UPI / default
+        return col2(
+                row("Account Number", safe(acct)),
+                row("Bank Name", safe(b.getBankName())),
+                row("Branch Name", safe(b.getBranchState())),
+                row("Swift Code", safe(b.getSwiftBic())));
+    }
+
+    private String row(String label, String value) {
+        return "<div class=\"row\"><span class=\"label\">" + escapeHtml(label)
+                + "</span><br/><span class=\"value\">" + escapeHtml(value) + "</span></div>";
+    }
+
+    private String col2(String r1, String r2, String r3, String r4) {
+        return "<td class=\"col\">" + r1 + r2 + "</td>"
+                + "<td class=\"col divider\" style=\"padding-left:14px;\">" + r3 + r4 + "</td>";
     }
 
     private String buildBankLine(BeneficiaryEntity b) {

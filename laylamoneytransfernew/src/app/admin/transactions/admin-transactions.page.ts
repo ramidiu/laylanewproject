@@ -13,7 +13,8 @@ export class AdminTransactionsPage implements OnInit {
   transactions: TransactionResponse[] = [];
   loading = true;
   searchQuery = '';
-  statusFilter = '';
+  // Default to the actionable PROCESSING view; "All Status" shows everything.
+  statusFilter = 'PROCESSING';
   fromDate = '';
   toDate = '';
   currentPage = 0;

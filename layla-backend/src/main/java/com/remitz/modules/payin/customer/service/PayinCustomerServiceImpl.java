@@ -30,6 +30,8 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
     private final PayinCustomerDocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final com.remitz.modules.user.repository.KycDocumentRepository kycDocumentRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final com.remitz.modules.auth.repository.RoleRepository roleRepository;
 
     @Override
     @Transactional
@@ -45,8 +47,87 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
         PayinCustomerEntity entity = mapper.toEntity(request);
         PayinCustomerEntity saved = repository.save(entity);
 
+        // Provision a login account with the default password (FIRSTNAME + first 4 digits
+        // of phone) and force a password change on first login.
+        provisionLoginAccount(saved.getFirstName(), saved.getLastName(), email, saved.getPhone(),
+                saved.getCountry(), saved.getNationality(), saved.getAddressLine1(),
+                saved.getCity(), saved.getPostalCode());
+
         log.info("PayIn customer created successfully — customerId: {}", saved.getCustomerId());
         return CreateCustomerResponse.success(saved.getCustomerId());
+    }
+
+    /**
+     * Default first-login password for a backend (pay-in) customer:
+     * FIRSTNAME (first word, uppercased) + first 4 digits of the phone number.
+     * e.g. "vinay kumar" / "9542854803" -> "VINAY9542".
+     */
+    static String defaultPassword(String firstName, String phone) {
+        String first = firstName == null ? "" : firstName.trim().split("\\s+")[0].toUpperCase();
+        String digits = phone == null ? "" : phone.replaceAll("\\D", "");
+        String four = digits.length() >= 4 ? digits.substring(0, 4) : digits;
+        return first + four;
+    }
+
+    /**
+     * Creates (or, for an existing account, resets) the customer's {@code users} login row
+     * with the default password and the password-change-required flag set, so they can log
+     * in with the default password and are forced to change it on first login.
+     */
+    private void provisionLoginAccount(String firstName, String lastName, String email, String phone,
+                                       String country, String nationality, String addressLine1,
+                                       String city, String postalCode) {
+        String rawPassword = defaultPassword(firstName, phone);
+        String hash = passwordEncoder.encode(rawPassword);
+        UserEntity existing = userRepository.findByEmail(email).orElse(null);
+        if (existing != null) {
+            existing.setPasswordHash(hash);
+            existing.setPasswordChangeRequired(true);
+            existing.setEmailVerified(true);   // let them log in with the default password (no OTP gate)
+            userRepository.save(existing);
+            log.info("PayIn customer login reset for existing user: {}***", maskEmail(email));
+            return;
+        }
+        UserEntity user = UserEntity.builder()
+                .uuid(java.util.UUID.randomUUID().toString())
+                .email(email)
+                .passwordHash(hash)
+                .firstName(firstName)
+                .lastName(lastName)
+                .phone(phone)
+                .country(country)
+                .nationality(nationality)
+                .countryOfResidence(country)
+                .addressLine1(addressLine1)
+                .city(city)
+                .postcode(postalCode)
+                .userType(com.remitz.common.enums.UserType.INDIVIDUAL)
+                .kycTier(com.remitz.common.enums.KycTier.TIER_0)
+                .status(com.remitz.common.enums.UserStatus.ACTIVE)
+                .mfaEnabled(false)
+                .emailVerified(true)
+                .passwordChangeRequired(true)
+                .preferredLanguage("en")
+                .build();
+        com.remitz.modules.auth.entity.RoleEntity role = roleRepository.findByName("CUSTOMER")
+                .orElseThrow(() -> new RuntimeException("Default CUSTOMER role not found"));
+        user.getRoles().add(role);
+        userRepository.save(user);
+        log.info("PayIn customer login account created for {}*** (password change required)", maskEmail(email));
+    }
+
+    @Override
+    @Transactional
+    public int backfillLoginAccounts() {
+        List<PayinCustomerEntity> all = repository.findAll();
+        for (PayinCustomerEntity c : all) {
+            if (c.getEmail() == null || c.getEmail().isBlank()) continue;
+            provisionLoginAccount(c.getFirstName(), c.getLastName(), c.getEmail().trim().toLowerCase(),
+                    c.getPhone(), c.getCountry(), c.getNationality(), c.getAddressLine1(),
+                    c.getCity(), c.getPostalCode());
+        }
+        log.info("Backfilled login accounts for {} pay-in customers", all.size());
+        return all.size();
     }
 
     @Override

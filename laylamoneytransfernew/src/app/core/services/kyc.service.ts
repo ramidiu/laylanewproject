@@ -29,6 +29,12 @@ export class KycService {
     );
   }
 
+  /** Delete the user's own PENDING document — used to roll back a partial KYC submission. */
+  deleteDocument(userId: string, docId: string | number): Observable<any> {
+    if (!userId || docId === undefined || docId === null) return of(null as any);
+    return this.http.delete(`${this.baseUrl}/${userId}/kyc/documents/${docId}`);
+  }
+
   getDocuments(userId: string): Observable<KycDocumentResponse[]> {
     if (!userId) return of([]);
     return this.http.get<any>(`${this.baseUrl}/${userId}/kyc/documents`).pipe(

@@ -10,7 +10,11 @@ public interface PayinTransactionService {
 
     CreatePayinTransactionResponse createTransaction(CreatePayinTransactionRequest request);
 
-    List<PayinTransactionDto> listTransactions();
+    /**
+     * @param adminPartnerId when an admin is "viewing" a specific pay-in partner (sent as
+     *                       the X-Partner-Id header), scope to that partner; null otherwise.
+     */
+    List<PayinTransactionDto> listTransactions(Long adminPartnerId);
 
     List<PayinTransactionDto> listProcessingTransactions();
 

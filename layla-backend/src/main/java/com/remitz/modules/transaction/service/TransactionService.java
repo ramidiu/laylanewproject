@@ -921,9 +921,14 @@ public class TransactionService {
         return mapToResponse(updated, beneficiaryName);
     }
 
-    @Transactional
     public TransactionResponse updateStatus(Long id, TransactionStatusUpdateRequest request,
                                             Long actorId, ActorType actorType) {
+        return updateStatus(id, request, actorId, actorType, null);
+    }
+
+    @Transactional
+    public TransactionResponse updateStatus(Long id, TransactionStatusUpdateRequest request,
+                                            Long actorId, ActorType actorType, String ipAddress) {
         TransactionEntity tx = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id));
 
@@ -931,7 +936,7 @@ public class TransactionService {
             tx.setComplianceHoldReason(request.getReason());
         }
 
-        TransactionEntity updated = stateMachine.transition(tx, request.getStatus(), actorId, actorType, request.getReason());
+        TransactionEntity updated = stateMachine.transition(tx, request.getStatus(), actorId, actorType, request.getReason(), ipAddress);
 
         // When transaction completes, credit the referrer's wallet
         if ((request.getStatus() == TransactionStatus.COMPLETED || request.getStatus() == TransactionStatus.PAID)

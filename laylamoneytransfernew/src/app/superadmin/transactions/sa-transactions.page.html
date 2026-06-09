@@ -206,11 +206,7 @@
                   <ion-icon name="return-down-back-outline"></ion-icon>
                   Refund
                 </button>
-                <button *ngIf="txn.status === 'PENDING'"
-                  class="action-btn action-btn--grey" (click)="adminArchive(txn)">
-                  <ion-icon name="archive-outline"></ion-icon>
-                  Archive
-                </button>
+                <!-- Archive button removed — stale PENDING transactions auto-archive after 3h via scheduler -->
                 <span *ngIf="(txn.status === 'PENDING' || txn.status === 'CREATED' || txn.status === 'COMPLIANCE_HOLD') && txn.payinPartnerId && txn.payinPartnerActive === true"
                       class="muted-tag">Pay-In partner (active)</span>
                 <span *ngIf="(txn.status === 'PROCESSING' || txn.status === 'FUNDS_RECEIVED' || txn.status === 'SENT_TO_PAYOUT') && txn.payoutPartnerId && txn.payoutPartnerActive === true"

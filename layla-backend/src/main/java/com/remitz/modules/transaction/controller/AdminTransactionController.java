@@ -5,6 +5,7 @@ import com.remitz.common.enums.ActorType;
 import com.remitz.common.enums.TransactionStatus;
 import com.remitz.common.exception.RemitzException;
 import com.remitz.common.exception.ResourceNotFoundException;
+import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.transaction.config.RedisPublisher;
 import com.remitz.modules.transaction.entity.*;
 import com.remitz.modules.transaction.repository.*;
@@ -54,6 +55,27 @@ public class AdminTransactionController {
     private final RedisPublisher redisPublisher;
     private final TransactionService transactionService;
     private final FeeDistributionService feeDistributionService;
+    private final UserRepository userRepository;
+
+    /**
+     * Resolve the sender's display name. Prefers the real first+last name from
+     * the users table (so imported transactions that stored an email local-part
+     * like "abdulmohammed73" or a null name still show the full name), and only
+     * falls back to the stored name / "Customer #id".
+     */
+    private String resolveSenderName(Long senderId, String storedName, String senderEmail) {
+        if (senderId != null) {
+            String full = userRepository.findById(senderId).map(u -> {
+                String fn = u.getFirstName() != null ? u.getFirstName().trim() : "";
+                String ln = u.getLastName() != null ? u.getLastName().trim() : "";
+                return (fn + " " + ln).trim();
+            }).orElse("");
+            if (full != null && !full.isBlank()) return full;
+        }
+        if (storedName != null && !storedName.isBlank()) return storedName;
+        if (senderEmail != null && !senderEmail.isBlank()) return senderEmail;
+        return senderId != null ? "Customer #" + senderId : "—";
+    }
 
     // ─── Existing endpoints ──────────────────────────────────────────────
 
@@ -207,8 +229,9 @@ public class AdminTransactionController {
                     map.put("beneficiarySwift", b.getSwiftBic());
                 });
             }
-            // Sender name
-            map.put("senderName", tx.getSenderName() != null ? tx.getSenderName() : "Customer #" + tx.getSenderId());
+            // Sender name — prefer real full name from users table (imported txns
+            // may have stored an email local-part or null).
+            map.put("senderName", resolveSenderName(tx.getSenderId(), tx.getSenderName(), tx.getSenderEmail()));
             map.put("senderEmail", tx.getSenderEmail());
             return map;
         }).toList();

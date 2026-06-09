@@ -337,6 +337,7 @@ public class AuthService {
                 .mfaRequired(false)
                 .tokenType("Bearer")
                 .expiresIn(jwtProperties.getAccessTokenExpirationMs() / 1000)
+                .passwordChangeRequired(Boolean.TRUE.equals(user.getPasswordChangeRequired()))
                 .build();
     }
 
@@ -480,6 +481,7 @@ public class AuthService {
 
         // Update password
         user.setPasswordHash(newPasswordHash);
+        user.setPasswordChangeRequired(false);   // forgot-password reset counts as setting their own password
         userRepository.save(user);
 
         // Save to password history
@@ -526,6 +528,7 @@ public class AuthService {
         // Update password
         String newPasswordHash = passwordEncoder.encode(request.getNewPassword());
         user.setPasswordHash(newPasswordHash);
+        user.setPasswordChangeRequired(false);   // they've now set their own password
         userRepository.save(user);
 
         // Save to password history
@@ -987,6 +990,22 @@ public class AuthService {
                     t.setRevoked(true);
                     refreshTokenRepository.save(t);
                 });
+    }
+
+    /**
+     * Revoke every active session for a user: blacklist the supplied access token
+     * (the one used to make the request) and revoke all of the user's refresh
+     * tokens. Used by account deletion so the user cannot keep using the app.
+     */
+    @Transactional
+    public void revokeAllSessions(Long userId, String currentAccessToken) {
+        if (currentAccessToken != null) {
+            long remainingTtl = jwtService.getTokenRemainingTimeMs(currentAccessToken);
+            if (remainingTtl > 0) {
+                tokenBlacklistService.blacklist(currentAccessToken, remainingTtl);
+            }
+        }
+        revokeAllRefreshTokens(userId);
     }
 
     private boolean verifyTotpCode(String secret, String code) {

@@ -113,6 +113,15 @@ export class ProfilePage implements OnInit, OnDestroy {
     this.loadProfile();
     this.loadNotifPrefs();
     this.setupAddrSearch();
+
+    // Forced first-login password change (default-password accounts): auto-open the
+    // change-password modal and tell the user they must change it.
+    if (sessionStorage.getItem('fb_force_change_password') === '1') {
+      setTimeout(() => {
+        this.openChangePassword();
+        this.showToast('You are using a default password. Please set a new password to continue.', 'warning');
+      }, 400);
+    }
   }
 
   ngOnDestroy(): void {
@@ -390,6 +399,7 @@ export class ProfilePage implements OnInit, OnDestroy {
       next: () => {
         this.savingPassword = false;
         this.showPasswordModal = false;
+        sessionStorage.removeItem('fb_force_change_password');   // requirement satisfied
         this.showToast('Password changed successfully', 'success');
       },
       error: (err) => {

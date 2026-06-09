@@ -114,12 +114,7 @@
                   <ion-icon name="return-down-back-outline" slot="start"></ion-icon>
                   <span class="action-label">Refund</span>
                 </ion-button>
-                <!-- Archive -->
-                <ion-button *ngIf="txn.status === 'PENDING' && !txn.ledgerEntries?.length"
-                  fill="solid" size="small" color="medium" (click)="adminArchive(txn)">
-                  <ion-icon name="archive-outline" slot="start"></ion-icon>
-                  <span class="action-label">Archive</span>
-                </ion-button>
+                <!-- Archive button removed — stale PENDING transactions auto-archive after 3h via scheduler -->
               </div>
             </td>
           </tr>

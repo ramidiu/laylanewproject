@@ -14,6 +14,7 @@ import { ChartPanelComponent } from './components/chart-panel/chart-panel.compon
 import { CurrencyFormatPipe } from './pipes/currency-format.pipe';
 import { CountryFlagUrlPipe, CountryFlagSvgPipe } from './pipes/country-flag.pipe';
 import { AddressAutocompleteComponent } from './components/address-autocomplete/address-autocomplete.component';
+import { LatinNameDirective } from './directives/latin-name.directive';
 
 @NgModule({
   declarations: [
@@ -26,7 +27,8 @@ import { AddressAutocompleteComponent } from './components/address-autocomplete/
     CurrencyFormatPipe,
     CountryFlagUrlPipe,
     CountryFlagSvgPipe,
-    AddressAutocompleteComponent
+    AddressAutocompleteComponent,
+    LatinNameDirective
   ],
   imports: [
     CommonModule,
@@ -54,7 +56,8 @@ import { AddressAutocompleteComponent } from './components/address-autocomplete/
     CurrencyFormatPipe,
     CountryFlagUrlPipe,
     CountryFlagSvgPipe,
-    AddressAutocompleteComponent
+    AddressAutocompleteComponent,
+    LatinNameDirective
   ]
 })
 export class SharedModule {}

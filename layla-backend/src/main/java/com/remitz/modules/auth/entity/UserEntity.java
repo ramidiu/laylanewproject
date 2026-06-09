@@ -1,5 +1,6 @@
 package com.remitz.modules.auth.entity;
 
+import com.remitz.common.enums.AccountStatus;
 import com.remitz.common.enums.KycTier;
 import com.remitz.common.enums.UserStatus;
 import com.remitz.common.enums.UserType;
@@ -56,6 +57,24 @@ public class UserEntity {
     @Column(name = "status")
     private UserStatus status;
 
+    // --- Account deletion (Google Play Account Deletion policy) ---
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status")
+    @Builder.Default
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    @Column(name = "delete_requested_at")
+    private LocalDateTime deleteRequestedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "delete_reason", length = 1000)
+    private String deleteReason;
+
+    @Column(name = "deleted_by", length = 255)
+    private String deletedBy;
+
     @Column(length = 3)
     private String country;
 
@@ -85,6 +104,12 @@ public class UserEntity {
     @Column(name = "email_verified")
     @Builder.Default
     private Boolean emailVerified = false;
+
+    /** True when the account was created with a default password and the user must change
+     *  it on first login. Cleared on change-password or forgot-password reset. */
+    @Column(name = "password_change_required", nullable = false)
+    @Builder.Default
+    private Boolean passwordChangeRequired = false;
 
     @Column(length = 100)
     private String nationality;

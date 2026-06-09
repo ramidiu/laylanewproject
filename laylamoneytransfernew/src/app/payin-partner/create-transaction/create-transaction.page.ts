@@ -335,6 +335,18 @@ import { environment } from '../../../environments/environment';
           </div>
         </div>
 
+        <!-- Transaction Date (admin can backdate / forward-date this transfer) -->
+        <div class="ct-field-group">
+          <label class="ct-label">Transaction Date <span class="ct-hint">(when the money was sent)</span></label>
+          <input
+            type="date"
+            class="ct-amount-input"
+            [(ngModel)]="transactionDate"
+            style="max-width:220px;"
+          />
+          <div class="ct-hint" style="margin-top:4px;">Defaults to today. Pick any date (e.g. yesterday or tomorrow).</div>
+        </div>
+
         <div class="ct-error" *ngIf="stepError">{{ stepError }}</div>
         <div class="ct-nav-row">
           <button class="ct-btn ct-btn--outline" (click)="currentStep = 0">Back</button>
@@ -408,7 +420,7 @@ import { environment } from '../../../environments/environment';
           <div class="ct-form-grid">
             <div class="ct-field">
               <label>Full Name <span class="ct-req">*</span></label>
-              <input [(ngModel)]="newBen.name" placeholder="Beneficiary full name" />
+              <input appLatinName [(ngModel)]="newBen.name" placeholder="Beneficiary full name" />
             </div>
             <div class="ct-field">
               <label>Mobile Number <span class="ct-req">*</span></label>
@@ -921,6 +933,8 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
 
   // Submit
   externalReferenceId = '';
+  // Admin-chosen transaction date (PAYIN only) — defaults to today (yyyy-MM-dd).
+  transactionDate = new Date().toISOString().slice(0, 10);
   submitting = false;
   stepError = '';
 
@@ -1475,6 +1489,9 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     };
 
     if (this.externalReferenceId?.trim()) payload.externalReferenceId = this.externalReferenceId.trim();
+
+    // Admin-chosen transaction date (PAYIN only) — backdate/forward-date the transfer.
+    if (this.transactionDate) payload.transactionDate = this.transactionDate;
 
     if (this.selectedBeneficiary) {
       payload.beneficiaryId = String(this.selectedBeneficiary.id);

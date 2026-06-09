@@ -87,6 +87,19 @@ public class KycController {
                 .build());
     }
 
+    @Operation(summary = "Delete a pending KYC document",
+            description = "Delete the user's own PENDING document. Used to roll back a partial submission.")
+    @DeleteMapping("/documents/{documentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteDocument(
+            @Parameter(description = "User ID") @PathVariable String userId,
+            @Parameter(description = "Document ID") @PathVariable Long documentId) {
+        kycService.deletePendingDocument(resolveUserId(userId), documentId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Document deleted")
+                .build());
+    }
+
     @Operation(summary = "Review KYC document", description = "Approve or reject a KYC document (admin only)")
     @PutMapping("/documents/{docId}")
     @PreAuthorize("hasPermission(null, 'user:approve_kyc')")

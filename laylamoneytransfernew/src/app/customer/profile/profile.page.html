@@ -194,6 +194,11 @@
             <ion-toggle [(ngModel)]="notifPrefs.emailEnabled" (ionChange)="saveNotifPrefs()"></ion-toggle>
           </div>
         </div>
+
+        <ion-item button detail (click)="router.navigate(['/home/delete-account'])">
+          <ion-icon name="trash-outline" slot="start" color="danger"></ion-icon>
+          <ion-label color="danger">{{ 'PROFILE.DELETE_ACCOUNT' | translate }}</ion-label>
+        </ion-item>
       </ion-list>
     </div>
 
@@ -265,11 +270,11 @@
         <div class="edit-form-row">
           <div class="fb-field">
             <label class="fb-field__label">{{ 'PROFILE.FIRST_NAME' | translate }} *</label>
-            <input type="text" class="fb-input" formControlName="firstName" />
+            <input type="text" appLatinName class="fb-input" formControlName="firstName" />
           </div>
           <div class="fb-field">
             <label class="fb-field__label">{{ 'PROFILE.LAST_NAME' | translate }} *</label>
-            <input type="text" class="fb-input" formControlName="lastName" />
+            <input type="text" appLatinName class="fb-input" formControlName="lastName" />
           </div>
         </div>
 

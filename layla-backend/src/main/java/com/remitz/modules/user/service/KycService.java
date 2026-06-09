@@ -126,6 +126,47 @@ public class KycService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Delete a user's own PENDING document. Used by the frontend to ROLL BACK a partial
+     * submission: if one document in a multi-document KYC submit succeeds but a later one
+     * fails, the client deletes the already-saved ones so the user is never left in a
+     * half-submitted state (e.g. identity saved but proof-of-address missing).
+     * Only PENDING documents owned by the user may be deleted — never APPROVED/REJECTED ones.
+     */
+    @Transactional
+    public void deletePendingDocument(Long userId, Long documentId) {
+        KycDocumentEntity document = kycDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("KYC Document", "id", documentId));
+
+        if (!document.getUserId().equals(userId)) {
+            throw new RemitzException("Document does not belong to this user", HttpStatus.FORBIDDEN);
+        }
+        if (document.getStatus() != KycDocumentStatus.PENDING) {
+            throw new RemitzException("Only PENDING documents can be deleted", HttpStatus.BAD_REQUEST);
+        }
+
+        // Best-effort removal of the stored file; an orphaned file is harmless if this fails.
+        try {
+            if (document.getFilePath() != null && !document.getFilePath().isBlank()) {
+                java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(document.getFilePath()));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete KYC file for docId={}: {}", documentId, e.getMessage());
+        }
+
+        kycDocumentRepository.delete(document);
+
+        KycAuditLogEntity auditLog = KycAuditLogEntity.builder()
+                .userId(userId)
+                .action("DOCUMENT_DELETED")
+                .actorId(userId)
+                .details(String.format("{\"documentId\": %d, \"reason\": \"submission rollback\"}", documentId))
+                .build();
+        kycAuditLogRepository.save(auditLog);
+
+        log.info("KYC document deleted (rollback): userId={}, docId={}", userId, documentId);
+    }
+
     @Transactional
     public KycDocumentResponse reviewDocument(Long documentId, KycDocumentStatus status,
                                                String rejectionReason, Long reviewerId,
@@ -154,14 +195,16 @@ public class KycService {
         KycDocumentEntity saved = kycDocumentRepository.save(document);
         log.info("KYC document reviewed: docId={}, status={}, reviewer={}", documentId, status, reviewerId);
 
+        java.util.Map<String, Object> reviewDetails = new HashMap<>();
+        reviewDetails.put("documentId", documentId);
+        reviewDetails.put("newStatus", status != null ? status.toString() : null);
+        reviewDetails.put("rejectionReason", rejectionReason);
         KycAuditLogEntity auditLog = KycAuditLogEntity.builder()
                 .userId(document.getUserId())
                 .action("STATUS_CHANGED")
                 .actorId(reviewerId)
                 .actorRole("ADMIN")
-                .details(String.format("{\"documentId\": %d, \"newStatus\": \"%s\", \"rejectionReason\": %s}",
-                        documentId, status,
-                        rejectionReason != null ? "\"" + rejectionReason + "\"" : "null"))
+                .details(toAuditJson(reviewDetails))
                 .ipAddress(ipAddress)
                 .build();
         kycAuditLogRepository.save(auditLog);
@@ -217,7 +260,7 @@ public class KycService {
 
         List<String> nextTierRequirements = calculateNextTierRequirements(user.getKycTier(), documents);
 
-        String overallStatus = computeOverallStatus(documents);
+        String overallStatus = computeOverallStatus(user.getKycTier(), documents);
 
         return KycStatusResponse.builder()
                 .userId(user.getUuid())
@@ -376,19 +419,43 @@ public class KycService {
         }
     }
 
-    private String computeOverallStatus(List<KycDocumentEntity> documents) {
-        if (documents.isEmpty()) return "NOT_SUBMITTED";
-        boolean anyRejected = documents.stream().anyMatch(d -> d.getStatus() == KycDocumentStatus.REJECTED);
-        boolean anyPending = documents.stream().anyMatch(d -> d.getStatus() == KycDocumentStatus.PENDING);
-        if (anyRejected && !anyPending) return "REJECTED";
-        if (anyPending) {
-            // A pending doc only counts as a real review if it was uploaded via the app
-            // (file_hash set). Auto-imported pending docs (no hash) = PARTIAL, not PENDING.
-            boolean anyRealPending = documents.stream().anyMatch(d ->
-                    d.getStatus() == KycDocumentStatus.PENDING
-                            && d.getFileHash() != null && !d.getFileHash().isBlank());
-            return anyRealPending ? "PENDING" : "PARTIAL";
+    private static final com.fasterxml.jackson.databind.ObjectMapper AUDIT_JSON =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+
+    /**
+     * Serialize audit-log details to VALID, escaped JSON. The kyc_audit_log.details column is a
+     * MySQL JSON type, so any free-text value (e.g. a rejection reason containing quotes,
+     * newlines, emoji or pasted smart-quotes) must be properly escaped. Building this JSON by
+     * hand with String.format produced malformed JSON and failed the insert with a 500.
+     */
+    private String toAuditJson(java.util.Map<String, Object> fields) {
+        try {
+            return AUDIT_JSON.writeValueAsString(fields);
+        } catch (Exception e) {
+            log.warn("Failed to serialize audit details: {}", e.getMessage());
+            return "{}";
         }
+    }
+
+    private String computeOverallStatus(KycTier tier, List<KycDocumentEntity> documents) {
+        if (documents.isEmpty()) return "NOT_SUBMITTED";
+
+        // A pending doc only counts as a real review if it was uploaded via the app
+        // (file_hash set). A genuine app submission awaiting review always wins.
+        boolean anyRealPending = documents.stream().anyMatch(d ->
+                d.getStatus() == KycDocumentStatus.PENDING
+                        && d.getFileHash() != null && !d.getFileHash().isBlank());
+        if (anyRealPending) return "PENDING";
+
+        // Once the user has reached a verified tier (TIER_1+), leftover auto-imported
+        // PENDING docs (no file_hash) are migration artifacts and must NOT drag the
+        // status back to PARTIAL — the user is already verified.
+        if (tier != null && tier != KycTier.TIER_0) return "VERIFIED";
+
+        // Not yet verified: an auto-imported (no file_hash) pending doc means the
+        // imported documents have not been reviewed yet = PARTIAL.
+        if (documents.stream().anyMatch(d -> d.getStatus() == KycDocumentStatus.PENDING)) return "PARTIAL";
+        if (documents.stream().anyMatch(d -> d.getStatus() == KycDocumentStatus.REJECTED)) return "REJECTED";
         return "VERIFIED";
     }
 

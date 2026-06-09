@@ -52,8 +52,22 @@ export class KycGuard implements CanActivate {
         this.router.navigate(['/home/profile']);
         return false;
       }
-      // Explicit verified tier — allow.
+      // Explicit verified tier — allow, UNLESS the verified documents have expired.
+      // An approved document whose expiry date has passed must be treated exactly
+      // like the pending-review case: block before the Send Money page and send the
+      // user to re-upload (the renewed docs then go to pending review).
       if (profile.kycTier && profile.kycTier !== 'TIER_0') {
+        if (await this.hasExpiredDocuments(user.sub)) {
+          const toast = await this.toastCtrl.create({
+            message: 'Your verified documents have expired. Please upload renewed documents for admin verification.',
+            duration: 6000, position: 'top', color: 'warning',
+            cssClass: 'fb-toast fb-toast-warning',
+            buttons: [{ icon: 'close-outline', role: 'cancel' }]
+          });
+          await toast.present();
+          this.router.navigate(['/home/kyc']);
+          return false;
+        }
         return true;
       }
     }
@@ -104,5 +118,27 @@ export class KycGuard implements CanActivate {
     await toast.present();
     this.router.navigate(['/home/kyc']);
     return false;
+  }
+
+  // Mirrors the backend transaction gate (validateKycDocumentsVerified): a document
+  // that was APPROVED but whose expiry date has now passed counts as expired. On any
+  // fetch failure we return false (don't block here) — the backend still enforces KYC
+  // when the transaction is actually created.
+  private async hasExpiredDocuments(userSub: string): Promise<boolean> {
+    try {
+      const docs: any[] = await firstValueFrom(this.kycService.getDocuments(userSub).pipe(retry(1)));
+      if (!Array.isArray(docs) || docs.length === 0) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return docs.some(d => {
+        const status = (d?.status || '').toString().toUpperCase();
+        if (status !== 'APPROVED' || !d?.expiryDate) return false;
+        const expiry = new Date(d.expiryDate);
+        return !isNaN(expiry.getTime()) && expiry < today;
+      });
+    } catch {
+      console.warn('[KycGuard] expired-documents check failed — deferring to backend enforcement');
+      return false;
+    }
   }
 }

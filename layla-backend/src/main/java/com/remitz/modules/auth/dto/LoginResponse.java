@@ -32,4 +32,6 @@ public class LoginResponse {
     private String tokenType;
     @Schema(description = "Access token expiry in seconds", example = "3600")
     private long expiresIn;
+    @Schema(description = "Whether the user must change their password before continuing (default-password accounts)", example = "false")
+    private boolean passwordChangeRequired;
 }

@@ -15,14 +15,14 @@
 
         <div class="fb-field">
           <label class="fb-field__label">First Name <span class="required">*</span></label>
-          <input class="fb-input" [class.fb-input--error]="isInvalid('firstName')"
+          <input class="fb-input" appLatinName [class.fb-input--error]="isInvalid('firstName')"
                  formControlName="firstName" placeholder="John" />
           <span class="fb-field__error" *ngIf="isInvalid('firstName')">First name is required</span>
         </div>
 
         <div class="fb-field">
           <label class="fb-field__label">Last Name <span class="required">*</span></label>
-          <input class="fb-input" [class.fb-input--error]="isInvalid('lastName')"
+          <input class="fb-input" appLatinName [class.fb-input--error]="isInvalid('lastName')"
                  formControlName="lastName" placeholder="Doe" />
           <span class="fb-field__error" *ngIf="isInvalid('lastName')">Last name is required</span>
         </div>

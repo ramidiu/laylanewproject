@@ -136,7 +136,8 @@
         <tr>
           <td class="col">
             <div class="row"><span class="label">Receiver Name</span><br/><span class="value">{{beneficiaryName}}</span></div>
-            <div class="row"><span class="label">Telephone</span><br/><span class="value">{{beneficiaryPhone}}</span></div>
+            <div class="row"><span class="label">Mobile Number</span><br/><span class="value">{{beneficiaryPhone}}</span></div>
+            <div class="row"><span class="label">Delivery Method</span><br/><span class="value">{{deliveryMethodLabel}}</span></div>
             <div class="row"><span class="label">Country</span><br/><span class="value">{{beneficiaryCountry}}</span></div>
             <div class="row"><span class="label">City</span><br/><span class="value">{{beneficiaryCity}}</span></div>
           </td>
@@ -148,19 +149,12 @@
       </table>
     </div>
 
-    <!-- BANK DETAILS -->
-    <div class="sec-head">BANK DETAILS</div>
+    <!-- PAYOUT DETAILS (bank / cash / mobile, by delivery method) -->
+    <div class="sec-head">{{payoutSectionTitle}}</div>
     <div class="card">
       <table>
         <tr>
-          <td class="col">
-            <div class="row"><span class="label">Account Number</span><br/><span class="value">{{beneficiaryAccountNumber}}</span></div>
-            <div class="row"><span class="label">Bank Name</span><br/><span class="value">{{beneficiaryBankName}}</span></div>
-          </td>
-          <td class="col divider" style="padding-left:14px;">
-            <div class="row"><span class="label">Branch Name</span><br/><span class="value">{{beneficiaryBranch}}</span></div>
-            <div class="row"><span class="label">Swift Code</span><br/><span class="value">{{beneficiarySwift}}</span></div>
-          </td>
+          {{payoutDetailsHtml}}
         </tr>
       </table>
     </div>
