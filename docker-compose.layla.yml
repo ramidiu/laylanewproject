@@ -106,8 +106,12 @@ services:
 
 volumes:
   layla_mysql_data:
+    external: true
+    name: laylaproject_layla_mysql_data
   layla_redis_data:
   layla_kyc_uploads:
+    external: true
+    name: laylaproject_layla_kyc_uploads
 
 networks:
   layla-network:

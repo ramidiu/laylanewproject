@@ -9,6 +9,7 @@ node_modules/
 *.jar
 *.war
 *.tar.gz
+*.tar.gz.bak*
 *.zip
 
 # Large DB dumps / backups

@@ -112,11 +112,35 @@ public class PayinCustomerDocumentController {
                 .expiryDate(expiryDate != null && !expiryDate.isBlank() ? LocalDate.parse(expiryDate) : null)
                 .filePath(savedPath)
                 .fileName(originalFilename)
-                .status("PENDING")
+                .status("APPROVED")   // partner-created pay-in customers are trusted/verified
                 .build();
 
         PayinCustomerDocumentEntity saved = documentRepository.save(doc);
         log.info("PayIn customer document uploaded — customerId: {}, side: {}, docId: {}", customerId, docSide, saved.getId());
+
+        // Mirror to the linked users-side KYC (kyc_documents) so the document also shows in
+        // the admin/superadmin Users view and the customer's own KYC, and counts toward the
+        // overall KYC status. Linked account is matched by the pay-in customer's email.
+        try {
+            customerRepository.findByCustomerId(customerId).ifPresent(pc -> {
+                if (pc.getEmail() == null || pc.getEmail().isBlank()) return;
+                userRepository.findByEmail(pc.getEmail().trim().toLowerCase()).ifPresent(u -> {
+                    KycDocumentEntity mirror = KycDocumentEntity.builder()
+                            .userId(u.getId())
+                            .documentType(mapPayinToKycType(docSide, docCategory))
+                            .documentNumber(documentNumber)
+                            .filePath(savedPath)
+                            .fileHash(sha256(savedPath))   // mark as a real upload (realUpload=true) so it shows in all admin views
+                            .status(KycDocumentStatus.APPROVED)
+                            .issueDate(issueDate != null && !issueDate.isBlank() ? LocalDate.parse(issueDate) : null)
+                            .expiryDate(expiryDate != null && !expiryDate.isBlank() ? LocalDate.parse(expiryDate) : null)
+                            .build();
+                    kycDocumentRepository.save(mirror);
+                });
+            });
+        } catch (Exception ex) {
+            log.warn("Failed to mirror pay-in document to kyc_documents for {}: {}", customerId, ex.getMessage());
+        }
 
         return ResponseEntity.ok(Map.of("success", true, "documentId", saved.getId(), "message", "Document uploaded successfully"));
     }
@@ -132,7 +156,31 @@ public class PayinCustomerDocumentController {
 
         UserEntity user = userRepository.findByUuid(customerId).orElse(null);
         if (user == null) {
-            // Fall back to payin_customers row if any
+            // Native pay-in customer: documents live in payin_customer_documents, not
+            // kyc_documents. Surface those so they show in the create-transaction KYC step.
+            customerRepository.findByCustomerId(customerId).ifPresent(pc ->
+                    out.put("dob", pc.getDob() != null ? pc.getDob().toString() : ""));
+            for (PayinCustomerDocumentEntity d : documentRepository.findByCustomerId(customerId)) {
+                String cat = d.getDocCategory() != null ? d.getDocCategory().toUpperCase() : "";
+                boolean isAddress = isAddressDoc(d.getDocSide(), cat);
+                boolean isIdentity = !isAddress && isIdentityDoc(d.getDocSide(), cat);
+                if (isIdentity && !Boolean.TRUE.equals(out.get("hasIdentity"))) {
+                    out.put("hasIdentity", true);
+                    out.put("idType", cat);
+                    out.put("idDocumentNumber", d.getDocumentNumber() != null ? d.getDocumentNumber() : "");
+                    out.put("idIssueDate", d.getIssueDate() != null ? d.getIssueDate().toString() : "");
+                    out.put("idExpiryDate", d.getExpiryDate() != null ? d.getExpiryDate().toString() : "");
+                    out.put("idFilePath", d.getFilePath());
+                    out.put("idStatus", d.getStatus());
+                    out.put("idDocId", d.getId());
+                } else if (isAddress && !Boolean.TRUE.equals(out.get("hasAddress"))) {
+                    out.put("hasAddress", true);
+                    out.put("addressType", "UTILITY_BILL");
+                    out.put("addressFilePath", d.getFilePath());
+                    out.put("addressStatus", d.getStatus());
+                    out.put("addressDocId", d.getId());
+                }
+            }
             return ResponseEntity.ok(out);
         }
 
@@ -165,6 +213,49 @@ public class PayinCustomerDocumentController {
         return ResponseEntity.ok(out);
     }
 
+    /** Deterministic non-blank hash so mirrored docs read as real uploads (realUpload=true). */
+    public static String sha256(String s) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] h = md.digest((s == null ? "" : s).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : h) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return "mirror-" + Math.abs((s == null ? "" : s).hashCode());
+        }
+    }
+
+    /** Map a pay-in document (docSide + category) to a users-side KycDocumentType for mirroring. */
+    private KycDocumentType mapPayinToKycType(String docSide, String docCategory) {
+        if (isAddressDoc(docSide, docCategory)) return KycDocumentType.PROOF_OF_ADDRESS;
+        String c = docCategory == null ? "" : docCategory.trim().toUpperCase();
+        if (c.equals("PASSPORT")) return KycDocumentType.PASSPORT;
+        if (c.contains("DRIVING") || c.contains("LICEN")) return KycDocumentType.DRIVING_LICENCE;
+        return KycDocumentType.NATIONAL_ID;   // NATIONAL_ID, BRP, residence permit, generic identity
+    }
+
+    /** Classify a payin_customer_documents row as ADDRESS proof. Handles both upload flows:
+     *  create-customer uses docSide ADDRESS_PROOF; create-transaction uses docSide FRONT with
+     *  the category carrying the real type (UTILITY_BILL, BANK_STATEMENT, COUNCIL_TAX_BILL, ...). */
+    private static boolean isAddressDoc(String docSide, String docCategory) {
+        String s = docSide == null ? "" : docSide.toUpperCase();
+        String c = docCategory == null ? "" : docCategory.toUpperCase();
+        if (s.contains("ADDRESS")) return true;
+        return c.contains("ADDRESS") || c.contains("BILL") || c.contains("STATEMENT")
+                || c.contains("TENANCY") || c.contains("TAX") || c.contains("UTILITY") || c.contains("COUNCIL");
+    }
+
+    /** Classify a payin_customer_documents row as an IDENTITY document
+     *  (PASSPORT, DRIVING_LICENCE/LICENSE, NATIONAL_ID, BRP, ...). */
+    private static boolean isIdentityDoc(String docSide, String docCategory) {
+        String s = docSide == null ? "" : docSide.toUpperCase();
+        String c = docCategory == null ? "" : docCategory.toUpperCase();
+        if (s.contains("IDENTITY")) return true;
+        return c.equals("PASSPORT") || c.contains("DRIVING") || c.contains("LICEN")
+                || c.contains("NATIONAL") || c.equals("BRP") || c.equals("ID_CARD");
+    }
+
     @PostMapping("/{customerId}/verify")
     @PreAuthorize("hasAnyRole('PAYIN_PARTNER', 'ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Verify a customer who already has KYC documents on file",
@@ -172,7 +263,43 @@ public class PayinCustomerDocumentController {
     public ResponseEntity<Map<String, Object>> verifyExisting(@PathVariable String customerId) {
         UserEntity user = userRepository.findByUuid(customerId).orElse(null);
         if (user == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Customer not found"));
+            // Native pay-in customer: verify against payin_customer_documents.
+            var pcOpt = customerRepository.findByCustomerId(customerId);
+            if (pcOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Customer not found"));
+            }
+            List<PayinCustomerDocumentEntity> pdocs = documentRepository.findByCustomerId(customerId);
+            boolean pHasAddr = pdocs.stream().anyMatch(d -> isAddressDoc(d.getDocSide(), d.getDocCategory()));
+            boolean pHasId = pdocs.stream().anyMatch(d ->
+                    !isAddressDoc(d.getDocSide(), d.getDocCategory()) && isIdentityDoc(d.getDocSide(), d.getDocCategory()));
+            if (!pHasId || !pHasAddr) {
+                return ResponseEntity.badRequest().body(Map.of("success", false,
+                        "message", "Customer is missing required documents — cannot verify without re-upload",
+                        "hasIdentity", pHasId, "hasAddress", pHasAddr));
+            }
+            for (PayinCustomerDocumentEntity d : pdocs) {
+                if (d.getStatus() == null || "PENDING".equalsIgnoreCase(d.getStatus())) {
+                    d.setStatus("APPROVED");
+                    documentRepository.save(d);
+                }
+            }
+            var pc = pcOpt.get();
+            pc.setIsVerified(true);
+            customerRepository.save(pc);
+            // Bump the linked login account (matched by email) so tier reflects verification.
+            String tier = "TIER_0";
+            if (pc.getEmail() != null) {
+                UserEntity linked = userRepository.findByEmail(pc.getEmail().trim().toLowerCase()).orElse(null);
+                if (linked != null) {
+                    if (linked.getKycTier() == null || linked.getKycTier().name().equals("TIER_0")) {
+                        linked.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
+                        userRepository.save(linked);
+                    }
+                    tier = linked.getKycTier().name();
+                }
+            }
+            log.info("PayIn customer {} verified using payin_customer_documents", customerId);
+            return ResponseEntity.ok(Map.of("success", true, "kycTier", tier));
         }
 
         List<KycDocumentEntity> docs = kycDocumentRepository.findByUserId(user.getId());

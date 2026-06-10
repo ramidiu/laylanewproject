@@ -30,8 +30,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
     private final PayinCustomerDocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final com.remitz.modules.user.repository.KycDocumentRepository kycDocumentRepository;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-    private final com.remitz.modules.auth.repository.RoleRepository roleRepository;
+    private final BackendCustomerLoginProvisioner loginProvisioner;
 
     @Override
     @Transactional
@@ -45,75 +44,24 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
         }
 
         PayinCustomerEntity entity = mapper.toEntity(request);
+        entity.setIsVerified(true);   // partner-created customers are verified on creation (always TIER_2)
         PayinCustomerEntity saved = repository.save(entity);
 
         // Provision a login account with the default password (FIRSTNAME + first 4 digits
-        // of phone) and force a password change on first login.
-        provisionLoginAccount(saved.getFirstName(), saved.getLastName(), email, saved.getPhone(),
-                saved.getCountry(), saved.getNationality(), saved.getAddressLine1(),
-                saved.getCity(), saved.getPostalCode());
+        // of phone) and force a password change on first login. Runs in its OWN transaction
+        // (REQUIRES_NEW) and is wrapped so it can NEVER roll back customer creation or affect
+        // document uploads.
+        try {
+            loginProvisioner.provision(saved.getFirstName(), saved.getLastName(), email, saved.getPhone(),
+                    saved.getCountry(), saved.getNationality(), saved.getAddressLine1(),
+                    saved.getCity(), saved.getPostalCode());
+        } catch (Exception ex) {
+            log.error("Login-account provisioning failed for payin customer {} — customer created anyway: {}",
+                    saved.getCustomerId(), ex.getMessage());
+        }
 
         log.info("PayIn customer created successfully — customerId: {}", saved.getCustomerId());
         return CreateCustomerResponse.success(saved.getCustomerId());
-    }
-
-    /**
-     * Default first-login password for a backend (pay-in) customer:
-     * FIRSTNAME (first word, uppercased) + first 4 digits of the phone number.
-     * e.g. "vinay kumar" / "9542854803" -> "VINAY9542".
-     */
-    static String defaultPassword(String firstName, String phone) {
-        String first = firstName == null ? "" : firstName.trim().split("\\s+")[0].toUpperCase();
-        String digits = phone == null ? "" : phone.replaceAll("\\D", "");
-        String four = digits.length() >= 4 ? digits.substring(0, 4) : digits;
-        return first + four;
-    }
-
-    /**
-     * Creates (or, for an existing account, resets) the customer's {@code users} login row
-     * with the default password and the password-change-required flag set, so they can log
-     * in with the default password and are forced to change it on first login.
-     */
-    private void provisionLoginAccount(String firstName, String lastName, String email, String phone,
-                                       String country, String nationality, String addressLine1,
-                                       String city, String postalCode) {
-        String rawPassword = defaultPassword(firstName, phone);
-        String hash = passwordEncoder.encode(rawPassword);
-        UserEntity existing = userRepository.findByEmail(email).orElse(null);
-        if (existing != null) {
-            existing.setPasswordHash(hash);
-            existing.setPasswordChangeRequired(true);
-            existing.setEmailVerified(true);   // let them log in with the default password (no OTP gate)
-            userRepository.save(existing);
-            log.info("PayIn customer login reset for existing user: {}***", maskEmail(email));
-            return;
-        }
-        UserEntity user = UserEntity.builder()
-                .uuid(java.util.UUID.randomUUID().toString())
-                .email(email)
-                .passwordHash(hash)
-                .firstName(firstName)
-                .lastName(lastName)
-                .phone(phone)
-                .country(country)
-                .nationality(nationality)
-                .countryOfResidence(country)
-                .addressLine1(addressLine1)
-                .city(city)
-                .postcode(postalCode)
-                .userType(com.remitz.common.enums.UserType.INDIVIDUAL)
-                .kycTier(com.remitz.common.enums.KycTier.TIER_0)
-                .status(com.remitz.common.enums.UserStatus.ACTIVE)
-                .mfaEnabled(false)
-                .emailVerified(true)
-                .passwordChangeRequired(true)
-                .preferredLanguage("en")
-                .build();
-        com.remitz.modules.auth.entity.RoleEntity role = roleRepository.findByName("CUSTOMER")
-                .orElseThrow(() -> new RuntimeException("Default CUSTOMER role not found"));
-        user.getRoles().add(role);
-        userRepository.save(user);
-        log.info("PayIn customer login account created for {}*** (password change required)", maskEmail(email));
     }
 
     @Override
@@ -122,11 +70,63 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
         List<PayinCustomerEntity> all = repository.findAll();
         for (PayinCustomerEntity c : all) {
             if (c.getEmail() == null || c.getEmail().isBlank()) continue;
-            provisionLoginAccount(c.getFirstName(), c.getLastName(), c.getEmail().trim().toLowerCase(),
-                    c.getPhone(), c.getCountry(), c.getNationality(), c.getAddressLine1(),
-                    c.getCity(), c.getPostalCode());
+            // 1. Login account with default password + TIER_2 (isolated transaction).
+            //    Use the RETURNED user — a fresh re-query (findByEmail) from this outer
+            //    transaction can't see a row the REQUIRES_NEW provision just committed
+            //    (MySQL REPEATABLE READ snapshot), which would skip the mirror for new accounts.
+            UserEntity linked = null;
+            try {
+                linked = loginProvisioner.provision(c.getFirstName(), c.getLastName(), c.getEmail().trim().toLowerCase(),
+                        c.getPhone(), c.getCountry(), c.getNationality(), c.getAddressLine1(),
+                        c.getCity(), c.getPostalCode());
+            } catch (Exception ex) {
+                log.error("Backfill login provisioning failed for {}: {}", c.getCustomerId(), ex.getMessage());
+            }
+            // 2. Mark the customer verified (partner-created customers are always verified).
+            if (!Boolean.TRUE.equals(c.getIsVerified())) {
+                c.setIsVerified(true);
+                repository.save(c);
+            }
+            // 3. Approve any existing documents + mirror them into users-side KYC so they
+            //    show in the Users / customer KYC views. Dedup PER DOCUMENT by file hash, so
+            //    it's idempotent (safe to re-run) AND covers customers who already have some
+            //    users-side docs (e.g. uploaded online) without skipping their pay-in docs.
+            java.util.Set<String> existingHashes = linked == null ? java.util.Set.of()
+                    : kycDocumentRepository.findByUserId(linked.getId()).stream()
+                        .map(com.remitz.modules.user.entity.KycDocumentEntity::getFileHash)
+                        .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+            for (com.remitz.modules.payin.customer.entity.PayinCustomerDocumentEntity d
+                    : documentRepository.findByCustomerId(c.getCustomerId())) {
+                if (d.getStatus() == null || "PENDING".equalsIgnoreCase(d.getStatus())) {
+                    d.setStatus("APPROVED");
+                    documentRepository.save(d);
+                }
+                String dhash = com.remitz.modules.payin.customer.controller.PayinCustomerDocumentController.sha256(d.getFilePath());
+                if (linked != null && !existingHashes.contains(dhash)) {
+                    existingHashes.add(dhash);
+                    String cat = d.getDocCategory() != null ? d.getDocCategory().toUpperCase() : "";
+                    boolean addr = (d.getDocSide() != null && d.getDocSide().toUpperCase().contains("ADDRESS"))
+                            || cat.contains("ADDRESS") || cat.contains("BILL") || cat.contains("STATEMENT")
+                            || cat.contains("TENANCY") || cat.contains("TAX") || cat.contains("UTILITY") || cat.contains("COUNCIL");
+                    com.remitz.common.enums.KycDocumentType ktype = addr
+                            ? com.remitz.common.enums.KycDocumentType.PROOF_OF_ADDRESS
+                            : cat.equals("PASSPORT") ? com.remitz.common.enums.KycDocumentType.PASSPORT
+                            : (cat.contains("DRIVING") || cat.contains("LICEN")) ? com.remitz.common.enums.KycDocumentType.DRIVING_LICENCE
+                            : com.remitz.common.enums.KycDocumentType.NATIONAL_ID;
+                    kycDocumentRepository.save(com.remitz.modules.user.entity.KycDocumentEntity.builder()
+                            .userId(linked.getId())
+                            .documentType(ktype)
+                            .documentNumber(d.getDocumentNumber())
+                            .filePath(d.getFilePath())
+                            .fileHash(dhash)
+                            .status(com.remitz.common.enums.KycDocumentStatus.APPROVED)
+                            .issueDate(d.getIssueDate())
+                            .expiryDate(d.getExpiryDate())
+                            .build());
+                }
+            }
         }
-        log.info("Backfilled login accounts for {} pay-in customers", all.size());
+        log.info("Backfilled {} pay-in customers (login + verify + approve docs)", all.size());
         return all.size();
     }
 

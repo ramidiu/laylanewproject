@@ -546,8 +546,11 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
   }
 
   openPreview(doc: any): void {
-    if (doc.previewUrl) {
-      window.open(doc.previewUrl, '_blank');
+    // Open the RAW blob URL (a plain string) in a new tab. doc.previewUrl is a sanitized
+    // SafeUrl object for the [src] binding — passing it to window.open navigates to a
+    // bogus URL (lands on the home page), so use the raw blob URL instead.
+    if (doc.rawBlobUrl) {
+      window.open(doc.rawBlobUrl, '_blank');
     }
   }
 
