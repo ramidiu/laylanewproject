@@ -43,20 +43,21 @@ public class BackendCustomerLoginProvisioner {
     public UserEntity provision(String firstName, String lastName, String email, String phone,
                           String country, String nationality, String addressLine1,
                           String city, String postalCode) {
-        String hash = passwordEncoder.encode(defaultPassword(firstName, phone));
         UserEntity existing = userRepository.findByEmail(email).orElse(null);
         if (existing != null) {
-            existing.setPasswordHash(hash);
-            existing.setPasswordChangeRequired(true);
-            existing.setEmailVerified(true);   // can log in with the default password (no OTP gate)
-            // Pay-in customers are created by a trusted partner — always verified (TIER_2).
+            // NEVER touch an existing user's credentials. This account already has a working
+            // login; overwriting password_hash / email_verified here previously reset real
+            // customers to the generated default password and locked them out of their own
+            // accounts. Only apply the non-destructive KYC-tier bump for a partner-trusted
+            // customer; leave the password and verification state exactly as the user set them.
             if (existing.getKycTier() == null || existing.getKycTier().name().equals("TIER_0")) {
                 existing.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
             }
             UserEntity saved = userRepository.save(existing);
-            log.info("PayIn customer login reset for existing user: {}", email);
+            log.info("PayIn provisioning: existing user {} left intact (no password reset)", email);
             return saved;
         }
+        String hash = passwordEncoder.encode(defaultPassword(firstName, phone));
         UserEntity user = UserEntity.builder()
                 .uuid(UUID.randomUUID().toString())
                 .email(email)
