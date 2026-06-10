@@ -584,8 +584,25 @@ public class KycService {
                 .fileName(extractFileName(entity.getFilePath()))
                 .fileUrl("/api/users/" + entity.getUserId() + "/kyc/documents/" + entity.getId() + "/file")
                 .createdAt(entity.getCreatedAt())
-                .realUpload(entity.getFileHash() != null && !entity.getFileHash().isBlank())
+                .realUpload(isRealUpload(entity))
                 .build();
+    }
+
+    /**
+     * A document counts as a "real upload" (shown in admin KYC views) if it has a content
+     * hash, OR it has an actual stored file path that isn't the {@code no_image} placeholder.
+     * Legacy-imported documents predate the file_hash scheme but have real files on disk, so
+     * they must still count as real uploads — keying purely on file_hash hid them.
+     */
+    private boolean isRealUpload(KycDocumentEntity entity) {
+        if (entity.getFileHash() != null && !entity.getFileHash().isBlank()) {
+            return true;
+        }
+        String path = entity.getFilePath();
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+        return !path.toLowerCase().contains("no_image");
     }
 
     private String extractFileName(String filePath) {
