@@ -67,6 +67,32 @@ public class KycService {
 
         validateFile(file);
 
+        // Block customer self-uploads while any document is still under review. Re-upload is
+        // only allowed once the pending document has been approved or rejected. Admin uploads
+        // (autoApprove) bypass this — they review-and-approve in one step.
+        if (!autoApprove) {
+            boolean hasPending = kycDocumentRepository.findByUserIdAndSupersededAtIsNull(userId).stream()
+                    .anyMatch(d -> d.getStatus() == KycDocumentStatus.PENDING);
+            if (hasPending) {
+                throw new RemitzException(
+                        "You already have a document under review. Please wait until it is approved "
+                                + "or rejected before uploading again.",
+                        HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // One current document per type: supersede any existing active document(s) of this
+        // type so the new upload REPLACES rather than appends. Old rows are retained for audit.
+        List<KycDocumentEntity> priorSameType =
+                kycDocumentRepository.findByUserIdAndDocumentTypeAndSupersededAtIsNull(userId, type);
+        if (!priorSameType.isEmpty()) {
+            LocalDateTime supersededAt = LocalDateTime.now();
+            priorSameType.forEach(d -> d.setSupersededAt(supersededAt));
+            kycDocumentRepository.saveAll(priorSameType);
+            log.info("KYC upload: superseded {} prior {} document(s) for userId={}",
+                    priorSameType.size(), type, userId);
+        }
+
         String fileHash = calculateSha256(file);
         String savedFilePath = saveFile(userId, type, file);
 
@@ -121,7 +147,7 @@ public class KycService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        return kycDocumentRepository.findByUserId(userId).stream()
+        return kycDocumentRepository.findByUserIdAndSupersededAtIsNull(userId).stream()
                 .map(this::toDocumentResponse)
                 .collect(Collectors.toList());
     }
@@ -246,7 +272,7 @@ public class KycService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        List<KycDocumentEntity> documents = kycDocumentRepository.findByUserId(userId);
+        List<KycDocumentEntity> documents = kycDocumentRepository.findByUserIdAndSupersededAtIsNull(userId);
         List<KycVerificationEntity> verifications = kycVerificationRepository.findByUserId(userId);
 
         List<KycDocumentResponse> documentResponses = documents.stream()
@@ -281,7 +307,7 @@ public class KycService {
 
         switch (type) {
             case IDENTITY -> {
-                List<KycDocumentEntity> docs = kycDocumentRepository.findByUserId(userId);
+                List<KycDocumentEntity> docs = kycDocumentRepository.findByUserIdAndSupersededAtIsNull(userId);
                 KycDocumentEntity idDoc = docs.stream()
                         .filter(d -> d.getDocumentType() == KycDocumentType.PASSPORT
                                 || d.getDocumentType() == KycDocumentType.DRIVING_LICENCE

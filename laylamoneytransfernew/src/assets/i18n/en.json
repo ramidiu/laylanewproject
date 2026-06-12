@@ -414,6 +414,7 @@
     "UPLOADED": "Uploaded",
     "RESUBMIT": "Re-submit Documents",
     "UPLOAD_NEW": "Upload New Documents",
+    "UPLOAD_LOCKED_PENDING": "Your documents are under review. You can upload again once they have been approved or rejected.",
     "BACK_TO_DASHBOARD": "Back to Dashboard",
     "BACK_TO_DOCS": "Back to Documents",
     "PERSONAL_DETAILS": "Personal Details",

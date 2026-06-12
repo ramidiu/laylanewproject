@@ -95,7 +95,12 @@
 
       <!-- Re-submit / Upload new documents -->
       <div class="kyc-actions">
-        <button type="button" class="kyc-submit-btn" (click)="showUploadForm()">
+        <!-- While a document is under review the customer cannot upload again — only after
+             it has been approved or rejected. -->
+        <p *ngIf="kycStatus === 'PENDING'" class="kyc-pending-note">
+          {{ 'KYC.UPLOAD_LOCKED_PENDING' | translate }}
+        </p>
+        <button type="button" class="kyc-submit-btn" *ngIf="kycStatus !== 'PENDING'" (click)="showUploadForm()">
           <ion-icon name="cloud-upload-outline"></ion-icon>
           {{ (kycStatus === 'REJECTED' ? 'KYC.RESUBMIT' : 'KYC.UPLOAD_NEW') | translate }}
         </button>

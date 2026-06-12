@@ -62,6 +62,11 @@ public class KycDocumentEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Non-null when this document has been replaced by a newer upload of the same type.
+    // Superseded rows are retained for audit but are excluded from the active list/count.
+    @Column(name = "superseded_at")
+    private LocalDateTime supersededAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

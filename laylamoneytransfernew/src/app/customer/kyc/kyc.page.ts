@@ -412,13 +412,12 @@ export class KycPage implements OnInit, OnDestroy {
       const identitySelected = !!this.selectedIdentityDocType;
       const hasIdentityFile = this.veriffAvailable || !!this.identityFrontFile;
       const hasIdentity = identitySelected && hasIdentityFile;
-      const hasAddress = this.selectedAddressDocType && this.addressFile;
-      if (!hasIdentity && !hasAddress) return false;
-      if (hasIdentity && identitySelected) {
-        if (!this.veriffAvailable && this.selectedIdentityDocType!.sides === 2 && !this.identityBackFile) return false;
-        if (this.selectedIdentityDocType!.hasIdNumber && !this.identityDocNumber.trim()) return false;
-        if (Object.keys(this.identityErrors).length > 0) return false;
-      }
+      const hasAddress = !!(this.selectedAddressDocType && this.addressFile);
+      // Both identity AND proof of address are required — never just a single document.
+      if (!hasIdentity || !hasAddress) return false;
+      if (!this.veriffAvailable && this.selectedIdentityDocType!.sides === 2 && !this.identityBackFile) return false;
+      if (this.selectedIdentityDocType!.hasIdNumber && !this.identityDocNumber.trim()) return false;
+      if (Object.keys(this.identityErrors).length > 0) return false;
       return true;
     }
     return this.isFormValid;
@@ -434,7 +433,7 @@ export class KycPage implements OnInit, OnDestroy {
     this.validateIdentityDates();
 
     if (!this.isDocUploadValid) {
-      this.showToast('Please fill in at least one document section', 'warning');
+      this.showToast('Please upload both your identity document and proof of address', 'warning');
       return;
     }
 
