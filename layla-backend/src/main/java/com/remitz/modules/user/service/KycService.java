@@ -238,6 +238,10 @@ public class KycService {
         if (status == KycDocumentStatus.APPROVED) {
             kycTierEvaluator.evaluateAndUpgrade(document.getUserId());
             triggerRescreenOnIdentityApproval(document);
+        } else if (status == KycDocumentStatus.REJECTED) {
+            // Rejecting a document revokes the customer's verification: they drop back to
+            // not-verified / pending and must re-submit ALL documents to become verified again.
+            revokeVerificationOnRejection(document.getUserId(), documentId);
         }
 
         // Publish KYC event for email notification
@@ -265,6 +269,41 @@ public class KycService {
         }
 
         return toDocumentResponse(saved);
+    }
+
+    /**
+     * Revoke a customer's verification when one of their documents is rejected. The user is
+     * dropped to TIER_0 and (if currently ACTIVE) back to PENDING_VERIFICATION, so they are no
+     * longer treated as verified and are routed through the full document-upload flow again.
+     * SUSPENDED / CLOSED / deletion states are left untouched.
+     */
+    private void revokeVerificationOnRejection(Long userId, Long documentId) {
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return;
+        }
+        KycTier previousTier = user.getKycTier();
+        boolean changed = false;
+        if (previousTier != null && previousTier != KycTier.TIER_0) {
+            user.setKycTier(KycTier.TIER_0);
+            changed = true;
+        }
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            user.setStatus(UserStatus.PENDING_VERIFICATION);
+            changed = true;
+        }
+        if (changed) {
+            userRepository.save(user);
+            kycAuditLogRepository.save(KycAuditLogEntity.builder()
+                    .userId(userId)
+                    .action("VERIFICATION_REVOKED")
+                    .details(String.format(
+                            "{\"previousTier\": \"%s\", \"newTier\": \"TIER_0\", \"rejectedDocumentId\": %d}",
+                            previousTier, documentId))
+                    .build());
+            log.info("KYC verification revoked: userId={} tier {}->TIER_0 (document {} rejected)",
+                    userId, previousTier, documentId);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -472,6 +511,14 @@ public class KycService {
                 d.getStatus() == KycDocumentStatus.PENDING
                         && d.getFileHash() != null && !d.getFileHash().isBlank());
         if (anyRealPending) return "PENDING";
+
+        // A genuine (app-uploaded) rejected document revokes verification: the user is
+        // REJECTED regardless of any prior tier, and must re-submit all documents. Imported
+        // placeholder docs (no file_hash) are excluded so the migration cohort is unaffected.
+        boolean anyRealRejected = documents.stream().anyMatch(d ->
+                d.getStatus() == KycDocumentStatus.REJECTED
+                        && d.getFileHash() != null && !d.getFileHash().isBlank());
+        if (anyRealRejected) return "REJECTED";
 
         // Once the user has reached a verified tier (TIER_1+), leftover auto-imported
         // PENDING docs (no file_hash) are migration artifacts and must NOT drag the
