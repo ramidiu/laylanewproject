@@ -15,7 +15,7 @@ interface CountryGroup {
   styleUrls: ['./transfer-config.page.scss']
 })
 export class TransferConfigPage implements OnInit {
-  activeSegment: 'payout' | 'payment' | 'points' = 'payout';
+  activeSegment: 'payout' | 'payment' | 'points' | 'limits' = 'payout';
 
   payoutGroups: CountryGroup[] = [];
   payoutLoading = true;
@@ -29,6 +29,15 @@ export class TransferConfigPage implements OnInit {
   newPoint: any = { countryCode: '', countryName: '', pointName: '', address: '', city: '', contactNumber: '', isActive: true };
   savingPoint = false;
 
+  // Transaction send-amount limits (system_config: transaction.min_send_amount / max_send_amount)
+  private readonly MIN_KEY = 'transaction.min_send_amount';
+  private readonly MAX_KEY = 'transaction.max_send_amount';
+  minSend: number | null = null;
+  maxSend: number | null = null;
+  limitsCurrency = 'GBP';
+  limitsLoading = true;
+  limitsSaving = false;
+
   constructor(
     private configService: ConfigService,
     private toastCtrl: ToastController
@@ -38,6 +47,50 @@ export class TransferConfigPage implements OnInit {
     this.loadPayoutTypes();
     this.loadPaymentMethods();
     this.loadCashPoints();
+    this.loadLimits();
+  }
+
+  // --- Send-amount limits ---
+
+  loadLimits(): void {
+    this.limitsLoading = true;
+    this.configService.getSystemConfig().subscribe({
+      next: (res) => {
+        const all = Array.isArray(res) ? res : res?.data || [];
+        const min = all.find((c: any) => c.configKey === this.MIN_KEY);
+        const max = all.find((c: any) => c.configKey === this.MAX_KEY);
+        this.minSend = min?.configValue != null ? Number(min.configValue) : null;
+        this.maxSend = max?.configValue != null ? Number(max.configValue) : null;
+        this.limitsLoading = false;
+      },
+      error: () => { this.limitsLoading = false; this.showToast('Could not load limits', 'danger'); }
+    });
+  }
+
+  saveLimits(): void {
+    if (this.minSend == null || isNaN(this.minSend) || this.minSend < 0) {
+      this.showToast('Enter a valid minimum amount', 'warning'); return;
+    }
+    if (this.maxSend == null || isNaN(this.maxSend) || this.maxSend <= 0) {
+      this.showToast('Enter a valid maximum amount', 'warning'); return;
+    }
+    if (this.minSend >= this.maxSend) {
+      this.showToast('Minimum must be less than maximum', 'warning'); return;
+    }
+    this.limitsSaving = true;
+    this.configService.updateSystemConfig(this.MIN_KEY, String(this.minSend)).subscribe({
+      next: () => {
+        this.configService.updateSystemConfig(this.MAX_KEY, String(this.maxSend)).subscribe({
+          next: () => {
+            this.limitsSaving = false;
+            this.showToast('Send-amount limits updated', 'success');
+            this.loadLimits();
+          },
+          error: (e) => { this.limitsSaving = false; this.showToast(e?.error?.message || 'Failed to save maximum', 'danger'); }
+        });
+      },
+      error: (e) => { this.limitsSaving = false; this.showToast(e?.error?.message || 'Failed to save minimum', 'danger'); }
+    });
   }
 
   // --- Cash collection points ---

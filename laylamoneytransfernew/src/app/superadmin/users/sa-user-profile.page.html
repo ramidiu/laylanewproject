@@ -298,51 +298,44 @@
     </div>
     </ng-template>
 
-    <!-- Existing documents shown FIRST -->
-    <div class="fb-card" *ngIf="displayDocuments.length === 0 && !showUploadPanel">
+    <!-- Verification workspace launcher (replaces the old inline document list).
+         Opens the split-screen workspace: embedded viewer + customer comparison + actions. -->
+    <div class="fb-card kyc-review-launch">
+      <div class="kyc-review-launch__info">
+        <ion-icon name="albums-outline" class="kyc-review-launch__icon"></ion-icon>
+        <div>
+          <div class="kyc-review-launch__title">Document verification</div>
+          <div class="kyc-review-launch__sub">
+            {{ displayDocuments.length }} document{{ displayDocuments.length === 1 ? '' : 's' }} on file
+            <span *ngIf="kycStatus?.overallStatus" class="status-badge status-badge--{{ getDocStatusClass(kycStatus?.overallStatus || '') }}">
+              {{ kycStatus?.overallStatus }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <button class="fb-btn fb-btn--primary" [disabled]="displayDocuments.length === 0" (click)="openWorkspace()">
+        <ion-icon name="albums-outline"></ion-icon> Open verification workspace
+      </button>
+    </div>
+
+    <div class="fb-card" *ngIf="displayDocuments.length === 0">
       <div class="empty-state">
         <ion-icon name="document-outline" class="empty-state__icon"></ion-icon>
         <p class="empty-state__text">No KYC documents uploaded yet.</p>
       </div>
     </div>
 
-    <div class="kyc-docs-list" *ngIf="displayDocuments.length > 0">
-      <div class="kyc-doc-card fb-card" *ngFor="let doc of displayDocuments">
-        <div class="kyc-doc-card__header">
-          <div>
-            <span class="kyc-doc-card__type">{{ formatDocType(doc.documentType) }}</span>
-            <span *ngIf="doc.documentNumber" class="kyc-doc-card__number">{{ doc.documentNumber }}</span>
-          </div>
-          <span class="status-badge status-badge--{{ getDocStatusClass(doc.status) }}">{{ doc.status }}</span>
-        </div>
-
-        <div class="kyc-doc-card__meta">
-          <span *ngIf="doc.createdAt">Uploaded: {{ doc.createdAt | date:'MMM d, y HH:mm' }}</span>
-          <span *ngIf="doc.verifiedAt">Reviewed: {{ doc.verifiedAt | date:'MMM d, y HH:mm' }}</span>
-        </div>
-
-        <div *ngIf="doc.status === 'REJECTED' && doc.rejectionReason" class="kyc-doc-card__rejection">
-          Rejection reason: {{ doc.rejectionReason }}
-        </div>
-
-        <div class="kyc-doc-card__actions">
-          <button class="fb-btn fb-btn--secondary" *ngIf="doc.fileUrl" (click)="openDoc(doc)">
-            <ion-icon name="eye-outline"></ion-icon> Preview
-          </button>
-          <ng-container *ngIf="doc.status === 'PENDING'">
-            <button class="fb-btn fb-btn--success" (click)="approveDoc(doc)">
-              <ion-icon name="checkmark-outline"></ion-icon> Approve
-            </button>
-            <button class="fb-btn fb-btn--danger" (click)="rejectDoc(doc)">
-              <ion-icon name="close-outline"></ion-icon> Reject
-            </button>
-          </ng-container>
-        </div>
-      </div>
-    </div>
-
     <!-- Upload panel now rendered AFTER existing docs -->
     <ng-container *ngTemplateOutlet="adminUploadPanel"></ng-container>
+
+    <!-- Split-screen verification workspace (shown when admin clicks the button above) -->
+    <app-kyc-workspace
+      *ngIf="workspaceOpen && user"
+      [user]="user"
+      [userId]="uuid"
+      (closed)="workspaceOpen = false"
+      (changed)="reloadKyc()">
+    </app-kyc-workspace>
   </div>
 
   <!-- ── Transactions Tab ── -->

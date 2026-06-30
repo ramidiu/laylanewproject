@@ -66,8 +66,8 @@ public class ComplianceRiskScoringService {
         if (kycTier != null) {
             factorCount++;
             totalScore += switch (kycTier.toUpperCase()) {
-                case "TIER_0" -> 20;
-                case "TIER_1" -> 12;
+                // Base / unverified (no documents) → highest risk; verified tiers score lower.
+                case "TIER_0", "TIER_1" -> 20;
                 case "TIER_2" -> 5;
                 case "TIER_3" -> 0;
                 default -> 10;

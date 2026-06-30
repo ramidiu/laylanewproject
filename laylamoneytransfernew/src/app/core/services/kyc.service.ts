@@ -58,4 +58,11 @@ export class KycService {
       responseType: 'blob'
     });
   }
+
+  /** Run free OCR (Tesseract) on a document → { text, dates[], tokens[] }. */
+  ocrDocument(userId: string, docId: string | number): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/${userId}/kyc/documents/${docId}/ocr`, {}).pipe(
+      map(res => res.data || res)
+    );
+  }
 }

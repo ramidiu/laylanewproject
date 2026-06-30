@@ -6,7 +6,34 @@
     <ion-segment-button value="payout"><ion-label>Payout Types</ion-label></ion-segment-button>
     <ion-segment-button value="payment"><ion-label>Payment Methods</ion-label></ion-segment-button>
     <ion-segment-button value="points"><ion-label>Collection Points</ion-label></ion-segment-button>
+    <ion-segment-button value="limits"><ion-label>Send Limits</ion-label></ion-segment-button>
   </ion-segment>
+
+  <!-- Send Amount Limits -->
+  <div *ngIf="activeSegment === 'limits'" class="tab-content">
+    <div class="info-card">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <span>The minimum and maximum a customer can send per transaction (applies to all corridors).</span>
+    </div>
+
+    <div *ngIf="limitsLoading" class="loading">
+      <div class="fb-skeleton fb-skeleton--card" *ngFor="let i of [1,2]"></div>
+    </div>
+
+    <div *ngIf="!limitsLoading" class="limits-card">
+      <div class="limits-field">
+        <label>Minimum send amount ({{ limitsCurrency }})</label>
+        <input type="number" min="0" step="0.01" [(ngModel)]="minSend" placeholder="e.g. 1" />
+      </div>
+      <div class="limits-field">
+        <label>Maximum send amount ({{ limitsCurrency }})</label>
+        <input type="number" min="0" step="0.01" [(ngModel)]="maxSend" placeholder="e.g. 50000" />
+      </div>
+      <button class="limits-save-btn" (click)="saveLimits()" [disabled]="limitsSaving">
+        {{ limitsSaving ? 'Saving…' : 'Save limits' }}
+      </button>
+    </div>
+  </div>
 
   <!-- Payout Types -->
   <div *ngIf="activeSegment === 'payout'" class="tab-content">

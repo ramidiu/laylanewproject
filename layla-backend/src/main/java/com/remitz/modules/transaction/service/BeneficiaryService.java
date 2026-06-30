@@ -79,8 +79,10 @@ public class BeneficiaryService {
                 .mobileNumber(request.getMobileNumber())
                 .mobileProvider(request.getMobileProvider())
                 .idNumber(request.getIdNumber())
-                .idType(request.getIdType() != null ? request.getIdType() : request.getRelationship())
+                .idType(request.getIdType())
+                .relationship(request.getRelationship())
                 .address(request.getAddress())
+                .city(request.getCity())
                 .isFavourite(false)
                 .isBlocked(false)
                 .build();
@@ -129,8 +131,9 @@ public class BeneficiaryService {
         if (request.getMobileProvider() != null) entity.setMobileProvider(request.getMobileProvider());
         if (request.getIdNumber() != null) entity.setIdNumber(request.getIdNumber());
         if (request.getIdType() != null) entity.setIdType(request.getIdType());
-        if (request.getRelationship() != null) entity.setIdType(request.getRelationship());
+        if (request.getRelationship() != null) entity.setRelationship(request.getRelationship());
         if (request.getAddress() != null) entity.setAddress(request.getAddress());
+        if (request.getCity() != null) entity.setCity(request.getCity());
 
         BeneficiaryEntity saved = beneficiaryRepository.save(entity);
         log.info("Beneficiary updated id={} for userId={}", id, userId);
@@ -190,7 +193,8 @@ public class BeneficiaryService {
                 .idType(entity.getIdType())
                 .idNumber(entity.getIdNumber())
                 .address(entity.getAddress())
-                .relationship(entity.getIdType())
+                .city(entity.getCity())
+                .relationship(entity.getRelationship())
                 .isFavourite(entity.getIsFavourite())
                 .createdAt(entity.getCreatedAt())
                 .build();

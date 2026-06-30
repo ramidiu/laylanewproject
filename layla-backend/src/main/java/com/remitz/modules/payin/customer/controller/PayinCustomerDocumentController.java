@@ -173,12 +173,16 @@ public class PayinCustomerDocumentController {
                     out.put("idFilePath", d.getFilePath());
                     out.put("idStatus", d.getStatus());
                     out.put("idDocId", d.getId());
+                    // Native pay-in customer docs live in payin_customer_documents → serve via
+                    // the /document/{id}/file endpoint (NOT /kyc-document, which reads kyc_documents).
+                    out.put("idFileUrl", "/payin/customer/document/" + d.getId() + "/file");
                 } else if (isAddress && !Boolean.TRUE.equals(out.get("hasAddress"))) {
                     out.put("hasAddress", true);
                     out.put("addressType", "UTILITY_BILL");
                     out.put("addressFilePath", d.getFilePath());
                     out.put("addressStatus", d.getStatus());
                     out.put("addressDocId", d.getId());
+                    out.put("addressFileUrl", "/payin/customer/document/" + d.getId() + "/file");
                 }
             }
             return ResponseEntity.ok(out);
@@ -201,6 +205,8 @@ public class PayinCustomerDocumentController {
                 out.put("idFilePath", d.getFilePath());
                 out.put("idStatus", d.getStatus() != null ? d.getStatus().name() : "");
                 out.put("idDocId", d.getId());
+                // Frontend/imported user docs live in kyc_documents → serve via /kyc-document/{id}/file.
+                out.put("idFileUrl", "/payin/customer/kyc-document/" + d.getId() + "/file");
             } else if (isAddress) {
                 out.put("hasAddress", true);
                 // The customer-app flow does not capture a sub-type — surface a sensible default
@@ -208,6 +214,7 @@ public class PayinCustomerDocumentController {
                 out.put("addressFilePath", d.getFilePath());
                 out.put("addressStatus", d.getStatus() != null ? d.getStatus().name() : "");
                 out.put("addressDocId", d.getId());
+                out.put("addressFileUrl", "/payin/customer/kyc-document/" + d.getId() + "/file");
             }
         }
         return ResponseEntity.ok(out);
@@ -287,11 +294,11 @@ public class PayinCustomerDocumentController {
             pc.setIsVerified(true);
             customerRepository.save(pc);
             // Bump the linked login account (matched by email) so tier reflects verification.
-            String tier = "TIER_0";
+            String tier = "TIER_1";
             if (pc.getEmail() != null) {
                 UserEntity linked = userRepository.findByEmail(pc.getEmail().trim().toLowerCase()).orElse(null);
                 if (linked != null) {
-                    if (linked.getKycTier() == null || linked.getKycTier().name().equals("TIER_0")) {
+                    if (linked.getKycTier() == null || !linked.getKycTier().isVerified()) {
                         linked.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
                         userRepository.save(linked);
                     }
@@ -327,7 +334,7 @@ public class PayinCustomerDocumentController {
         }
 
         // Bump tier so the rest of the system treats the user as verified
-        if (user.getKycTier() == null || user.getKycTier().name().equals("TIER_0")) {
+        if (user.getKycTier() == null || !user.getKycTier().isVerified()) {
             user.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
             userRepository.save(user);
         }

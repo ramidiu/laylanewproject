@@ -95,6 +95,17 @@ export class FxService {
     return this.http.delete<any>(`${environment.apiUrl}/admin/corridors/fees/${feeId}`);
   }
 
+  // ── Amount-based rate slabs ────────────────────────────────────────────────
+
+  getRateSlabs(corridorId: number): Observable<any[]> {
+    return this.http.get<any>(`${environment.apiUrl}/admin/corridors/${corridorId}/rate-slabs`).pipe(map(res => res.data || res || []));
+  }
+
+  /** Replace all rate slabs for a corridor. slabs = [{minAmount, maxAmount|null, rate, isActive}]. */
+  saveRateSlabs(corridorId: number, slabs: any[]): Observable<any[]> {
+    return this.http.put<any>(`${environment.apiUrl}/admin/corridors/${corridorId}/rate-slabs`, slabs).pipe(map(res => res.data || res || []));
+  }
+
   // ── Manual Rate Override ───────────────────────────────────────────────────
 
   getRateMode(): Observable<{ manualMode: boolean }> {

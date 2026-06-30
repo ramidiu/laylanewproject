@@ -134,3 +134,48 @@
 .ccp-table th { background:#f9fafb; color:#374151; font-weight:600; }
 .ccp-muted { color:#9ca3af; font-size:0.8rem; }
 .ccp-del { background:none; border:none; color:#C0203E; cursor:pointer; font-size:1.1rem; }
+
+/* Send-amount limits editor */
+.limits-card {
+  background: #fff;
+  border: 1px solid $fb-gray-100;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-5;
+  max-width: 460px;
+}
+
+.limits-field {
+  margin-bottom: $fb-space-4;
+
+  label {
+    display: block;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-700;
+    margin-bottom: $fb-space-2;
+  }
+
+  input {
+    width: 100%;
+    padding: $fb-space-3;
+    border: 1px solid $fb-gray-200;
+    border-radius: $fb-radius-md;
+    font-size: $fb-text-base;
+    color: $fb-gray-900;
+
+    &:focus { outline: none; border-color: $fb-navy; }
+  }
+}
+
+.limits-save-btn {
+  background: $fb-navy;
+  color: #fff;
+  border: none;
+  border-radius: $fb-radius-md;
+  padding: $fb-space-3 $fb-space-6;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}

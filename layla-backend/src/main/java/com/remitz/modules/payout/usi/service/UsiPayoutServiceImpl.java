@@ -17,6 +17,7 @@ import com.remitz.modules.payout.usi.repository.UsiTestAccountRepository;
 import com.remitz.modules.payout.usi.repository.UsiTransactionRepository;
 import com.remitz.modules.transaction.entity.BeneficiaryEntity;
 import com.remitz.modules.transaction.entity.TransactionEntity;
+import com.remitz.common.enums.TransactionStatus;
 import com.remitz.modules.transaction.repository.BeneficiaryRepository;
 import com.remitz.modules.transaction.repository.TransactionRepository;
 import com.remitz.modules.user.entity.KycDocumentEntity;
@@ -155,7 +156,8 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         body.add("nationality", iso3);
         body.add("status", "valid");
         body.add("gender", user.getGender() != null ? user.getGender() : "Male");
-        body.add("address1", user.getAddressLine1() != null ? user.getAddressLine1() : "");
+        // Line 2 (flat/unit) first, then line 1 (street) — e.g. "Flat 33, Sherlock Court".
+        body.add("address1", joinAddressLines(user.getAddressLine2(), user.getAddressLine1()));
         body.add("city", user.getCity() != null ? user.getCity() : "");
         body.add("postcode", user.getPostcode() != null ? user.getPostcode() : "");
         body.add("mobile", normalisePhone(user.getPhone(), iso3));
@@ -220,6 +222,76 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
     }
 
     @Override
+    public Map<String, Object> ensureRemitter(String customerId) {
+        Map<String, Object> json = new LinkedHashMap<>();
+
+        // USI off → nothing to do; never block the pay-in flow.
+        if (!props.isEnabled()) {
+            json.put("status", "SKIPPED");
+            return json;
+        }
+
+        // Resolve the pay-in customer UUID to a regular user. No user → this customer
+        // can't be pushed to USI anyway (the linked transaction needs a sender), so
+        // skip silently rather than surfacing a confusing error on non-USI flows.
+        UserEntity user = userRepository.findByUuid(customerId).orElse(null);
+        if (user == null) {
+            json.put("status", "SKIPPED");
+            json.put("message", "Customer is not linked to a user account.");
+            return json;
+        }
+
+        // Pre-validate the fields USI requires for a remitter, BEFORE calling out — this
+        // is the whole point: surface "Address Line 1 is required" here, not at Create-on-USI.
+        java.util.List<String> missing = collectMissingRemitterFields(user);
+        if (!missing.isEmpty()) {
+            json.put("status", "MISSING_INFO");
+            json.put("missing", missing);
+            json.put("message", "Remitter " + missing.get(0) + " is required. Complete this "
+                    + "customer's profile before sending via USI Money.");
+            log.info("USI ensureRemitter({}) — missing {} for user {}", customerId, missing, user.getId());
+            return json;
+        }
+
+        // Data is complete → create (or fetch) the remitter on USI now.
+        try {
+            Map<String, Object> r = createRemitter(user.getId());
+            String st = String.valueOf(r.get("status"));
+            if ("SUCCESS".equalsIgnoreCase(st) || "EXISTS".equalsIgnoreCase(st)) {
+                json.put("status", "READY");
+                json.put("remitterId", r.get("remitterId"));
+                json.put("message", "Remitter ready.");
+            } else {
+                json.put("status", "FAILED");
+                json.put("message", String.valueOf(r.getOrDefault("message", "Could not create USI remitter.")));
+            }
+        } catch (Exception e) {
+            log.error("USI ensureRemitter({}) failed for user {}: {}", customerId, user.getId(), e.getMessage());
+            json.put("status", "FAILED");
+            json.put("message", "Could not create USI remitter: " + e.getMessage());
+        }
+        return json;
+    }
+
+    @Override
+    public java.util.List<String> findMissingRemitterFields(String customerId) {
+        // USI off or no linked user → don't block the pay-in flow.
+        if (!props.isEnabled()) return java.util.Collections.emptyList();
+        UserEntity user = userRepository.findByUuid(customerId).orElse(null);
+        if (user == null) return java.util.Collections.emptyList();
+        return collectMissingRemitterFields(user);
+    }
+
+    /** The USI-required remitter fields this user is missing (single source of truth). */
+    private java.util.List<String> collectMissingRemitterFields(UserEntity user) {
+        java.util.List<String> missing = new ArrayList<>();
+        if (isBlankField(user.getAddressLine1())) missing.add("Address Line 1");
+        if (isBlankField(user.getCity()))         missing.add("City");
+        if (isBlankField(user.getPostcode()))     missing.add("Postcode");
+        return missing;
+    }
+
+    @Override
     public RemitterVerifyResponse verifyRemitter(Long userId) {
         guardEnabled();
         UsiRemitterEntity existing = usiRemitterRepository.findByUserId(userId)
@@ -277,13 +349,6 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         UsiRemitterEntity remitter = usiRemitterRepository.findByUserId(bnf.getUserId())
                 .orElseThrow(() -> new RuntimeException("Remitter not found for user " + bnf.getUserId()));
 
-        // Pull a sandbox fixture as fallback if beneficiary has no bank/mobile data yet
-        String countryCode = iso2OrThree(bnf.getCountry()).substring(0, Math.min(2, bnf.getCountry().length()));
-        String payoutType = mapDeliveryToPayoutType(bnf.getDeliveryMethod());
-        UsiTestAccountEntity fallback = usiTestAccountRepository
-                .findByCountryCodeAndPayoutTypeAndIsActiveTrue(countryCode.toUpperCase(), payoutType)
-                .stream().findFirst().orElse(null);
-
         // USI demands at least 2 name parts. Normalise + pad with "." if needed.
         String cleaned = ((bnf.getFullName() == null ? "" : bnf.getFullName()).replaceAll("[^a-zA-Z ]", "")).trim().replaceAll("\\s+", " ");
         String fullName = cleaned.contains(" ") ? cleaned : (cleaned.isEmpty() ? "Customer User" : cleaned + " Recipient");
@@ -294,32 +359,32 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         body.add("name", fullName);
         body.add("organisation_type", "INDIVIDUAL");
         // USI requires non-empty address1 + city — fall back to the country capital when blank.
+        // Use the beneficiary's own city; only fall back to the capital when no city was captured.
+        // Never reuse the street address as the city (that produced wrong values like "King Saud").
         String address = (bnf.getAddress() != null && !bnf.getAddress().isBlank())
                 ? bnf.getAddress() : defaultCityFor(bnf.getCountry());
+        String city = (bnf.getCity() != null && !bnf.getCity().isBlank())
+                ? bnf.getCity() : defaultCityFor(bnf.getCountry());
         body.add("address1", address);
-        body.add("city", address);
+        body.add("city", city);
         body.add("country", expandCountryName(bnf.getCountry()));
         body.add("mobile", normalisePhone(bnf.getMobileNumber(), iso2OrThree(bnf.getCountry())));
 
         if (bnf.getDeliveryMethod() == DeliveryMethod.BANK_DEPOSIT) {
-            // USI Money's sandbox only routes to specific test banks per corridor
-            // (Saudi National Bank for SA, First Abu Dhabi for AE, Garanti for TR, etc.).
-            // If we have a sandbox fixture for this country, FORCE the bank name + branch
-            // to it — partner's choice is preserved in our DB, just translated for USI's call.
-            // Account number / IBAN remain whatever the partner entered.
-            boolean forceSandboxBank = fallback != null;
-            body.add("bank",             forceSandboxBank ? fallback.getBankName()
-                                                          : value(bnf.getBankName(), ""));
-            body.add("bank_branch",      forceSandboxBank ? fallback.getBankBranch()
-                                                          : value(bnf.getSortCode(), bnf.getBankName()));
-            body.add("bank_branch_city", value(bnf.getBranchCity(), fallback != null ? fallback.getBankBranchCity() : "Any Branch"));
-            body.add("bank_branch_state",value(bnf.getBranchState(), fallback != null ? fallback.getBankBranchState() : "Any Branch"));
-            body.add("account_number",   value(bnf.getAccountNumber(), fallback != null ? fallback.getAccountNumber() : ""));
+            // Send the bank details exactly as entered on the frontend, so the declared bank
+            // matches the account/IBAN (previously the bank name was forced to a sandbox test
+            // bank, which mismatched the real IBAN and got rejected by the live bank).
+            // Whitespace is stripped from the account/IBAN so a stray leading space isn't rejected.
+            body.add("bank",             value(bnf.getBankName(), ""));
+            body.add("bank_branch",      value(bnf.getSortCode(), bnf.getBankName()));
+            body.add("bank_branch_city", value(bnf.getBranchCity(), "Any Branch"));
+            body.add("bank_branch_state",value(bnf.getBranchState(), "Any Branch"));
+            body.add("account_number",   value(bnf.getAccountNumber(), "").replaceAll("\\s", ""));
 
             // IBAN required for non-Uganda/non-Egypt corridors
             String c = bnf.getCountry() != null ? bnf.getCountry().toUpperCase() : "";
             if (!c.contains("UGANDA") && !c.contains("EGYPT")) {
-                body.add("benef_bank_iban", value(bnf.getIban(), fallback != null ? fallback.getIban() : ""));
+                body.add("benef_bank_iban", value(bnf.getIban(), "").replaceAll("\\s", ""));
             }
         }
 
@@ -466,7 +531,8 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                     referenceNumber, tx.getDeliveryMethod(), effective, bnf.getCountry());
         }
 
-        body.add("relation_to_remitter", "Family");
+        // Use the beneficiary's actual relationship (Spouse/Parent/Sibling/etc.); fall back to "Family" when blank.
+        body.add("relation_to_remitter", value(bnf.getRelationship(), "Family"));
         body.add("sms_mobile", normalisePhone(sender.getPhone(), countryIso3(sender)));
         body.add("sms_confirmation", "f");
         body.add("sms_notification", "f");
@@ -659,9 +725,12 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                     errorDetails != null ? errorDetails : "",
                     deletedReason != null ? deletedReason : "").trim();
 
+            // Mirror the USI payout outcome onto the main transaction status so the two never drift apart.
+            TransactionStatus mainStatus = null;
             if ("PROCESSED".equalsIgnoreCase(txnStatus)) {
                 row.setStatus("paid");
                 row.setPaymentStatus("funds received");
+                mainStatus = TransactionStatus.PAID;
                 json.put("message", "Transaction PAID");
             } else if ("ABORTED".equalsIgnoreCase(txnStatus)) {
                 row.setStatus("cancel_requested");
@@ -671,11 +740,13 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                 row.setStatus("cancelled");
                 row.setPaymentStatus("FAILED");
                 row.setErrorMessage(msg);
+                mainStatus = TransactionStatus.CANCELLED;
                 json.put("message", "Transaction CANCELLED: " + msg);
             } else if ("ERROR".equalsIgnoreCase(txnStatus)) {
                 row.setStatus("failed");
                 row.setPaymentStatus("FAILED");
                 row.setErrorMessage(msg.isBlank() ? "USI reported ERROR (no reason)" : msg);
+                mainStatus = TransactionStatus.FAILED;
                 json.put("message", "Transaction FAILED on USI: " + msg);
             } else if ("AGENT_OK".equalsIgnoreCase(txnStatus)) {
                 row.setStatus("awaiting_compliance");
@@ -688,6 +759,15 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
             }
             row.setUsiStatus(txnStatus);
             usiTransactionRepository.save(row);
+
+            // Sync the main transaction row when USI reached a terminal state.
+            if (mainStatus != null) {
+                final TransactionStatus finalMainStatus = mainStatus;
+                transactionRepository.findByReferenceNumber(row.getTransactionId()).ifPresent(txn -> {
+                    txn.setStatus(finalMainStatus);
+                    transactionRepository.save(txn);
+                });
+            }
         } catch (Exception e) {
             throw new RuntimeException("Error parsing USI getTransactionStatus response: " + e.getMessage(), e);
         }
@@ -751,6 +831,10 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
+
+    private static boolean isBlankField(String s) {
+        return s == null || s.isBlank();
+    }
 
     private void guardEnabled() {
         if (!props.isEnabled()) {
@@ -848,6 +932,19 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
 
     private String value(String primary, String fallback) {
         return primary != null && !primary.isBlank() ? primary : (fallback != null ? fallback : "");
+    }
+
+    /**
+     * Combine address line 1 + line 2 into a single, complete address string for USI's
+     * single "address1" field. Either part may be blank/null. Trailing/duplicate commas
+     * and surrounding whitespace are cleaned so e.g. ("Sherlock Court", "Flat 33,") becomes
+     * "Sherlock Court, Flat 33".
+     */
+    private String joinAddressLines(String line1, String line2) {
+        String a = line1 == null ? "" : line1.trim();
+        String b = line2 == null ? "" : line2.trim();
+        String joined = (a.isEmpty() || b.isEmpty()) ? (a + b) : (a + ", " + b);
+        return joined.replaceAll("\\s*,\\s*", ", ").replaceAll("(,\\s*)+$", "").trim();
     }
 
     private String iso2OrThree(String country) {
@@ -1011,7 +1108,8 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         String up = raw.trim().toUpperCase(Locale.ROOT);
         String iso2 = countryCode == null ? "" : countryCode.toUpperCase(Locale.ROOT);
         if ("UG".equals(iso2) || "UGA".equals(iso2)) {
-            if (up.contains("MTN"))    return "MTN Mobile Money";
+            // "MoMo" is MTN's mobile-money brand — map it to the canonical network USI recognises.
+            if (up.contains("MTN") || up.contains("MOMO")) return "MTN Mobile Money";
             if (up.contains("AIRTEL")) return "Airtel Money";
         }
         // Pass through whatever was supplied (already canonical from our mobile_money_services seed)

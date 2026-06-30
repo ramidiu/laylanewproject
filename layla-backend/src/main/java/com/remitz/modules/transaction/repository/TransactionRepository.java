@@ -19,6 +19,11 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     Optional<TransactionEntity> findByReferenceNumber(String referenceNumber);
 
+    // All transactions already stamped with a given gateway payment reference.
+    // Used to detect a Trust Payments transactionreference being reused to fund
+    // more than one transaction (replayed/duplicate card success).
+    List<TransactionEntity> findByPaymentReference(String paymentReference);
+
     // Highest numeric suffix among existing "TXN<n>" reference numbers. Used to seed the
     // sequential reference generator at startup so new transactions continue the series.
     @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(reference_number, 4) AS UNSIGNED)), 0) " +

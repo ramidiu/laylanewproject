@@ -1,0 +1,154 @@
+@import '../../../theme/remitzai-design-tokens';
+
+.kw-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);
+  display: flex; align-items: stretch; justify-content: center;
+  padding: 16px;
+}
+
+.kw {
+  background: #f8fafc; width: 100%; max-width: 1500px; border-radius: 14px;
+  display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.35);
+}
+
+/* Top bar */
+.kw__topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: $fb-navy; color: #fff;
+}
+.kw__title { display: flex; align-items: center; gap: 12px;
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+  .kw__sub { font-size: .78rem; opacity: .8; }
+}
+.kw__avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.18);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.kw__tier { background: rgba(255,255,255,.16); padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+.kw__status { padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  &--success { background:#16a34a; } &--warning { background:#d97706; } &--danger { background:#dc2626; }
+}
+.kw__close { background: transparent; border: 0; color: #fff; font-size: 1.5rem; cursor: pointer; line-height: 1; }
+
+/* Body split */
+.kw__body { display: grid; grid-template-columns: minmax(380px, 460px) 1fr; gap: 0; flex: 1; min-height: 0; }
+/* min-height:0 on the grid cells is essential: without it a tall document makes the
+   cell grow to fit its content, so the viewer never gets a bounded height to scroll in. */
+.kw__left { overflow-y: auto; min-height: 0; padding: 16px; display: flex; flex-direction: column; gap: 14px; border-right: 1px solid $fb-gray-200; }
+.kw__right { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #0f172a; }
+
+/* Cards */
+.kw-card { background: #fff; border: 1px solid $fb-gray-200; border-radius: 10px; padding: 12px 14px; }
+.kw-card__h { margin: 0 0 10px; font-size: .9rem; font-weight: 700; color: $fb-navy; display: flex; align-items: center; gap: 6px;
+  ion-icon { font-size: 1.05rem; } }
+.kw-card__hint { margin-left: auto; font-size: .72rem; font-weight: 500; color: $fb-gray-400; }
+
+/* Customer info */
+.kw-info__row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dashed $fb-gray-200; font-size: .82rem;
+  &:last-child { border-bottom: 0; }
+  span { color: $fb-gray-400; } b { color: $fb-gray-900; text-align: right; word-break: break-word; }
+}
+
+/* Comparison */
+.kw-compare { width: 100%; border-collapse: collapse; font-size: .8rem;
+  th { text-align: left; color: $fb-gray-400; font-weight: 600; padding: 4px 6px; border-bottom: 1px solid $fb-gray-200; }
+  td { padding: 4px 6px; border-bottom: 1px solid $fb-gray-100; vertical-align: middle; }
+}
+.kw-compare__label { color: $fb-gray-500; white-space: nowrap; }
+.kw-compare__stored { font-weight: 600; color: $fb-gray-900; }
+.kw-compare__input { width: 100%; border: 1px solid $fb-gray-200; border-radius: 6px; padding: 4px 6px; font-size: .8rem; }
+.kw-compare__ind { width: 20px; text-align: center;
+  .ok { color: #16a34a; } .bad { color: #dc2626; } ion-icon { font-size: 1.05rem; } }
+.kw-compare--match { background: rgba(22,163,74,.08); }
+.kw-compare--mismatch { background: rgba(220,38,38,.08); }
+
+/* OCR */
+.kw-ocr-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; background: $fb-navy; color: #fff;
+  border: 0; border-radius: 6px; padding: 5px 10px; font-size: .74rem; font-weight: 600; cursor: pointer;
+  ion-icon, ion-spinner { font-size: .95rem; width: 14px; height: 14px; }
+  &:disabled { opacity: .55; cursor: not-allowed; } }
+.kw-ocr { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.kw-ocr__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.kw-ocr__lbl { font-size: .72rem; color: $fb-gray-400; font-weight: 600; }
+.kw-chip { background: $fb-gray-100; border: 1px solid $fb-gray-200; border-radius: 14px; padding: 2px 10px;
+  font-size: .74rem; cursor: pointer; &:hover { background: $fb-gray-200; } }
+.kw-ocr__raw { font-size: .76rem; color: $fb-gray-500;
+  summary { cursor: pointer; font-weight: 600; }
+  pre { white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow: auto; background: $fb-gray-100;
+    padding: 8px; border-radius: 6px; margin: 6px 0 0; font-size: .72rem; } }
+.kw-ocr__empty { font-size: .76rem; color: $fb-gray-400; }
+
+/* Checklist */
+.kw-check { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: .82rem; cursor: pointer;
+  input { margin-top: 2px; } }
+
+/* Notes */
+.kw-notes { width: 100%; border: 1px solid $fb-gray-200; border-radius: 8px; padding: 8px; font-size: .82rem; resize: vertical; font-family: inherit; }
+
+/* Actions */
+.kw-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kw-btn { display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 8px;
+  padding: 11px 10px; font-weight: 700; font-size: .82rem; cursor: pointer; color: #fff;
+  &:disabled { opacity: .5; cursor: not-allowed; }
+  &--approve { background: #16a34a; }
+  &--reject { background: #dc2626; }
+  &--resubmit { background: #d97706; }
+  &--suspend { background: #475569; grid-column: 1 / -1; }
+}
+.kw-decided { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  border-radius: 8px; font-size: .85rem; font-weight: 600;
+  ion-icon { font-size: 1.15rem; }
+  &--success { background: rgba(22,163,74,.1); color: #15803d; }
+  &--danger  { background: rgba(220,38,38,.1); color: #b91c1c; }
+}
+
+/* Right: tabs */
+.kw-tabs { display: flex; gap: 4px; padding: 10px 10px 0; overflow-x: auto; }
+.kw-tab { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.08); color: #cbd5e1;
+  border: 0; border-radius: 8px 8px 0 0; padding: 8px 12px; font-size: .8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  &--active { background: #f8fafc; color: $fb-navy; }
+  .kw-tab__n { background: rgba(0,0,0,.12); border-radius: 10px; padding: 0 6px; font-size: .7rem; }
+}
+.kw-sides { display: flex; gap: 6px; padding: 8px 10px 0; flex-wrap: wrap; }
+.kw-side { background: rgba(255,255,255,.08); color: #cbd5e1; border: 0; border-radius: 6px; padding: 5px 10px;
+  font-size: .76rem; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  &--active { background: rgba(255,255,255,.22); color: #fff; }
+}
+.kw-side__badge { font-size: .62rem; padding: 1px 6px; border-radius: 10px; text-transform: uppercase; font-weight: 700;
+  &--success { background:#16a34a; color:#fff; } &--warning { background:#d97706; color:#fff; } &--danger { background:#dc2626; color:#fff; } }
+
+/* Viewer toolbar */
+.kw-toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #1e293b; color: #e2e8f0;
+  button { background: rgba(255,255,255,.1); border: 0; color: #e2e8f0; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; ion-icon { font-size: 1.1rem; } }
+  button:hover { background: rgba(255,255,255,.2); }
+}
+.kw-toolbar__name { font-size: .78rem; opacity: .85; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kw-toolbar__zoom { font-size: .75rem; min-width: 42px; text-align: center; }
+.kw-toolbar__spacer { flex: 1; }
+.kw-doc-status { font-size: .68rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; text-transform: uppercase;
+  &--success { background:#16a34a; } &--warning { background:#d97706; } &--danger { background:#dc2626; } }
+
+/* Viewer surface — a real scroll container that works for ANY uploaded size.
+   The media is a BLOCK with margin:0 auto: centred while it fits, but the moment
+   zoom (applied via [style.zoom], which grows the layout box) makes it larger than
+   the viewport the auto-margins collapse to 0 and it anchors top-left, so every
+   edge is reachable by scrolling — no clipping, no drift. */
+.kw-viewer { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+.kw-media { display: block; margin: 0 auto; transform-origin: center center;
+  background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+/* At 100% the image fits the viewport; zoom grows the box beyond it → scrollbars. */
+.kw-media--img { max-width: 100%; max-height: calc(100vh - 230px); }
+.kw-media--pdf { width: 100%; max-width: 900px; height: calc(100vh - 230px); border: 0; }
+.kw-empty { color: #94a3b8; text-align: center; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px; min-height: 50vh;
+  ion-icon { font-size: 2.4rem; } p { margin: 0; font-size: .85rem; } }
+
+/* Fullscreen right panel */
+.kw__right--fs { position: fixed; inset: 0; z-index: 1100; }
+.kw-fs-close { position: fixed; top: 14px; right: 16px; z-index: 1101; background: rgba(255,255,255,.16); color: #fff;
+  border: 0; border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+@media (max-width: 1024px) {
+  .kw__body { grid-template-columns: 1fr; }
+  .kw__left { max-height: 45vh; }
+}

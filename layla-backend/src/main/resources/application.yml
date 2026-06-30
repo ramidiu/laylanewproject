@@ -147,6 +147,7 @@ remit-one:
 
 usi:
   enabled: ${USI_ENABLED:false}
+  auto-payin: ${USI_AUTO_PAYIN:true}
   url: ${USI_URL:}
   username: ${USI_USERNAME:}
   password: ${USI_PASSWORD:}

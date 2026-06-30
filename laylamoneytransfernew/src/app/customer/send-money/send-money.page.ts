@@ -223,16 +223,9 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     // If returning from add-recipient with a pre-selected beneficiary, don't reset —
     // restore the saved draft (amount/delivery/referral) so the review shows what was entered.
     if (beneficiaryId) {
-      try {
-        const draft = sessionStorage.getItem('layla_send_draft');
-        if (draft) {
-          const d = JSON.parse(draft);
-          if (d.sendAmount) this.sendAmount = d.sendAmount;
-          if (d.receiveAmountInput) this.receiveAmountInput = d.receiveAmountInput;
-          if (d.deliveryMethod) this.selectedDeliveryMethod = d.deliveryMethod;
-          if (d.referralCode) this.referralCode = d.referralCode;
-        }
-      } catch {}
+      // The draft (amount/delivery/referral entered before adding a recipient) is restored
+      // inside handlePreSelectedBeneficiary so it always lands BEFORE the quote is fetched,
+      // regardless of whether ngOnInit's queryParams subscription or this lifecycle fires first.
       this.loadCorridors();
       this.checkFirstTransaction();
       this.handlePreSelectedBeneficiary(beneficiaryId);
@@ -1059,7 +1052,27 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     }, 1000);
   }
 
+  /** One-shot restore of the in-progress transfer saved before the Add-Recipient round-trip.
+   *  Returns true if a draft existed (i.e. the user had already entered an amount). */
+  private restoreSendDraft(): boolean {
+    try {
+      const raw = sessionStorage.getItem('layla_send_draft');
+      if (!raw) return false;
+      const d = JSON.parse(raw);
+      if (d.sendAmount) this.sendAmount = d.sendAmount;
+      if (d.receiveAmountInput) this.receiveAmountInput = d.receiveAmountInput;
+      if (d.deliveryMethod) this.selectedDeliveryMethod = d.deliveryMethod;
+      if (d.referralCode) this.referralCode = d.referralCode;
+      sessionStorage.removeItem('layla_send_draft'); // consume once
+      return d.sendAmount != null;
+    } catch { return false; }
+  }
+
   private handlePreSelectedBeneficiary(beneficiaryId: string): void {
+    // Restore the saved amount/delivery BEFORE the quote is fetched. hadDraft = the user already
+    // entered an amount (came back from Add Recipient) → land on Review; otherwise (fresh deep-link
+    // from the Recipients list) land on the Calculator so they can enter the amount.
+    const hadDraft = this.restoreSendDraft();
     // Beneficiaries store country in ISO-2 (e.g. 'AU'), corridors use ISO-3 (e.g. 'AUS').
     // Normalize both directions so the match works regardless of which format each side uses.
     const iso2ToIso3: Record<string, string> = {
@@ -1079,9 +1092,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
             this.selectedCorridor = match;
             this.selectedBeneficiary = ben;
             this.showRecipientPanel = false;
-            // Recipient is already chosen — skip the calculator/recipient steps and land on review.
-            // (User came back from the Add Recipient flow with sendAmount already in component state.)
-            this.currentStep = this.sendAmount > 0 ? 'review' : 'calculator';
+            // Came back from Add Recipient with an amount already entered → go straight to Review.
+            // Fresh deep-link from the Recipients list (no draft) → Calculator, so the amount is
+            // editable with a live quote (avoids the "amount stuck at default" problem).
+            this.currentStep = hadDraft ? 'review' : 'calculator';
             this.loadWalletBalance();
             this.loadBeneficiaries();
 

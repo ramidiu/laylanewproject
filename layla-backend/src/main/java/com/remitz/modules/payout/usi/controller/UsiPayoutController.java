@@ -44,6 +44,14 @@ public class UsiPayoutController {
         return ResponseEntity.ok(service.createRemitter(userId));
     }
 
+    @PostMapping("/remitter/by-customer/{customerId}/ensure")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PAYIN_PARTNER', 'PAYOUT_PARTNER')")
+    @Operation(summary = "Validate + create the USI remitter for a pay-in customer (by customer UUID)",
+            description = "Called when an operator selects a customer in pay-in. Returns READY / MISSING_INFO / FAILED / SKIPPED so missing remitter data (e.g. Address Line 1) is surfaced at selection time, not at Create-on-USI.")
+    public ResponseEntity<Map<String, Object>> ensureRemitter(@PathVariable String customerId) {
+        return ResponseEntity.ok(service.ensureRemitter(customerId));
+    }
+
     @PostMapping("/remitter/{userId}/verify")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PAYOUT_PARTNER')")
     @Operation(summary = "Verify a USI remitter — pulls latest verified-status from USI")

@@ -10,8 +10,10 @@ import com.remitz.modules.fx.dto.CorridorLimitsResponse;
 import com.remitz.modules.fx.dto.CorridorUpdateRequest;
 import com.remitz.modules.fx.dto.DeliveryMethodResponse;
 import com.remitz.modules.fx.dto.CorridorAutoCreateRequest;
+import com.remitz.modules.fx.entity.CorridorRateSlabEntity;
 import com.remitz.modules.fx.service.CorridorAutoCreateService;
 import com.remitz.modules.fx.service.CorridorFeeService;
+import com.remitz.modules.fx.service.CorridorRateSlabService;
 import com.remitz.modules.fx.service.CorridorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +33,7 @@ public class CorridorController {
     private final CorridorService corridorService;
     private final CorridorFeeService corridorFeeService;
     private final CorridorAutoCreateService corridorAutoCreateService;
+    private final CorridorRateSlabService corridorRateSlabService;
 
     // ============================================
     // Customer-facing endpoints: /api/corridors
@@ -214,6 +217,36 @@ public class CorridorController {
                 .success(true)
                 .data(fees)
                 .message("Corridor fees retrieved successfully")
+                .build());
+    }
+
+    // ============================================
+    // Amount-based rate slabs (admin)
+    // ============================================
+
+    @GetMapping("/api/admin/corridors/{id}/rate-slabs")
+    @PreAuthorize("hasPermission(null, 'config:manage_corridors')")
+    @Tag(name = "Corridor Admin")
+    @Operation(summary = "Get amount-based rate slabs for a corridor")
+    public ResponseEntity<ApiResponse<List<CorridorRateSlabEntity>>> getRateSlabs(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.<List<CorridorRateSlabEntity>>builder()
+                .success(true)
+                .data(corridorRateSlabService.list(id))
+                .message("Rate slabs retrieved")
+                .build());
+    }
+
+    @PutMapping("/api/admin/corridors/{id}/rate-slabs")
+    @PreAuthorize("hasPermission(null, 'config:manage_corridors')")
+    @Tag(name = "Corridor Admin")
+    @Operation(summary = "Replace the amount-based rate slabs for a corridor",
+            description = "Body: array of { minAmount, maxAmount (null = open-ended), rate, isActive }.")
+    public ResponseEntity<ApiResponse<List<CorridorRateSlabEntity>>> setRateSlabs(
+            @PathVariable Long id, @RequestBody List<CorridorRateSlabEntity> slabs) {
+        return ResponseEntity.ok(ApiResponse.<List<CorridorRateSlabEntity>>builder()
+                .success(true)
+                .data(corridorRateSlabService.replaceSlabs(id, slabs))
+                .message("Rate slabs saved")
                 .build());
     }
 }

@@ -1181,7 +1181,7 @@ public class TransactionService {
                     HttpStatus.BAD_REQUEST);
         }
 
-        // Map KYC tier to risk level: TIER_2/TIER_3 = LOW, TIER_1 = MEDIUM, TIER_0 = HIGH
+        // Map KYC tier to risk level: TIER_2/TIER_3 (verified) = LOW, base TIER_1 / legacy TIER_0 = HIGH
         String riskLevel = resolveRiskLevelForUser(senderUserId);
 
         // Per-transaction limit check based on risk level
@@ -1291,8 +1291,10 @@ public class TransactionService {
             Optional<UserEntity> userOpt = userRepository.findById(userId);
             if (userOpt.isPresent() && userOpt.get().getKycTier() != null) {
                 String kycTier = userOpt.get().getKycTier().name();
+                // Verified tiers (TIER_2 = id+address, TIER_3 = +source of funds) get LOW risk.
+                // The base TIER_1 (zero documents) and legacy TIER_0 fall through to HIGH — the
+                // most restrictive limits — until the customer is verified.
                 if ("TIER_3".equals(kycTier) || "TIER_2".equals(kycTier)) return "LOW";
-                if ("TIER_1".equals(kycTier)) return "MEDIUM";
             }
         } catch (Exception e) {
             log.warn("Could not resolve KYC tier for userId {}, defaulting to HIGH: {}", userId, e.getMessage());

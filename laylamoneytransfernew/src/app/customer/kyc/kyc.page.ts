@@ -462,7 +462,10 @@ export class KycPage implements OnInit, OnDestroy {
         try {
           await this.kycService.uploadDocument(
             user.sub, docTypeEnum, this.identityBackFile,
-            this.identityDocNumber || undefined,
+            // Mark the back side with a _BACK suffix so it is stored as a SEPARATE document
+            // from the front (same convention as the admin/payin flows). Without this, the
+            // back looks identical to the front and gets blocked / supersedes it.
+            (this.identityDocNumber ? this.identityDocNumber + '_BACK' : '_BACK'),
             this.identityIssueDate || undefined,
             this.identityExpiryDate || undefined
           ).toPromise();
@@ -589,7 +592,8 @@ export class KycPage implements OnInit, OnDestroy {
               userId,
               this.selectedIdentityDocType.code,
               this.identityBackFile,
-              this.identityDocNumber,
+              // _BACK suffix → stored as a separate document from the front (matches admin/payin).
+              (this.identityDocNumber ? this.identityDocNumber + '_BACK' : '_BACK'),
               this.identityIssueDate,
               this.identityExpiryDate
             ).toPromise();

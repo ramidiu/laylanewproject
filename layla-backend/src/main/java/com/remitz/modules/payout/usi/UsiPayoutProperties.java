@@ -17,6 +17,8 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "usi")
 public class UsiPayoutProperties {
     private boolean enabled = false;
+    /** When true, a pay-in transaction in a USI corridor is automatically pushed to USI on creation. */
+    private boolean autoPayin = true;
     private String url = "";
     private String username = "";
     private String password = "";

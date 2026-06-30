@@ -51,12 +51,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
             "AND (:status IS NULL OR u.status = :status) " +
             "AND (:kycTier IS NULL OR u.kycTier = :kycTier) " +
             "AND (:kycStatus IS NULL " +
-            "     OR (:kycStatus = 'VERIFIED' AND u.kycTier IN (com.remitz.common.enums.KycTier.TIER_1, com.remitz.common.enums.KycTier.TIER_2, com.remitz.common.enums.KycTier.TIER_3)) " +
+            "     OR (:kycStatus = 'VERIFIED' AND u.kycTier IN (com.remitz.common.enums.KycTier.TIER_2, com.remitz.common.enums.KycTier.TIER_3)) " +
             "     OR (:kycStatus = 'REJECTED' AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.status = com.remitz.common.enums.KycDocumentStatus.REJECTED)) " +
             // PENDING = a real (app-uploaded, file_hash set) pending document awaiting review.
             "     OR (:kycStatus = 'PENDING' AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.fileHash IS NOT NULL AND d.status = com.remitz.common.enums.KycDocumentStatus.PENDING)) " +
             // PARTIAL = has a pending document but it is auto-imported (no file_hash) — i.e. no real submission.
-            "     OR (:kycStatus = 'PARTIAL' AND u.kycTier = com.remitz.common.enums.KycTier.TIER_0 AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity dp WHERE dp.userId = u.id AND dp.status = com.remitz.common.enums.KycDocumentStatus.PENDING) AND NOT EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.fileHash IS NOT NULL AND d.status = com.remitz.common.enums.KycDocumentStatus.PENDING))" +
+            "     OR (:kycStatus = 'PARTIAL' AND u.kycTier IN (com.remitz.common.enums.KycTier.TIER_0, com.remitz.common.enums.KycTier.TIER_1) AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity dp WHERE dp.userId = u.id AND dp.status = com.remitz.common.enums.KycDocumentStatus.PENDING) AND NOT EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.fileHash IS NOT NULL AND d.status = com.remitz.common.enums.KycDocumentStatus.PENDING))" +
             ")")
     Page<UserEntity> searchUsers(
             @Param("search") String search,
@@ -74,12 +74,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
             "AND (:status IS NULL OR u.status = :status) " +
             "AND (:kycTier IS NULL OR u.kycTier = :kycTier) " +
             "AND (:kycStatus IS NULL " +
-            "     OR (:kycStatus = 'VERIFIED' AND u.kycTier IN (com.remitz.common.enums.KycTier.TIER_1, com.remitz.common.enums.KycTier.TIER_2, com.remitz.common.enums.KycTier.TIER_3)) " +
+            "     OR (:kycStatus = 'VERIFIED' AND u.kycTier IN (com.remitz.common.enums.KycTier.TIER_2, com.remitz.common.enums.KycTier.TIER_3)) " +
             "     OR (:kycStatus = 'REJECTED' AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.status = com.remitz.common.enums.KycDocumentStatus.REJECTED)) " +
             // PENDING = a real (app-uploaded, file_hash set) pending document awaiting review.
             "     OR (:kycStatus = 'PENDING' AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.fileHash IS NOT NULL AND d.status = com.remitz.common.enums.KycDocumentStatus.PENDING)) " +
             // PARTIAL = has a pending document but it is auto-imported (no file_hash) — i.e. no real submission.
-            "     OR (:kycStatus = 'PARTIAL' AND u.kycTier = com.remitz.common.enums.KycTier.TIER_0 AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity dp WHERE dp.userId = u.id AND dp.status = com.remitz.common.enums.KycDocumentStatus.PENDING) AND NOT EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.fileHash IS NOT NULL AND d.status = com.remitz.common.enums.KycDocumentStatus.PENDING))" +
+            "     OR (:kycStatus = 'PARTIAL' AND u.kycTier IN (com.remitz.common.enums.KycTier.TIER_0, com.remitz.common.enums.KycTier.TIER_1) AND EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity dp WHERE dp.userId = u.id AND dp.status = com.remitz.common.enums.KycDocumentStatus.PENDING) AND NOT EXISTS (SELECT 1 FROM com.remitz.modules.user.entity.KycDocumentEntity d WHERE d.userId = u.id AND d.fileHash IS NOT NULL AND d.status = com.remitz.common.enums.KycDocumentStatus.PENDING))" +
             ") " +
             "ORDER BY CASE WHEN u.firstName IS NULL OR u.firstName = '' THEN 1 ELSE 0 END ASC, " +
             "LOWER(u.firstName) ASC, LOWER(u.lastName) ASC")

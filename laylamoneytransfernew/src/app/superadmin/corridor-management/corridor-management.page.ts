@@ -19,7 +19,12 @@ export class CorridorManagementPage implements OnInit {
   payoutPartners: any[] = [];
   loading = true;
   showAddForm = false;
-  activeSegment: 'corridors' | 'mappings' | 'fees' = 'corridors';
+  activeSegment: 'corridors' | 'mappings' | 'fees' | 'rates' = 'corridors';
+
+  // Amount-based rate slabs
+  slabCorridorId: number | null = null;
+  rateSlabs: any[] = [];
+  savingSlabs = false;
 
   // Inline config panel
   expandedCorridor: string | null = null; // "GBP-INR" key
@@ -857,5 +862,56 @@ export class CorridorManagementPage implements OnInit {
   private async showToast(message: string, color: string): Promise<void> {
     const toast = await this.toastCtrl.create({ message, duration: 4000, position: 'top', color, cssClass: `fb-toast fb-toast-${color}`, buttons: [{ icon: 'close-outline', role: 'cancel' }] });
     await toast.present();
+  }
+
+  // ── Amount-based rate slabs ─────────────────────────────────────────────
+  private slabCorridor(): any {
+    return this.corridors.find(c => c.id === this.slabCorridorId);
+  }
+  slabSendCurrency(): string { return this.slabCorridor()?.sendCurrency || ''; }
+  slabReceiveCurrency(): string { return this.slabCorridor()?.receiveCurrency || ''; }
+
+  loadRateSlabs(): void {
+    this.rateSlabs = [];
+    if (!this.slabCorridorId) return;
+    this.fxService.getRateSlabs(this.slabCorridorId).subscribe({
+      next: (slabs) => {
+        this.rateSlabs = (slabs || []).map((s: any) => ({
+          minAmount: s.minAmount, maxAmount: s.maxAmount, rate: s.rate,
+          isActive: s.isActive !== false
+        }));
+      },
+      error: () => { this.rateSlabs = []; }
+    });
+  }
+
+  addSlabRow(): void {
+    const last = this.rateSlabs[this.rateSlabs.length - 1];
+    const nextMin = last && last.maxAmount != null ? Number(last.maxAmount) + 1 : (this.rateSlabs.length === 0 ? 1 : null);
+    this.rateSlabs.push({ minAmount: nextMin, maxAmount: null, rate: null, isActive: true });
+  }
+
+  removeSlabRow(i: number): void { this.rateSlabs.splice(i, 1); }
+
+  saveRateSlabs(): void {
+    if (!this.slabCorridorId) return;
+    // Validate each band has a min and a positive rate.
+    for (const s of this.rateSlabs) {
+      if (s.minAmount == null || s.rate == null || Number(s.rate) <= 0) {
+        this.showToast('Each band needs a Min amount and a positive Rate.', 'danger');
+        return;
+      }
+    }
+    this.savingSlabs = true;
+    const payload = this.rateSlabs.map(s => ({
+      minAmount: Number(s.minAmount),
+      maxAmount: s.maxAmount === null || s.maxAmount === '' || s.maxAmount === undefined ? null : Number(s.maxAmount),
+      rate: Number(s.rate),
+      isActive: s.isActive !== false
+    }));
+    this.fxService.saveRateSlabs(this.slabCorridorId, payload).subscribe({
+      next: () => { this.savingSlabs = false; this.showToast('Rate slabs saved', 'success'); this.loadRateSlabs(); },
+      error: (e) => { this.savingSlabs = false; this.showToast(e?.error?.message || 'Failed to save rate slabs', 'danger'); }
+    });
   }
 }

@@ -377,7 +377,99 @@ export class SATransactionsPage implements OnInit {
   }
 
   exportTransactions(): void {
-    this.showToast('Export functionality - integrate with CSV export endpoint', 'primary');
+    if (this.activeTab === 'PAYIN') {
+      this.exportPayinCsv();
+      return;
+    }
+    // Fetch EVERY row matching the current status + date-range + search filters (not just
+    // the visible page), then build the CSV client-side.
+    this.showToast('Preparing export…', 'primary');
+    const size = this.totalElements && this.totalElements > 0 ? this.totalElements : 10000;
+    this.transactionService.getAllTransactions(0, size, {
+      status: this.statusFilter || undefined,
+      search: this.searchQuery || undefined,
+      startDate: this.fromDate || undefined,
+      endDate: this.toDate || undefined
+    }).subscribe({
+      next: (res: any) => {
+        const data = res?.data || res;
+        const rows: TransactionResponse[] = data?.content || data || [];
+        if (!rows.length) { this.showToast('No transactions match the current filters', 'warning'); return; }
+        const headers = ['Transaction ID', 'Reference', 'Payout Reference', 'Status',
+          'Created At', 'Last Updated', 'Sender Name', 'Sender ID',
+          'Beneficiary Name', 'Beneficiary ID', 'Corridor',
+          'Send Amount', 'Send Currency', 'Receive Amount', 'Receive Currency',
+          'Exchange Rate', 'Applied Rate', 'Fee Amount', 'Total Debit',
+          'Delivery Method', 'Payment Method', 'Risk Score'];
+        const lines = rows.map(t => [
+          t.id, t.referenceNumber, t.payoutReference, t.status,
+          this.csvDate(t.createdAt), this.csvDate(t.updatedAt), t.senderName, t.senderId,
+          t.beneficiaryName, t.beneficiaryId,
+          (t.sendCurrency && t.receiveCurrency) ? `${t.sendCurrency}->${t.receiveCurrency}` : '',
+          t.sendAmount, t.sendCurrency, t.receiveAmount, t.receiveCurrency,
+          t.exchangeRate, t.appliedRate, t.feeAmount, t.totalDebitAmount,
+          t.deliveryMethod, t.paymentMethodType, t.riskScore
+        ].map(v => this.csvCell(v)).join(','));
+        const csv = [headers.join(','), ...lines].join('\r\n');
+        this.downloadCsv(csv, this.exportFileName('transactions'));
+        this.showToast(`Exported ${rows.length} transaction(s)`, 'success');
+      },
+      error: () => this.showToast('Export failed. Please try again.', 'danger')
+    });
+  }
+
+  private exportPayinCsv(): void {
+    const rows = this.payinFiltered || [];
+    if (!rows.length) { this.showToast('No pay-in transactions to export', 'warning'); return; }
+    const headers = ['Transaction ID', 'Reference', 'Customer ID', 'External Ref', 'Amount',
+      'Currency', 'Receive Amount', 'Receive Currency', 'Delivery Method', 'Payment Mode',
+      'Status', 'Source', 'Created At'];
+    const lines = rows.map(t => [
+      t.transactionId, t.referenceNumber, t.customerId, t.externalReferenceId, t.amount,
+      t.currency, t.receiveAmount, t.receiveCurrency, t.deliveryMethod, t.paymentMode,
+      t.status, t.customerSource, this.csvDate(t.createdAt)
+    ].map(v => this.csvCell(v)).join(','));
+    const csv = [headers.join(','), ...lines].join('\r\n');
+    this.downloadCsv(csv, this.exportFileName('payin-transactions'));
+    this.showToast(`Exported ${rows.length} pay-in transaction(s)`, 'success');
+  }
+
+  /** Normalise a timestamp to ISO 8601 (UTC) for client reconciliation; blank if unparseable. */
+  private csvDate(v: any): string {
+    if (!v) return '';
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? String(v) : d.toISOString();
+  }
+
+  /** Escape a value for CSV: wrap in quotes if it contains a comma, quote or newline. */
+  private csvCell(v: any): string {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  /** Filename that records the active filters (status + selected date range). */
+  private exportFileName(prefix: string): string {
+    const parts = [prefix];
+    if (this.activeTab === 'REGULAR') {
+      if (this.statusFilter) parts.push(this.statusFilter);
+      if (this.fromDate) parts.push('from-' + this.fromDate);
+      if (this.toDate) parts.push('to-' + this.toDate);
+    }
+    return parts.join('_') + '.csv';
+  }
+
+  private downloadCsv(csv: string, filename: string): void {
+    // Prepend a UTF-8 BOM so Excel opens it with correct encoding.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   private async showToast(message: string, color: string): Promise<void> {

@@ -12,6 +12,7 @@ export interface AddBeneficiaryRequest {
   idNumber?: string | null;
   idType?: string | null;
   address?: string | null;
+  city?: string | null;
   relationship?: string | null;
 }
 
@@ -29,6 +30,7 @@ export interface UpdateBeneficiaryRequest {
   idNumber?: string;
   idType?: string;
   address?: string;
+  city?: string;
   relationship?: string;
   isFavourite?: boolean;
 }
@@ -48,6 +50,7 @@ export interface BeneficiaryResponse {
   idType?: string;
   idNumber?: string;
   address?: string;
+  city?: string;
   relationship?: string;
   isFavourite: boolean;
   createdAt: string;

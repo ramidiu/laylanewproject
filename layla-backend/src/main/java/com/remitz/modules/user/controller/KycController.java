@@ -28,6 +28,7 @@ import java.util.List;
 public class KycController {
 
     private final KycService kycService;
+    private final com.remitz.modules.user.service.OcrService ocrService;
     private final com.remitz.modules.auth.repository.UserRepository userRepository;
 
     private Long resolveUserId(String userIdOrUuid) {
@@ -183,6 +184,28 @@ public class KycController {
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "OCR a KYC document",
+            description = "Runs free OCR (Tesseract) on the document and returns extracted text + candidate dates/numbers for the verification workspace comparison table.")
+    @PostMapping("/documents/{docId}/ocr")
+    @PreAuthorize("hasPermission(null, 'user:approve_kyc')")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> ocrDocument(
+            @PathVariable String userId,
+            @PathVariable Long docId) {
+        Long resolvedUserId = resolveUserId(userId);
+        KycDocumentEntity doc = kycService.getDocumentEntity(docId);
+        if (doc == null || !doc.getUserId().equals(resolvedUserId)) {
+            return ResponseEntity.notFound().build();
+        }
+        String fileName = doc.getFilePath() != null
+                ? java.nio.file.Paths.get(doc.getFilePath()).getFileName().toString() : null;
+        java.util.Map<String, Object> result = ocrService.extract(doc.getFilePath(), fileName);
+        return ResponseEntity.ok(ApiResponse.<java.util.Map<String, Object>>builder()
+                .success(true)
+                .data(result)
+                .message("OCR completed")
+                .build());
     }
 
     private String getClientIpAddress(HttpServletRequest request) {

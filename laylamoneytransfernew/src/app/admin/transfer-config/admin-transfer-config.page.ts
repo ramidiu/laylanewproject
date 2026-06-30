@@ -14,7 +14,7 @@ interface CountryGroup {
   styleUrls: ['./admin-transfer-config.page.scss']
 })
 export class AdminTransferConfigPage implements OnInit {
-  activeSegment: 'payout' | 'payment' = 'payout';
+  activeSegment: 'payout' | 'payment' | 'limits' = 'payout';
 
   payoutGroups: CountryGroup[] = [];
   payoutLoading = true;
@@ -22,11 +22,76 @@ export class AdminTransferConfigPage implements OnInit {
   paymentGroups: CountryGroup[] = [];
   paymentLoading = true;
 
+  // Transaction send-amount limits (system_config: transaction.min_send_amount / max_send_amount)
+  private readonly MIN_KEY = 'transaction.min_send_amount';
+  private readonly MAX_KEY = 'transaction.max_send_amount';
+  minSend: number | null = null;
+  maxSend: number | null = null;
+  limitsCurrency = 'GBP';
+  limitsLoading = true;
+  limitsSaving = false;
+  limitsMsg = '';
+  limitsMsgType: 'success' | 'error' | '' = '';
+
   constructor(private configService: ConfigService) {}
 
   ngOnInit(): void {
     this.loadPayoutTypes();
     this.loadPaymentMethods();
+    this.loadLimits();
+  }
+
+  loadLimits(): void {
+    this.limitsLoading = true;
+    this.limitsMsg = '';
+    this.configService.getSystemConfig().subscribe({
+      next: (res) => {
+        const all = Array.isArray(res) ? res : res?.data || [];
+        const min = all.find((c: any) => c.configKey === this.MIN_KEY);
+        const max = all.find((c: any) => c.configKey === this.MAX_KEY);
+        this.minSend = min?.configValue != null ? Number(min.configValue) : null;
+        this.maxSend = max?.configValue != null ? Number(max.configValue) : null;
+        this.limitsLoading = false;
+      },
+      error: () => { this.limitsLoading = false; this.showLimitsMsg('Could not load limits.', 'error'); }
+    });
+  }
+
+  saveLimits(): void {
+    this.limitsMsg = '';
+    if (this.minSend == null || isNaN(this.minSend) || this.minSend < 0) {
+      this.showLimitsMsg('Enter a valid minimum amount.', 'error'); return;
+    }
+    if (this.maxSend == null || isNaN(this.maxSend) || this.maxSend <= 0) {
+      this.showLimitsMsg('Enter a valid maximum amount.', 'error'); return;
+    }
+    if (this.minSend >= this.maxSend) {
+      this.showLimitsMsg('Minimum must be less than maximum.', 'error'); return;
+    }
+    this.limitsSaving = true;
+    // Save min, then max, then reload to pick up fresh versions.
+    this.configService.updateSystemConfig(this.MIN_KEY, String(this.minSend)).subscribe({
+      next: () => {
+        this.configService.updateSystemConfig(this.MAX_KEY, String(this.maxSend)).subscribe({
+          next: () => {
+            this.limitsSaving = false;
+            this.showLimitsMsg('Send-amount limits updated.', 'success');
+            this.loadLimits();
+          },
+          error: (e) => { this.limitsSaving = false; this.showLimitsMsg(this.errText(e, 'Failed to save maximum.'), 'error'); }
+        });
+      },
+      error: (e) => { this.limitsSaving = false; this.showLimitsMsg(this.errText(e, 'Failed to save minimum.'), 'error'); }
+    });
+  }
+
+  private errText(e: any, fallback: string): string {
+    return e?.error?.message || e?.message || fallback;
+  }
+
+  private showLimitsMsg(msg: string, type: 'success' | 'error'): void {
+    this.limitsMsg = msg;
+    this.limitsMsgType = type;
   }
 
   loadPayoutTypes(): void {

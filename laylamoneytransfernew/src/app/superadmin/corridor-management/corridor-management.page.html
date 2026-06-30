@@ -10,6 +10,7 @@
     <ion-segment-button value="corridors"><ion-label>FX Corridors</ion-label></ion-segment-button>
     <ion-segment-button value="mappings"><ion-label>Partner Mappings</ion-label></ion-segment-button>
     <ion-segment-button value="fees"><ion-label>Corridor Fees</ion-label></ion-segment-button>
+    <ion-segment-button value="rates"><ion-label>Rate Slabs</ion-label></ion-segment-button>
   </ion-segment>
 
   <!-- ═══════════════ FX Corridors Tab ═══════════════ -->
@@ -442,6 +443,61 @@
         <ion-icon name="cash-outline"></ion-icon>
         <p>No corridor fees configured</p>
         <span>Add fee configurations for your corridors and delivery methods</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ Rate Slabs Tab ═══════════════ -->
+  <div *ngIf="activeSegment === 'rates'" class="tab-content">
+    <div class="fb-card slab-card">
+      <div class="slab-head">
+        <div>
+          <h3>Amount-based exchange rates</h3>
+          <p class="slab-sub">Set a rate per send-amount band. When a customer's send amount falls in a band, that rate is used (receive = send × rate). Leave the last band's “Max” empty for “and above”.</p>
+        </div>
+        <div class="fb-field">
+          <label class="fb-field__label">Corridor</label>
+          <select class="fb-input" [(ngModel)]="slabCorridorId" (ngModelChange)="loadRateSlabs()">
+            <option [ngValue]="null" disabled>Select a corridor…</option>
+            <option *ngFor="let c of corridors" [ngValue]="c.id">
+              {{ c.sendCurrency }} → {{ c.receiveCurrency }} ({{ c.receiveCountry }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div *ngIf="slabCorridorId">
+        <table class="fb-table slab-table">
+          <thead>
+            <tr>
+              <th>Min amount ({{ slabSendCurrency() }})</th>
+              <th>Max amount</th>
+              <th>Rate (1 {{ slabSendCurrency() }} = ? {{ slabReceiveCurrency() }})</th>
+              <th>Active</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of rateSlabs; let i = index">
+              <td><input class="fb-input" type="number" min="0" [(ngModel)]="s.minAmount" /></td>
+              <td><input class="fb-input" type="number" min="0" [(ngModel)]="s.maxAmount" placeholder="∞ (and above)" /></td>
+              <td><input class="fb-input" type="number" min="0" step="0.000001" [(ngModel)]="s.rate" /></td>
+              <td style="text-align:center"><input type="checkbox" [(ngModel)]="s.isActive" /></td>
+              <td><button class="fb-btn fb-btn--danger fb-btn--sm" (click)="removeSlabRow(i)"><ion-icon name="trash-outline"></ion-icon></button></td>
+            </tr>
+            <tr *ngIf="rateSlabs.length === 0">
+              <td colspan="5" class="slab-empty">No slabs yet — add a band below.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="slab-actions">
+          <button class="fb-btn fb-btn--outline" (click)="addSlabRow()"><ion-icon name="add-outline"></ion-icon> Add band</button>
+          <button class="fb-btn fb-btn--primary" [disabled]="savingSlabs" (click)="saveRateSlabs()">
+            <ion-icon name="save-outline"></ion-icon> {{ savingSlabs ? 'Saving…' : 'Save rate slabs' }}
+          </button>
+        </div>
+        <p class="slab-hint">Tip: bands should be contiguous, e.g. 1–100, 101–200, 201–(empty). An amount that matches no band falls back to the standard market rate.</p>
       </div>
     </div>
   </div>

@@ -31,13 +31,19 @@ import com.remitz.modules.transaction.entity.PayinPartner;
 import com.remitz.modules.transaction.repository.PayinPartnerRepository;
 import com.remitz.modules.transaction.repository.PayoutPartnerCountryRepository;
 import com.remitz.modules.transaction.repository.PayoutPartnerRepository;
+import com.remitz.modules.payout.usi.UsiPayoutProperties;
+import com.remitz.modules.payout.usi.service.UsiPayoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -57,6 +63,17 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
     private final PayoutPartnerCountryRepository payoutPartnerCountryRepository;
     private final PayinPartnerRepository payinPartnerRepository;
     private final com.remitz.modules.transaction.service.TransactionReceiptService transactionReceiptService;
+    private final UsiPayoutService usiPayoutService;
+    private final UsiPayoutProperties usiProperties;
+
+    /** Destination countries served by USI Money — mirrors TransactionRepository.findUsiEligibleTransactions. */
+    private static final Set<String> USI_CORRIDOR_COUNTRIES = Set.of(
+            "UG", "UGA", "UGANDA",
+            "TR", "TUR", "TURKEY",
+            "EG", "EGY", "EGYPT",
+            "QA", "QAT", "QATAR",
+            "SA", "SAU", "SAUDI ARABIA",
+            "AE", "ARE", "UNITED ARAB EMIRATES", "UAE");
 
     @Override
     public byte[] generateReceiptPdf(String transactionId) {
@@ -120,6 +137,26 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
             beneficiary = createBeneficiary(request.getBeneficiaryDetails(), customer.getCustomerId());
         } else {
             return CreatePayinTransactionResponse.failure("Either beneficiaryId or beneficiaryDetails is required");
+        }
+
+        // USI remitter pre-flight: for USI corridors, refuse to create a pay-in whose
+        // remitter can't be built (e.g. customer missing Address Line 1). Otherwise we'd
+        // persist a transaction that can never be pushed to USI — and the failure would
+        // only surface later at "Create on USI". Non-USI corridors are unaffected.
+        if (usiProperties.isEnabled() && hasText(request.getReceiveCurrency())) {
+            String destCountry = resolveReceiveCountry(
+                    request.getCurrency().trim().toUpperCase(),
+                    request.getReceiveCurrency().trim().toUpperCase());
+            if (isUsiCorridorCountry(destCountry)) {
+                List<String> missing = usiPayoutService.findMissingRemitterFields(customer.getCustomerId());
+                if (!missing.isEmpty()) {
+                    log.warn("PayIn blocked — USI remitter missing {} for customer {}",
+                            missing, customer.getCustomerId());
+                    return CreatePayinTransactionResponse.failure(
+                            "Remitter " + missing.get(0) + " is required. Complete this customer's "
+                            + "profile before sending via USI Money.");
+                }
+            }
         }
 
         // Cash collection is immediately processing; card/banking payments are pending confirmation
@@ -273,10 +310,70 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
             regularTransactionRepository.flush();
             log.info("Linked regular transaction {} created for PayIn txn {}",
                     savedLinked.getReferenceNumber(), payinTxn.getTransactionId());
+
+            // Push to USI Money when the destination is a USI corridor — same flow as the
+            // admin "Create on USI" button, but automatic on pay-in creation.
+            maybeTriggerUsiPayout(savedLinked.getReferenceNumber(), corridor.getReceiveCountry());
         } catch (Exception e) {
             log.error("Failed to create linked transaction for PayIn txn {}: {}",
                     payinTxn.getTransactionId(), e.getMessage());
         }
+    }
+
+    /**
+     * Automatically create the USI Money transaction for a freshly-created pay-in, when the
+     * destination is a USI corridor and the integration is enabled. The actual call runs
+     * <b>after</b> the pay-in transaction commits so the linked regular transaction is durably
+     * visible to USI's own reads and a USI/HTTP failure can never roll back the pay-in. The
+     * push is best-effort: failures are logged, never propagated. (Confirmation — which
+     * releases funds — stays a deliberate manual/admin step.)
+     */
+    private void maybeTriggerUsiPayout(String referenceNumber, String destinationCountry) {
+        if (referenceNumber == null) return;
+        if (!usiProperties.isEnabled() || !usiProperties.isAutoPayin()) return;
+        if (!isUsiCorridorCountry(destinationCountry)) {
+            log.debug("USI auto-payout skipped for {} — '{}' is not a USI corridor",
+                    referenceNumber, destinationCountry);
+            return;
+        }
+
+        Runnable push = () -> {
+            try {
+                log.info("USI auto-payout — creating USI transaction for {} (country {})",
+                        referenceNumber, destinationCountry);
+                Map<String, Object> result = usiPayoutService.createTransaction(referenceNumber);
+                log.info("USI auto-payout result for {} — status: {}, message: {}",
+                        referenceNumber, result.get("status"), result.get("message"));
+            } catch (Exception e) {
+                log.error("USI auto-payout failed for {} (non-fatal, pay-in unaffected): {}",
+                        referenceNumber, e.getMessage());
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    push.run();
+                }
+            });
+        } else {
+            push.run();
+        }
+    }
+
+    private boolean isUsiCorridorCountry(String country) {
+        if (country == null || country.isBlank()) return false;
+        return USI_CORRIDOR_COUNTRIES.contains(country.trim().toUpperCase());
+    }
+
+    /** Destination country for a send→receive currency pair, or null if no corridor matches. */
+    private String resolveReceiveCountry(String sendCurrency, String receiveCurrency) {
+        return corridorRepository
+                .findBySendCurrencyAndReceiveCurrencyAndIsActiveTrue(sendCurrency, receiveCurrency)
+                .or(() -> corridorRepository.findBySendCurrencyAndReceiveCurrency(sendCurrency, receiveCurrency))
+                .map(CorridorEntity::getReceiveCountry)
+                .orElse(null);
     }
 
     private PaymentMethodType resolvePaymentMethodType(PaymentMode mode) {

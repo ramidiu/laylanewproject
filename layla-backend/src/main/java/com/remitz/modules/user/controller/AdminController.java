@@ -44,13 +44,15 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStats() {
         long totalUsers = userRepository.count();
         long activeUsers = userRepository.countByStatus(UserStatus.ACTIVE);
-        long kycPending = userRepository.countByKycTier(KycTier.TIER_0);
+        // Unverified = base tier (TIER_1, plus legacy TIER_0); verified = TIER_2/TIER_3.
+        long kycPending = userRepository.countByKycTierIn(
+                List.of(KycTier.TIER_0, KycTier.TIER_1));
         long kycVerified = userRepository.countByKycTierIn(
-                List.of(KycTier.TIER_1, KycTier.TIER_2, KycTier.TIER_3));
-        long basicTier = userRepository.countByKycTier(KycTier.TIER_0);
-        long verifiedTier = userRepository.countByKycTier(KycTier.TIER_1);
-        long premiumTier = userRepository.countByKycTierIn(
                 List.of(KycTier.TIER_2, KycTier.TIER_3));
+        long basicTier = userRepository.countByKycTierIn(
+                List.of(KycTier.TIER_0, KycTier.TIER_1));
+        long verifiedTier = userRepository.countByKycTier(KycTier.TIER_2);
+        long premiumTier = userRepository.countByKycTier(KycTier.TIER_3);
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("totalUsers", totalUsers);

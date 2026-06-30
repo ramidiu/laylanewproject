@@ -95,3 +95,57 @@
   ion-icon { font-size: 48px; display: block; margin: 0 auto $fb-space-3; }
   p { margin: 0; font-size: $fb-text-sm; }
 }
+
+/* Send-amount limits editor */
+.limits-card {
+  background: #fff;
+  border: 1px solid $fb-gray-100;
+  border-radius: $fb-radius-lg;
+  padding: $fb-space-5;
+  max-width: 460px;
+}
+
+.limits-field {
+  margin-bottom: $fb-space-4;
+
+  label {
+    display: block;
+    font-size: $fb-text-sm;
+    font-weight: $fb-font-semibold;
+    color: $fb-gray-700;
+    margin-bottom: $fb-space-2;
+  }
+
+  input {
+    width: 100%;
+    padding: $fb-space-3;
+    border: 1px solid $fb-gray-200;
+    border-radius: $fb-radius-md;
+    font-size: $fb-text-base;
+    color: $fb-gray-900;
+
+    &:focus { outline: none; border-color: $fb-navy; }
+  }
+}
+
+.limits-msg {
+  margin: 0 0 $fb-space-3;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-medium;
+
+  &.is-error   { color: $fb-danger; }
+  &.is-success { color: $fb-success; }
+}
+
+.limits-save-btn {
+  background: $fb-navy;
+  color: #fff;
+  border: none;
+  border-radius: $fb-radius-md;
+  padding: $fb-space-3 $fb-space-6;
+  font-size: $fb-text-sm;
+  font-weight: $fb-font-semibold;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}

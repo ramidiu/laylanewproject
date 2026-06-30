@@ -489,3 +489,15 @@
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Rate slabs editor */
+.slab-card { padding: 18px; }
+.slab-head { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+.slab-head h3 { margin: 0 0 4px; }
+.slab-sub { margin: 0; font-size: .82rem; color: #6b7280; max-width: 620px; }
+.slab-table input.fb-input { width: 100%; }
+.slab-table th { font-size: .78rem; color: #6b7280; text-align: left; }
+.slab-empty { text-align: center; color: #9ca3af; padding: 14px; }
+.slab-actions { display: flex; gap: 10px; margin-top: 12px; }
+.slab-hint { font-size: .78rem; color: #9ca3af; margin-top: 10px; }
+.fb-btn--sm { padding: 5px 8px; }

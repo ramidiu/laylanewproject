@@ -65,6 +65,9 @@ public class BeneficiaryEntity {
     @Column(name = "id_type", length = 50)
     private String idType;
 
+    @Column(name = "relationship", length = 100)
+    private String relationship;
+
     @Column(name = "relation_id")
     private Long relationId;
 
@@ -76,6 +79,9 @@ public class BeneficiaryEntity {
 
     @Column(name = "address")
     private String address;
+
+    @Column(name = "city", length = 100)
+    private String city;
 
     @Column(name = "currency", length = 3)
     private String currency;

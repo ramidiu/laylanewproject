@@ -225,6 +225,16 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
         }
       });
 
+    // IBAN countries (Turkey, Saudi Arabia, UAE, SEPA): the Account Number field is hidden and the
+    // IBAN doubles as the account number — keep accountNumber in sync with whatever is typed as IBAN.
+    this.addForm.get('iban')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((iban: string) => {
+        if (this.isIbanCountry()) {
+          this.addForm.get('accountNumber')?.setValue((iban || '').trim(), { emitEvent: false });
+        }
+      });
+
     // Load active receive countries for the dropdown (static data — one-time).
     this.configService.getActiveReceiveCountries().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
@@ -473,7 +483,8 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
   isIbanCountry(country?: string | null): boolean {
     const c = (country || this.addForm.get('country')?.value || '').toString().toUpperCase();
     if (!c) return false;
-    const ibanSet = ['TR','TUR','SA','SAU','AE','ARE','QA','QAT',
+    // Qatar is NOT IBAN here (cash-collection only). USI IBAN corridors: Turkey, Saudi Arabia, UAE (+ SEPA).
+    const ibanSet = ['TR','TUR','SA','SAU','AE','ARE',
                      'DE','DEU','FR','FRA','ES','ESP','IT','ITA','NL','NLD','BE','BEL','AT','AUT'];
     return ibanSet.includes(c) || ibanSet.includes(c.substring(0, Math.min(3, c.length)));
   }
@@ -585,13 +596,17 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
       case 'BANK_DEPOSIT':
         this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
         this.addForm.get('bankName')!.setValidators([Validators.required]);
-        // Account number is required for every bank deposit. For IBAN countries it equals the IBAN.
-        this.addForm.get('accountNumber')!.setValidators([Validators.required, Validators.minLength(5)]);
+        // Account number required for non-IBAN countries. For IBAN countries the field is hidden
+        // and accountNumber is auto-filled from the IBAN (see iban valueChanges sync), so no validator.
+        if (!ibanCountry) {
+          this.addForm.get('accountNumber')!.setValidators([Validators.required, Validators.minLength(5)]);
+        }
         // Sudan: minimal form — only name, mobile, bank name, account number.
         if (this.isSudan()) {
           break;
         }
         this.addForm.get('address')!.setValidators([Validators.required]);
+        this.addForm.get('city')!.setValidators([Validators.required]);
         this.addForm.get('relationship')!.setValidators([Validators.required]);
         this.addForm.get('sortCode')!.setValidators([Validators.required]);
         this.addForm.get('branchState')!.setValidators([Validators.required]);
@@ -617,6 +632,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
         this.addForm.get('mobileProvider')!.setValidators([Validators.required]);
         this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
         this.addForm.get('address')!.setValidators([Validators.required]);
+        this.addForm.get('city')!.setValidators([Validators.required]);
         this.addForm.get('relationship')!.setValidators([Validators.required]);
         break;
       case 'UPI':
@@ -737,6 +753,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
       deliveryMethod: val.deliveryMethod,
       mobileNumber: val.mobileNumber || null,
       address: val.address || null,
+      city: val.city || null,
       relationship: val.relationship || null,
       bankName: val.bankName || null,
       // For IBAN countries account_number is the IBAN itself (matches USI Money convention)
@@ -822,7 +839,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
       sortCode: ben.sortCode || '',
       mobileProvider: ben.mobileProvider || '',
       idNumber: ben.idNumber || '',
-      city: ''
+      city: ben.city || ''
     });
     if (ben.country) {
       this.editDialCode = this.countryDialCodes[ben.country] || '';
@@ -889,6 +906,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
     if (val.fullName && val.fullName !== this.editingBeneficiary.fullName) request.fullName = val.fullName;
     if (val.mobileNumber) request.mobileNumber = val.mobileNumber;
     if (val.address) request.address = val.address;
+    if (val.city) request.city = val.city;
     if (val.relationship) request.relationship = val.relationship;
     if (val.bankName) request.bankName = val.bankName;
     if (val.accountNumber) request.accountNumber = val.accountNumber;

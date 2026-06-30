@@ -53,10 +53,10 @@ public class KycTierEvaluator {
         if (newTier.ordinal() > currentTier.ordinal()) {
             log.info("Upgrading user {} from {} to {}", userId, currentTier, newTier);
             user.setKycTier(newTier);
-            // Once KYC approval lifts the user to a verified tier (TIER_1+), activate the
-            // account so the admin Users list shows ACTIVE/verified instead of
-            // "pending verification".
-            if (newTier != KycTier.TIER_0 && user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+            // Once KYC approval lifts the user to a verified tier (TIER_2+: identity + address),
+            // activate the account so the admin Users list shows ACTIVE/verified instead of
+            // "pending verification". Reaching only the base TIER_1 does not activate.
+            if (newTier.isVerified() && user.getStatus() == UserStatus.PENDING_VERIFICATION) {
                 user.setStatus(UserStatus.ACTIVE);
                 log.info("Activated user {} after KYC verification (tier {})", userId, newTier);
             }
@@ -91,14 +91,15 @@ public class KycTierEvaluator {
         boolean hasProofOfAddress = approvedTypes.contains(KycDocumentType.PROOF_OF_ADDRESS);
         boolean hasSourceOfFunds = approvedTypes.contains(KycDocumentType.SOURCE_OF_FUNDS);
 
+        // TIER_1 is the base level (zero documents). Verification requires BOTH an identity
+        // document and a proof of address (TIER_2); source of funds adds TIER_3. An identity
+        // document alone no longer promotes a user — it stays at the base tier.
         if (hasIdDocument && hasProofOfAddress && hasSourceOfFunds) {
             return KycTier.TIER_3;
         } else if (hasIdDocument && hasProofOfAddress) {
             return KycTier.TIER_2;
-        } else if (hasIdDocument) {
-            return KycTier.TIER_1;
         } else {
-            return KycTier.TIER_0;
+            return KycTier.TIER_1;
         }
     }
 }

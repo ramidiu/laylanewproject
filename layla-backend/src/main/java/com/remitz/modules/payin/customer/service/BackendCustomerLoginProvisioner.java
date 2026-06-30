@@ -50,7 +50,7 @@ public class BackendCustomerLoginProvisioner {
             // customers to the generated default password and locked them out of their own
             // accounts. Only apply the non-destructive KYC-tier bump for a partner-trusted
             // customer; leave the password and verification state exactly as the user set them.
-            if (existing.getKycTier() == null || existing.getKycTier().name().equals("TIER_0")) {
+            if (existing.getKycTier() == null || !existing.getKycTier().isVerified()) {
                 existing.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
             }
             UserEntity saved = userRepository.save(existing);

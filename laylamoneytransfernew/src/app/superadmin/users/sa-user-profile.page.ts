@@ -40,6 +40,9 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
   saving = false;
   activeTab: 'details' | 'kyc' | 'transactions' = 'details';
 
+  // Verification workspace popup (replaces the inline document list)
+  workspaceOpen = false;
+
   // Admin document upload
   uploadSection: 'identity' | 'address' = 'identity';
   uploadDocType = 'PASSPORT';
@@ -54,6 +57,15 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
 
   get isAddressProof(): boolean { return this.uploadSection === 'address'; }
   get isDrivingLicence(): boolean { return this.uploadDocType === 'DRIVING_LICENCE'; }
+
+  /** Open the split-screen verification workspace popup for this customer. */
+  openWorkspace(): void { this.workspaceOpen = true; }
+
+  /** Refresh documents + KYC status after a workspace action (approve/reject/suspend). */
+  reloadKyc(): void {
+    this.kycService.getDocuments(this.uuid).subscribe({ next: d => this.documents = d, error: () => {} });
+    this.kycService.getStatus(this.uuid).subscribe({ next: s => this.kycStatus = s, error: () => {} });
+  }
 
   switchSection(section: 'identity' | 'address'): void {
     this.uploadSection = section;

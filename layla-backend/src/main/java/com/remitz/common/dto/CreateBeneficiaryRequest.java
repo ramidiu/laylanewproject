@@ -35,5 +35,6 @@ public class CreateBeneficiaryRequest {
     private String idNumber;
     private String idType;
     private String address;
+    private String city;
     private String relationship;
 }

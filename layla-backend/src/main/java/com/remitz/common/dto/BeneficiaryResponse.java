@@ -30,6 +30,7 @@ public class BeneficiaryResponse {
     private String idType;
     private String idNumber;
     private String address;
+    private String city;
     private String relationship;
     private Boolean isFavourite;
     private LocalDateTime createdAt;

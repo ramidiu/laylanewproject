@@ -53,6 +53,10 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
   payinCustomerDocs: any[] = [];
   payinDocsLoading = false;
 
+  // Split-screen verification workspace overlay
+  workspaceUser: UserResponse | null = null;
+  workspaceUserId = '';
+
   constructor(
     private userService: UserService,
     private kycService: KycService,
@@ -552,6 +556,24 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
     if (doc.rawBlobUrl) {
       window.open(doc.rawBlobUrl, '_blank');
     }
+  }
+
+  /** Open the split-screen verification workspace for a user. */
+  openWorkspace(entry: KycUserEntry, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.workspaceUser = entry.user;
+    this.workspaceUserId = entry.user.uuid;
+  }
+
+  closeWorkspace(): void {
+    this.workspaceUser = null;
+    this.workspaceUserId = '';
+  }
+
+  /** Refresh list state after a workspace action (approve/reject/suspend). */
+  onWorkspaceChanged(): void {
+    this.loadStats();
+    this.loadUsers();
   }
 
   ngOnDestroy(): void {

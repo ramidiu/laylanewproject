@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { PartnerService } from '../../core/services/partner.service';
 import { FxService } from '../../core/services/fx.service';
@@ -455,13 +455,15 @@ import { environment } from '../../../environments/environment';
                 <label>Bank City <span class="ct-req">*</span></label>
                 <input [(ngModel)]="newBen.branchCity" placeholder="Any Branch" />
               </div>
-              <div class="ct-field">
-                <label>Account Number <span class="ct-req">*</span></label>
-                <input [(ngModel)]="newBen.accountNumber" [placeholder]="isUsiIbanCountry() ? 'Same as IBAN' : 'Bank account number'" />
-              </div>
+              <!-- IBAN countries (Turkey, Saudi Arabia, UAE, Qatar): a single IBAN field.
+                   submit() maps IBAN into both account_number and iban for USI. -->
               <div class="ct-field" *ngIf="isUsiIbanCountry()">
                 <label>IBAN <span class="ct-req">*</span></label>
-                <input [(ngModel)]="newBen.iban" placeholder="e.g. AE070331234567890123456" />
+                <input [(ngModel)]="newBen.iban" [placeholder]="ibanPlaceholder()" />
+              </div>
+              <div class="ct-field" *ngIf="!isUsiIbanCountry()">
+                <label>Account Number <span class="ct-req">*</span></label>
+                <input [(ngModel)]="newBen.accountNumber" placeholder="Bank account number" />
               </div>
               <div class="ct-field" *ngIf="!isUsiIbanCountry() && !isNoSwiftCountry() && !isSudan()">
                 <label>SWIFT / BIC Code <span class="ct-req">*</span></label>
@@ -620,7 +622,7 @@ import { environment } from '../../../environments/environment';
             </span>
             <span class="ct-review-value ct-review-new" *ngIf="!selectedBeneficiary && newBen.name">
               {{ newBen.name }} (New)
-              <span class="ct-review-sub">{{ newBen.bankName }} · {{ newBen.accountNumber }}</span>
+              <span class="ct-review-sub">{{ newBen.bankName }} · {{ newBen.accountNumber || newBen.iban }}</span>
             </span>
           </div>
         </div>
@@ -916,10 +918,18 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     return this.isSudan() && (this.selectedDeliveryMethod === 'BANK_DEPOSIT' || this.selectedDeliveryMethod === 'BANK_TRANSFER');
   }
 
-  /** Same set of countries USI handles — show IBAN field for these. */
+  /** IBAN countries — Turkey, Saudi Arabia, UAE (Qatar is cash-collection only, not IBAN). */
   isUsiIbanCountry(): boolean {
     const c = (this.receiveCountry || '').toString().toUpperCase();
-    return ['TR','TUR','SA','SAU','AE','ARE','QA','QAT'].includes(c);
+    return ['TR','TUR','SA','SAU','AE','ARE'].includes(c);
+  }
+  /** Country-specific IBAN example for the single IBAN field. */
+  ibanPlaceholder(): string {
+    const c = (this.receiveCountry || '').toString().toUpperCase();
+    if (c === 'TR' || c === 'TUR') return 'Enter IBAN, e.g. TR330006100519786457841326';
+    if (c === 'SA' || c === 'SAU') return 'Enter IBAN, e.g. SA0380000000608010167519';
+    if (c === 'AE' || c === 'ARE') return 'Enter IBAN, e.g. AE070331234567890123456';
+    return 'Enter IBAN';
   }
   isUsiCountry(): boolean {
     const c = (this.receiveCountry || '').toString().toUpperCase();
@@ -1061,8 +1071,11 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
   kycHasExisting = false;
   kycExistingIdFileUrl: string | null = null;
   kycExistingAddrFileUrl: string | null = null;
-  kycExistingIdBlobUrl: string | null = null;
-  kycExistingAddrBlobUrl: string | null = null;
+  // SafeUrl, not a raw string: Angular's [src] sanitizer rewrites blob: URLs to
+  // "unsafe:blob:" (blob is not in its safe-scheme list), which breaks the <img>.
+  // We bypass it explicitly — the blob came from our own authenticated fetch.
+  kycExistingIdBlobUrl: SafeUrl | null = null;
+  kycExistingAddrBlobUrl: SafeUrl | null = null;
   kycEditMode = false;
   private blobUrls: string[] = [];
 
@@ -1081,6 +1094,26 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     if (!this.quote && this.sendAmount > 0 && this.receiveCurrency) {
       this.fetchQuote();
     }
+    // Create/validate the USI Money remitter now, so any issue (e.g. missing
+    // Address Line 1) is surfaced here at customer selection rather than later
+    // when an admin clicks "Create on USI".
+    this.ensureUsiRemitter(c.customerId);
+  }
+
+  /** Push the selected customer to USI as a remitter; show any data issue inline. */
+  private ensureUsiRemitter(customerId: string): void {
+    if (!customerId) return;
+    this.usiMoneyService.ensureRemitterForCustomer(customerId).subscribe({
+      next: (res: any) => {
+        const status = res?.status;
+        // MISSING_INFO / FAILED carry an actionable message; READY / SKIPPED are silent.
+        if (status === 'MISSING_INFO' || status === 'FAILED') {
+          this.stepError = res?.message || 'This customer cannot be sent via USI Money yet.';
+        }
+      },
+      // Never block the pay-in flow on a remitter pre-check network error.
+      error: () => {}
+    });
   }
 
   private resetKycForm(): void {
@@ -1114,8 +1147,10 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
       next: (blob) => {
         const obj = URL.createObjectURL(blob);
         this.blobUrls.push(obj);
-        if (isIdProof) this.kycExistingIdBlobUrl = obj;
-        else this.kycExistingAddrBlobUrl = obj;
+        // Bypass Angular URL sanitization (blob: → unsafe:) so the <img> renders.
+        const safe = this.sanitizer.bypassSecurityTrustUrl(obj);
+        if (isIdProof) this.kycExistingIdBlobUrl = safe;
+        else this.kycExistingAddrBlobUrl = safe;
       },
       error: () => {}
     });
@@ -1136,16 +1171,25 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
           this.kycDocNumber = d.idDocumentNumber || '';
           this.kycIssueDate = d.idIssueDate || '';
           this.kycExpiryDate = d.idExpiryDate || '';
-          if (d.idDocId) {
-            this.kycExistingIdFileUrl = `${environment.apiUrl}/payin/customer/kyc-document/${d.idDocId}/file`;
-            this.fetchExistingFileAsBlob(this.kycExistingIdFileUrl, true);
+          // Prefer the backend-provided file URL (it points at the right endpoint for the
+          // document's source — kyc_documents vs payin_customer_documents). Fall back to the
+          // legacy kyc-document path for older backends.
+          const idUrl = d.idFileUrl
+            ? `${environment.apiUrl}${d.idFileUrl}`
+            : (d.idDocId ? `${environment.apiUrl}/payin/customer/kyc-document/${d.idDocId}/file` : null);
+          if (idUrl) {
+            this.kycExistingIdFileUrl = idUrl;
+            this.fetchExistingFileAsBlob(idUrl, true);
           }
         }
         if (hasAddr) {
           this.kycAddrType = d.addressType || '';
-          if (d.addressDocId) {
-            this.kycExistingAddrFileUrl = `${environment.apiUrl}/payin/customer/kyc-document/${d.addressDocId}/file`;
-            this.fetchExistingFileAsBlob(this.kycExistingAddrFileUrl, false);
+          const addrUrl = d.addressFileUrl
+            ? `${environment.apiUrl}${d.addressFileUrl}`
+            : (d.addressDocId ? `${environment.apiUrl}/payin/customer/kyc-document/${d.addressDocId}/file` : null);
+          if (addrUrl) {
+            this.kycExistingAddrFileUrl = addrUrl;
+            this.fetchExistingFileAsBlob(addrUrl, false);
           }
         }
         // Show the summary whenever BOTH proofs exist — partner can fill any missing fields inline

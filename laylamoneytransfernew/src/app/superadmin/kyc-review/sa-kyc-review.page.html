@@ -144,8 +144,8 @@
   <!-- User Cards -->
   <div class="kyc-cards" *ngIf="!loading && filteredEntries.length > 0">
     <div class="kyc-card" *ngFor="let entry of filteredEntries">
-      <!-- Card Header -->
-      <div class="kyc-card__header" (click)="toggleExpand(entry)">
+      <!-- Card Header — click anywhere (name / email / row) opens the verification workspace -->
+      <div class="kyc-card__header kyc-card__header--clickable" (click)="openWorkspace(entry)">
         <div class="kyc-card__user-info">
           <div class="user-avatar-sm">{{ entry.user.firstName?.[0] || '?' }}{{ entry.user.lastName?.[0] || '?' }}</div>
           <div class="kyc-card__user-details">
@@ -299,3 +299,12 @@
 
   </div><!-- end *ngIf USERS -->
 </div>
+
+<!-- Split-screen verification workspace -->
+<app-kyc-workspace
+  *ngIf="workspaceUser"
+  [user]="workspaceUser"
+  [userId]="workspaceUserId"
+  (closed)="closeWorkspace()"
+  (changed)="onWorkspaceChanged()">
+</app-kyc-workspace>

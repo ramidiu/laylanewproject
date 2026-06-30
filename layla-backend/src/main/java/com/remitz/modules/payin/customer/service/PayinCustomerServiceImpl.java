@@ -149,7 +149,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
         if (!verified && e.getEmail() != null) {
             UserEntity match = userRepository.findByEmail(e.getEmail()).orElse(null);
             if (match != null) {
-                if (match.getKycTier() != null && !match.getKycTier().name().equals("TIER_0")) {
+                if (match.getKycTier() != null && match.getKycTier().isVerified()) {
                     verified = true;
                 }
                 usersDocsCount = (int) kycDocumentRepository.countByUserId(match.getId());
@@ -201,7 +201,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
                     .phone(u.getPhone())
                     .nationality(u.getNationality())
                     .country(u.getCountryCode() != null ? u.getCountryCode() : u.getCountry())
-                    .isVerified(u.getKycTier() != null && !u.getKycTier().name().equals("TIER_0"))
+                    .isVerified(u.getKycTier() != null && u.getKycTier().isVerified())
                     .createdSource("BACKEND")
                     .createdAt(u.getCreatedAt())
                     .build());
@@ -222,7 +222,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
                     .phone(u.getPhone())
                     .nationality(u.getNationality())
                     .country(u.getCountryCode() != null ? u.getCountryCode() : u.getCountry())
-                    .isVerified(u.getKycTier() != null && !u.getKycTier().name().equals("TIER_0"))
+                    .isVerified(u.getKycTier() != null && u.getKycTier().isVerified())
                     .createdSource("FRONTEND_USER")
                     .payinEnabled(Boolean.TRUE.equals(u.getPayinEnabled()))
                     .createdAt(u.getCreatedAt())
@@ -273,7 +273,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", "customerId", customerId));
         if (dob != null) user.setDateOfBirth(dob);
         if (Boolean.TRUE.equals(isVerified) &&
-                (user.getKycTier() == null || "TIER_0".equals(user.getKycTier().name()))) {
+                (user.getKycTier() == null || !user.getKycTier().isVerified())) {
             user.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
         }
         userRepository.save(user);
@@ -287,7 +287,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .dob(user.getDateOfBirth())
-                .isVerified(user.getKycTier() != null && !"TIER_0".equals(user.getKycTier().name()))
+                .isVerified(user.getKycTier() != null && user.getKycTier().isVerified())
                 .createdSource("FRONTEND_USER")
                 .build();
     }

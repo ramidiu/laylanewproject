@@ -1,0 +1,165 @@
+<div class="kw-overlay">
+  <div class="kw">
+    <!-- Header -->
+    <div class="kw__topbar">
+      <div class="kw__title">
+        <div class="kw__avatar">{{ user?.firstName?.[0] || '?' }}{{ user?.lastName?.[0] || '?' }}</div>
+        <div>
+          <h2>{{ user?.firstName }} {{ user?.lastName }}</h2>
+          <span class="kw__sub">{{ user?.email }} · #{{ user?.id }}</span>
+        </div>
+        <span class="kw__tier">{{ kycStatus?.currentTier || user?.kycTier || 'TIER_1' }}</span>
+        <span class="kw__status" [class]="'kw__status--' + statusClass(kycStatus?.overallStatus || '')">
+          {{ kycStatus?.overallStatus || '—' }}
+        </span>
+      </div>
+      <button class="kw__close" (click)="close()"><ion-icon name="close-outline"></ion-icon></button>
+    </div>
+
+    <div class="kw__body">
+      <!-- ───────────── LEFT: customer info + comparison + checklist + notes + actions ───────────── -->
+      <div class="kw__left">
+        <section class="kw-card">
+          <h3 class="kw-card__h"><ion-icon name="person-outline"></ion-icon> Customer information</h3>
+          <div class="kw-info">
+            <div class="kw-info__row"><span>Full name</span><b>{{ user?.firstName }} {{ user?.lastName }}</b></div>
+            <div class="kw-info__row"><span>Email</span><b>{{ user?.email || '—' }}</b></div>
+            <div class="kw-info__row"><span>Phone</span><b>{{ user?.phone || '—' }}</b></div>
+            <div class="kw-info__row"><span>Address</span><b>{{ user?.addressLine1 || '—' }}<ng-container *ngIf="user?.city">, {{ user?.city }}</ng-container><ng-container *ngIf="user?.postcode"> {{ user?.postcode }}</ng-container></b></div>
+            <div class="kw-info__row"><span>Nationality</span><b>{{ user?.country || user?.countryCode || '—' }}</b></div>
+            <div class="kw-info__row"><span>Date of birth</span><b>{{ user?.dateOfBirth || '—' }}</b></div>
+            <div class="kw-info__row"><span>KYC tier</span><b>{{ kycStatus?.currentTier || user?.kycTier || '—' }}</b></div>
+            <div class="kw-info__row" *ngIf="activeDoc"><span>Document no.</span><b>{{ activeDoc.documentNumber || '—' }}</b></div>
+            <div class="kw-info__row" *ngIf="activeDoc"><span>Expiry date</span><b>{{ activeDoc.expiryDate || '—' }}</b></div>
+            <div class="kw-info__row"><span>Account status</span><b>{{ user?.status || '—' }}</b></div>
+          </div>
+        </section>
+
+        <!-- Comparison table -->
+        <section class="kw-card">
+          <h3 class="kw-card__h"><ion-icon name="git-compare-outline"></ion-icon> Document vs profile
+            <span class="kw-card__hint">type what the document shows → matches turn green</span>
+          </h3>
+          <table class="kw-compare">
+            <thead>
+              <tr><th>Field</th><th>On profile</th><th>On document</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of compareRows" [class]="'kw-compare--' + matchState(row)">
+                <td class="kw-compare__label">{{ row.label }}</td>
+                <td class="kw-compare__stored">{{ row.stored || '—' }}</td>
+                <td>
+                  <input class="kw-compare__input" [(ngModel)]="onDoc[row.field]" placeholder="—" />
+                </td>
+                <td class="kw-compare__ind">
+                  <ion-icon *ngIf="matchState(row) === 'match'" name="checkmark-circle" class="ok"></ion-icon>
+                  <ion-icon *ngIf="matchState(row) === 'mismatch'" name="alert-circle" class="bad"></ion-icon>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Notes -->
+        <section class="kw-card">
+          <h3 class="kw-card__h"><ion-icon name="create-outline"></ion-icon> Reviewer notes</h3>
+          <textarea class="kw-notes" [(ngModel)]="reviewerNotes" rows="3"
+            placeholder="Notes for this review (used as the default reason for reject / resubmission)…"></textarea>
+        </section>
+
+        <!-- Actions -->
+        <div class="kw-actions">
+          <!-- Approve / Reject / Resubmit only for a document still awaiting a decision. -->
+          <ng-container *ngIf="activeDoc?.status === 'PENDING'">
+            <button class="kw-btn kw-btn--approve" [disabled]="acting" (click)="approve()">
+              <ion-icon name="checkmark-outline"></ion-icon> Approve
+            </button>
+            <button class="kw-btn kw-btn--reject" [disabled]="acting" (click)="reject()">
+              <ion-icon name="close-outline"></ion-icon> Reject
+            </button>
+            <button class="kw-btn kw-btn--resubmit" [disabled]="acting" (click)="requestResubmission()">
+              <ion-icon name="refresh-outline"></ion-icon> Request resubmission
+            </button>
+          </ng-container>
+
+          <!-- Already decided → show status instead of review actions. -->
+          <div class="kw-decided kw-decided--{{ statusClass(activeDoc.status) }}"
+               *ngIf="activeDoc && activeDoc.status !== 'PENDING'">
+            <ion-icon [name]="activeDoc.status === 'APPROVED' ? 'checkmark-circle' : 'close-circle'"></ion-icon>
+            This document is already <b>{{ activeDoc.status }}</b>.
+          </div>
+
+          <button class="kw-btn kw-btn--suspend" [disabled]="acting" (click)="suspendUser()">
+            <ion-icon name="ban-outline"></ion-icon> Suspend user
+          </button>
+        </div>
+      </div>
+
+      <!-- ───────────── RIGHT: document tabs + embedded viewer ───────────── -->
+      <div class="kw__right" [class.kw__right--fs]="fullscreen">
+        <!-- Tabs -->
+        <div class="kw-tabs" *ngIf="tabs.length">
+          <button class="kw-tab" *ngFor="let tab of tabs" [class.kw-tab--active]="tab === activeTab" (click)="selectTab(tab)">
+            <ion-icon [name]="tab.icon"></ion-icon> {{ tab.label }} <span class="kw-tab__n">{{ tab.docs.length }}</span>
+          </button>
+        </div>
+
+        <!-- Sides / multiple docs within a tab -->
+        <div class="kw-sides" *ngIf="activeTab && activeTab.docs.length > 1">
+          <button class="kw-side" *ngFor="let d of activeTab.docs" [class.kw-side--active]="d === activeDoc" (click)="selectDoc(d)">
+            {{ docLabel(d) }}
+            <span class="kw-side__badge kw-side__badge--{{ statusClass(d.status) }}">{{ d.status }}</span>
+          </button>
+        </div>
+
+        <!-- Viewer toolbar -->
+        <div class="kw-toolbar" *ngIf="activeDoc">
+          <span class="kw-toolbar__name">{{ activeDoc.fileName }}</span>
+          <span class="kw-doc-status kw-doc-status--{{ statusClass(activeDoc.status) }}">{{ activeDoc.status }}</span>
+          <span class="kw-toolbar__spacer"></span>
+          <button (click)="zoomOut()" title="Zoom out"><ion-icon name="remove-outline"></ion-icon></button>
+          <span class="kw-toolbar__zoom">{{ (scale * 100) | number:'1.0-0' }}%</span>
+          <button (click)="zoomIn()" title="Zoom in"><ion-icon name="add-outline"></ion-icon></button>
+          <button (click)="rotateCcw()" title="Rotate left"><ion-icon name="arrow-undo-outline"></ion-icon></button>
+          <button (click)="rotateCw()" title="Rotate right"><ion-icon name="arrow-redo-outline"></ion-icon></button>
+          <button (click)="fit()" title="Fit to screen"><ion-icon name="scan-outline"></ion-icon></button>
+          <button (click)="toggleFullscreen()" [title]="fullscreen ? 'Exit fullscreen' : 'Fullscreen'">
+            <ion-icon [name]="fullscreen ? 'contract-outline' : 'expand-outline'"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Viewer surface -->
+        <div class="kw-viewer" (wheel)="onWheelZoom($event)">
+          <div *ngIf="!tabs.length && !loading" class="kw-empty">
+            <ion-icon name="folder-open-outline"></ion-icon>
+            <p>No documents uploaded for this customer.</p>
+          </div>
+          <div *ngIf="loading" class="kw-empty"><ion-spinner name="crescent"></ion-spinner></div>
+
+          <ng-container *ngIf="activeDoc">
+            <div *ngIf="activeDoc._loading" class="kw-empty"><ion-spinner name="crescent"></ion-spinner></div>
+            <div *ngIf="activeDoc._failed" class="kw-empty">
+              <ion-icon name="alert-circle-outline"></ion-icon><p>Couldn't load this document.</p>
+            </div>
+
+            <img *ngIf="activeDoc._loaded && activeDoc._isImage"
+                 [src]="activeDoc._safeUrl" [style.transform]="mediaTransform" [style.zoom]="scale"
+                 class="kw-media kw-media--img" alt="document" />
+
+            <iframe *ngIf="activeDoc._loaded && activeDoc._isPdf"
+                    [src]="activeDoc._safeUrl" [style.zoom]="scale"
+                    class="kw-media kw-media--pdf"></iframe>
+
+            <div *ngIf="activeDoc._loaded && !activeDoc._isImage && !activeDoc._isPdf" class="kw-empty">
+              <ion-icon name="document-outline"></ion-icon><p>Preview not supported for this file type.</p>
+            </div>
+          </ng-container>
+        </div>
+
+        <button class="kw-fs-close" *ngIf="fullscreen" (click)="toggleFullscreen()">
+          <ion-icon name="contract-outline"></ion-icon> Exit fullscreen
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

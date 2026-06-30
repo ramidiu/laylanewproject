@@ -67,30 +67,43 @@ public class KycService {
 
         validateFile(file);
 
-        // Block customer self-uploads while any document is still under review. Re-upload is
-        // only allowed once the pending document has been approved or rejected. Admin uploads
-        // (autoApprove) bypass this — they review-and-approve in one step.
+        // Block a customer from RE-uploading the SAME document (same type + same side) while
+        // that exact document is still under review. Scoped to type+side on purpose: a single
+        // KYC submission legitimately uploads several different documents back-to-back (identity
+        // front, identity back, proof of address), so a broad "any pending" check would reject
+        // every document after the first. Admin uploads (autoApprove) review-and-approve in one
+        // step and bypass this.
         if (!autoApprove) {
-            boolean hasPending = kycDocumentRepository.findByUserIdAndSupersededAtIsNull(userId).stream()
-                    .anyMatch(d -> d.getStatus() == KycDocumentStatus.PENDING);
-            if (hasPending) {
+            boolean uploadingBackSide = isBackSide(documentNumber);
+            boolean samePending = kycDocumentRepository
+                    .findByUserIdAndDocumentTypeAndSupersededAtIsNull(userId, type).stream()
+                    .anyMatch(d -> d.getStatus() == KycDocumentStatus.PENDING
+                            && isBackSide(d.getDocumentNumber()) == uploadingBackSide);
+            if (samePending) {
                 throw new RemitzException(
-                        "You already have a document under review. Please wait until it is approved "
-                                + "or rejected before uploading again.",
+                        "This document is already under review. Please wait until it is approved "
+                                + "or rejected before uploading it again.",
                         HttpStatus.BAD_REQUEST);
             }
         }
 
-        // One current document per type: supersede any existing active document(s) of this
-        // type so the new upload REPLACES rather than appends. Old rows are retained for audit.
-        List<KycDocumentEntity> priorSameType =
-                kycDocumentRepository.findByUserIdAndDocumentTypeAndSupersededAtIsNull(userId, type);
-        if (!priorSameType.isEmpty()) {
+        // One current document per type AND SIDE: supersede any existing active document of
+        // the same type and the same side (front/back) so a re-upload REPLACES it — but a
+        // two-sided document (driving licence / national id) keeps BOTH front and back active.
+        // Side is encoded as a suffix on the document number ("_BACK" or " (back)"); the front
+        // has no suffix. Without the side check, uploading the BACK would wrongly supersede the
+        // FRONT (root cause of only one side showing in the KYC review).
+        boolean uploadingBack = isBackSide(documentNumber);
+        List<KycDocumentEntity> toSupersede =
+                kycDocumentRepository.findByUserIdAndDocumentTypeAndSupersededAtIsNull(userId, type).stream()
+                        .filter(d -> isBackSide(d.getDocumentNumber()) == uploadingBack)
+                        .collect(Collectors.toList());
+        if (!toSupersede.isEmpty()) {
             LocalDateTime supersededAt = LocalDateTime.now();
-            priorSameType.forEach(d -> d.setSupersededAt(supersededAt));
-            kycDocumentRepository.saveAll(priorSameType);
-            log.info("KYC upload: superseded {} prior {} document(s) for userId={}",
-                    priorSameType.size(), type, userId);
+            toSupersede.forEach(d -> d.setSupersededAt(supersededAt));
+            kycDocumentRepository.saveAll(toSupersede);
+            log.info("KYC upload: superseded {} prior {} {} document(s) for userId={}",
+                    toSupersede.size(), type, uploadingBack ? "BACK" : "FRONT", userId);
         }
 
         String fileHash = calculateSha256(file);
@@ -140,6 +153,13 @@ public class KycService {
         }
 
         return toDocumentResponse(saved);
+    }
+
+    /** True when a document number marks the BACK side ("_BACK" or " (back)"); front has no suffix. */
+    private static boolean isBackSide(String documentNumber) {
+        if (documentNumber == null) return false;
+        String n = documentNumber.toLowerCase();
+        return n.endsWith("_back") || n.contains("(back)");
     }
 
     @Transactional(readOnly = true)
@@ -273,8 +293,8 @@ public class KycService {
 
     /**
      * Revoke a customer's verification when one of their documents is rejected. The user is
-     * dropped to TIER_0 and (if currently ACTIVE) back to PENDING_VERIFICATION, so they are no
-     * longer treated as verified and are routed through the full document-upload flow again.
+     * dropped to the base TIER_1 and (if currently ACTIVE) back to PENDING_VERIFICATION, so they
+     * are no longer treated as verified and are routed through the full document-upload flow again.
      * SUSPENDED / CLOSED / deletion states are left untouched.
      */
     private void revokeVerificationOnRejection(Long userId, Long documentId) {
@@ -284,8 +304,9 @@ public class KycService {
         }
         KycTier previousTier = user.getKycTier();
         boolean changed = false;
-        if (previousTier != null && previousTier != KycTier.TIER_0) {
-            user.setKycTier(KycTier.TIER_0);
+        // Drop back to the base tier (TIER_1) — no longer verified, must re-submit documents.
+        if (previousTier != null && previousTier.ordinal() > KycTier.TIER_1.ordinal()) {
+            user.setKycTier(KycTier.TIER_1);
             changed = true;
         }
         if (user.getStatus() == UserStatus.ACTIVE) {
@@ -298,10 +319,10 @@ public class KycService {
                     .userId(userId)
                     .action("VERIFICATION_REVOKED")
                     .details(String.format(
-                            "{\"previousTier\": \"%s\", \"newTier\": \"TIER_0\", \"rejectedDocumentId\": %d}",
+                            "{\"previousTier\": \"%s\", \"newTier\": \"TIER_1\", \"rejectedDocumentId\": %d}",
                             previousTier, documentId))
                     .build());
-            log.info("KYC verification revoked: userId={} tier {}->TIER_0 (document {} rejected)",
+            log.info("KYC verification revoked: userId={} tier {}->TIER_1 (document {} rejected)",
                     userId, previousTier, documentId);
         }
     }
@@ -520,10 +541,10 @@ public class KycService {
                         && d.getFileHash() != null && !d.getFileHash().isBlank());
         if (anyRealRejected) return "REJECTED";
 
-        // Once the user has reached a verified tier (TIER_1+), leftover auto-imported
-        // PENDING docs (no file_hash) are migration artifacts and must NOT drag the
-        // status back to PARTIAL — the user is already verified.
-        if (tier != null && tier != KycTier.TIER_0) return "VERIFIED";
+        // Once the user has reached a verified tier (TIER_2+: identity + address), leftover
+        // auto-imported PENDING docs (no file_hash) are migration artifacts and must NOT drag
+        // the status back to PARTIAL — the user is already verified.
+        if (tier != null && tier.isVerified()) return "VERIFIED";
 
         // Not yet verified: an auto-imported (no file_hash) pending doc means the
         // imported documents have not been reviewed yet = PARTIAL.
@@ -614,12 +635,12 @@ public class KycService {
                 || approvedTypes.contains(KycDocumentType.NATIONAL_ID);
 
         switch (currentTier) {
-            case TIER_0 -> {
+            // Base level (TIER_0 legacy / TIER_1): needs BOTH identity and proof of address to
+            // become verified (TIER_2).
+            case TIER_0, TIER_1 -> {
                 if (!hasIdDoc) {
                     requirements.add("Upload and get approved: Identity document (Passport, Driving Licence, or National ID)");
                 }
-            }
-            case TIER_1 -> {
                 if (!approvedTypes.contains(KycDocumentType.PROOF_OF_ADDRESS)) {
                     requirements.add("Upload and get approved: Proof of Address document");
                 }

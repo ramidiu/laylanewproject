@@ -178,7 +178,7 @@ public class AuthService {
                 .city(request.getCity())
                 .postcode(request.getPostcode())
                 .userType(UserType.INDIVIDUAL)
-                .kycTier(KycTier.TIER_0)
+                .kycTier(KycTier.TIER_1)
                 .status(UserStatus.ACTIVE)
                 .mfaEnabled(false)
                 .emailVerified(false)
@@ -717,7 +717,7 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .phone(request.getPhone())
                 .userType(UserType.INDIVIDUAL)
-                .kycTier(KycTier.TIER_0)
+                .kycTier(KycTier.TIER_1)
                 .status(UserStatus.ACTIVE)
                 .mfaEnabled(false)
                 .emailVerified(true) // Partner accounts are pre-verified

@@ -584,3 +584,13 @@
     max-width: 420px;
   }
 }
+
+/* KYC verification workspace launcher (replaces the old inline doc list) */
+.kyc-review-launch {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 16px 18px;
+}
+.kyc-review-launch__info { display: flex; align-items: center; gap: 12px; }
+.kyc-review-launch__icon { font-size: 1.9rem; color: #1B3A6B; }
+.kyc-review-launch__title { font-weight: 700; color: #1B3A6B; font-size: 1rem; }
+.kyc-review-launch__sub { font-size: .82rem; color: #6b7280; display: flex; align-items: center; gap: 8px; margin-top: 2px; }

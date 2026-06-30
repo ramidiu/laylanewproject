@@ -103,13 +103,6 @@
                 {{ 'BENEFICIARIES.ERROR_MOBILE' | translate }}
               </div>
             </div>
-            <div class="fb-field" *ngIf="addForm.get('country')?.value && !isSudanBank()">
-              <label class="fb-field__label">{{ 'BENEFICIARIES.FIND_ADDRESS' | translate }}</label>
-              <app-address-autocomplete
-                [country]="addForm.get('country')?.value"
-                (addressSelected)="onBeneficiaryAddressSelected(addForm, $event)"
-              ></app-address-autocomplete>
-            </div>
             <div class="fb-field" *ngIf="!isSudanBank()">
               <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
               <input type="text" class="fb-input" formControlName="address"
@@ -117,6 +110,15 @@
                 [class.fb-input--error]="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.invalid" />
               <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.hasError('required')">
                 {{ 'BENEFICIARIES.ERROR_ADDRESS' | translate }}
+              </div>
+            </div>
+            <div class="fb-field" *ngIf="!isSudanBank() && (addForm.value.deliveryMethod === 'BANK_DEPOSIT' || addForm.value.deliveryMethod === 'MOBILE_WALLET')">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.CITY' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="city"
+                placeholder="e.g. Riyadh"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.hasError('required')">
+                {{ 'BENEFICIARIES.CITY' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
               </div>
             </div>
             <div class="fb-field" *ngIf="!isSudanBank()">
@@ -184,11 +186,11 @@
               </div>
             </div>
 
-            <!-- Account Number — always visible -->
-            <div class="fb-field">
+            <!-- Account Number — hidden for IBAN countries (the IBAN below is used as the account number) -->
+            <div class="fb-field" *ngIf="!isIbanCountry()">
               <label class="fb-field__label">Account Number *</label>
               <input type="text" class="fb-input" formControlName="accountNumber"
-                [placeholder]="isIbanCountry() ? 'Same as IBAN, e.g. AE070331234567890123456' : ('BENEFICIARIES.ACCOUNT_PLACEHOLDER' | translate)"
+                [placeholder]="'BENEFICIARIES.ACCOUNT_PLACEHOLDER' | translate"
                 [class.fb-input--error]="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.invalid" />
               <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('accountNumber')?.touched) && addForm.get('accountNumber')?.hasError('required')">
                 {{ 'BENEFICIARIES.ERROR_ACCOUNT' | translate }}
@@ -196,10 +198,9 @@
               <div class="fb-field__error" *ngIf="addForm.get('accountNumber')?.touched && addForm.get('accountNumber')?.hasError('minlength')">
                 {{ 'BENEFICIARIES.ERROR_ACCOUNT_MIN' | translate }}
               </div>
-              <div class="fb-field__hint" *ngIf="isIbanCountry()">For Saudi Arabia / UAE / Turkey / Qatar this is the IBAN. You can paste it here and into the IBAN field below.</div>
             </div>
 
-            <!-- IBAN — only for IBAN countries (Saudi Arabia, UAE, Turkey, Qatar, SEPA) -->
+            <!-- IBAN — only for IBAN countries (Saudi Arabia, UAE, Turkey, SEPA). Used as the account number too. -->
             <div class="fb-field" *ngIf="isIbanCountry()">
               <label class="fb-field__label">IBAN *</label>
               <input type="text" class="fb-input" formControlName="iban"
@@ -211,7 +212,7 @@
               <div class="fb-field__error" *ngIf="addForm.get('iban')?.touched && (addForm.get('iban')?.hasError('minlength') || addForm.get('iban')?.hasError('maxlength'))">
                 IBAN must be 15–34 characters
               </div>
-              <div class="fb-field__hint">For Saudi Arabia, UAE, Turkey, Qatar — IBAN is required (no SWIFT needed)</div>
+              <div class="fb-field__hint">For Saudi Arabia, UAE, Turkey — IBAN is required (used as the account number, no SWIFT needed)</div>
             </div>
 
             <!-- SWIFT — only for non-IBAN, non-Egypt countries -->
@@ -253,13 +254,6 @@
             </div>
 
             <!-- Address — USI requires beneficiary address for Mobile Wallet payouts -->
-            <div class="fb-field" *ngIf="addForm.get('country')?.value && !isSudanBank()">
-              <label class="fb-field__label">{{ 'BENEFICIARIES.FIND_ADDRESS' | translate }}</label>
-              <app-address-autocomplete
-                [country]="addForm.get('country')?.value"
-                (addressSelected)="onBeneficiaryAddressSelected(addForm, $event)"
-              ></app-address-autocomplete>
-            </div>
             <div class="fb-field">
               <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
               <input type="text" class="fb-input" formControlName="address"
@@ -267,6 +261,17 @@
                 [class.fb-input--error]="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.invalid" />
               <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('address')?.touched) && addForm.get('address')?.hasError('required')">
                 {{ 'BENEFICIARIES.ERROR_ADDRESS' | translate }}
+              </div>
+            </div>
+
+            <!-- City — USI requires beneficiary city for Mobile Wallet payouts -->
+            <div class="fb-field">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.CITY' | translate }} *</label>
+              <input type="text" class="fb-input" formControlName="city"
+                placeholder="e.g. Riyadh"
+                [class.fb-input--error]="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.invalid" />
+              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('city')?.touched) && addForm.get('city')?.hasError('required')">
+                {{ 'BENEFICIARIES.CITY' | translate }} {{ 'BENEFICIARIES.ERROR_REQUIRED' | translate }}
               </div>
             </div>
 
@@ -519,17 +524,15 @@
                 [placeholder]="'BENEFICIARIES.MOBILE_PLACEHOLDER' | translate" />
             </div>
           </div>
-          <div class="fb-field" *ngIf="editForm.get('country')?.value">
-            <label class="fb-field__label">{{ 'BENEFICIARIES.FIND_ADDRESS' | translate }}</label>
-            <app-address-autocomplete
-              [country]="editForm.get('country')?.value"
-              (addressSelected)="onBeneficiaryAddressSelected(editForm, $event)"
-            ></app-address-autocomplete>
-          </div>
           <div class="fb-field">
             <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
             <input type="text" class="fb-input" formControlName="address"
               [placeholder]="'BENEFICIARIES.ADDRESS_PLACEHOLDER' | translate" />
+          </div>
+          <div class="fb-field" *ngIf="editingBeneficiary.deliveryMethod === 'BANK_DEPOSIT'">
+            <label class="fb-field__label">{{ 'BENEFICIARIES.CITY' | translate }} *</label>
+            <input type="text" class="fb-input" formControlName="city"
+              placeholder="e.g. Riyadh" />
           </div>
           <div class="fb-field">
             <label class="fb-field__label">{{ 'BENEFICIARIES.RELATIONSHIP' | translate }} *</label>

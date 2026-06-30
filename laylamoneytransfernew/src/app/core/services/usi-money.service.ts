@@ -55,6 +55,14 @@ export class UsiMoneyService {
     return this.http.post(`${this.base}/remitter/${userId}`, {});
   }
 
+  /**
+   * Validate + create the USI remitter for a pay-in customer at selection time.
+   * Returns { status: 'READY'|'MISSING_INFO'|'FAILED'|'SKIPPED', message?, remitterId?, missing? }.
+   */
+  ensureRemitterForCustomer(customerId: string): Observable<any> {
+    return this.http.post(`${this.base}/remitter/by-customer/${customerId}/ensure`, {});
+  }
+
   createBeneficiary(beneficiaryId: number): Observable<any> {
     return this.http.post(`${this.base}/beneficiary/${beneficiaryId}`, {});
   }

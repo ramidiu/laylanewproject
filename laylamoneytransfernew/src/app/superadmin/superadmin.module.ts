@@ -26,6 +26,7 @@ import { TransferConfigPage } from './transfer-config/transfer-config.page';
 import { EmailTemplatesPage } from './email-templates/email-templates.page';
 import { AuditLogsPage } from './audit-logs/audit-logs.page';
 import { SAKycReviewPage } from './kyc-review/sa-kyc-review.page';
+import { KycWorkspaceComponent } from './kyc-review/kyc-workspace.component';
 import { SAUserProfilePage } from './users/sa-user-profile.page';
 import { SASupportPage } from './support/sa-support.page';
 import { WalletManagementPage } from './wallet-management/wallet-management.page';
@@ -69,6 +70,7 @@ import { SAUsiMoneyPage } from './usi-money/usi-money.page';
     EmailTemplatesPage,
     AuditLogsPage,
     SAKycReviewPage,
+    KycWorkspaceComponent,
     SAUserProfilePage,
     SASupportPage,
     WalletManagementPage,

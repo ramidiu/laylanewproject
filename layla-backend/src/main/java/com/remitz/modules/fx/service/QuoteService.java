@@ -34,6 +34,7 @@ public class QuoteService {
     private final FxRateService fxRateService;
     private final FxMarginService fxMarginService;
     private final CorridorFeeService corridorFeeService;
+    private final CorridorRateSlabService rateSlabService;
     private final CorridorRepository corridorRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final FxProperties fxProperties;
@@ -87,22 +88,37 @@ public class QuoteService {
 
         BigDecimal sendAmount;
         BigDecimal receiveAmount;
+        // When an amount-based rate slab matches the send amount, its rate REPLACES the
+        // margin-based applied rate (receive = send * slabRate) and no FX margin is shown.
+        boolean slabApplied = false;
 
         if (request.getSendAmount() != null) {
             sendAmount = request.getSendAmount();
+            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount);
+            if (slab.isPresent()) { appliedRate = slab.get(); slabApplied = true; }
             BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount);
             receiveAmount = sendAmount.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
             BigDecimal totalCost = sendAmount.add(fee);
 
-            return buildQuoteResponse(request, midRate, appliedRate, marginPercentage,
+            return buildQuoteResponse(request, midRate, appliedRate,
+                    slabApplied ? BigDecimal.ZERO : marginPercentage,
                     fee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
         } else {
             receiveAmount = request.getReceiveAmount();
             sendAmount = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
+            // The slab depends on the send amount, so resolve it from the implied send amount
+            // and re-derive the send amount with the slab rate (single correction pass).
+            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount);
+            if (slab.isPresent()) {
+                appliedRate = slab.get();
+                slabApplied = true;
+                sendAmount = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
+            }
             BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount);
             BigDecimal totalCost = sendAmount.add(fee);
 
-            return buildQuoteResponse(request, midRate, appliedRate, marginPercentage,
+            return buildQuoteResponse(request, midRate, appliedRate,
+                    slabApplied ? BigDecimal.ZERO : marginPercentage,
                     fee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
         }
     }
