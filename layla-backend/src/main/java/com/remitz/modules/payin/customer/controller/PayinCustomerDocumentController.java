@@ -7,10 +7,13 @@ import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.payin.customer.entity.PayinCustomerDocumentEntity;
 import com.remitz.modules.payin.customer.repository.PayinCustomerDocumentRepository;
 import com.remitz.modules.payin.customer.repository.PayinCustomerRepository;
+import com.remitz.modules.user.entity.KycAuditLogEntity;
 import com.remitz.modules.user.entity.KycDocumentEntity;
+import com.remitz.modules.user.repository.KycAuditLogRepository;
 import com.remitz.modules.user.repository.KycDocumentRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,6 +47,7 @@ public class PayinCustomerDocumentController {
     private final PayinCustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final KycDocumentRepository kycDocumentRepository;
+    private final KycAuditLogRepository kycAuditLogRepository;
 
     @Value("${app.kyc.upload-dir:./kyc-uploads}")
     private String uploadDir;
@@ -61,7 +66,12 @@ public class PayinCustomerDocumentController {
             @RequestParam(value = "documentNumber", required = false) String documentNumber,
             @RequestParam(value = "issueDate", required = false) String issueDate,
             @RequestParam(value = "expiryDate", required = false) String expiryDate,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+
+        String ipAddress = getClientIpAddress(request);
+        Long actorId = resolveActorId();
+        String actorRole = resolveActorRole();
 
         boolean isPayinCustomer = customerRepository.existsByCustomerId(customerId);
         UserEntity frontendUser = null;
@@ -100,6 +110,7 @@ public class PayinCustomerDocumentController {
             KycDocumentEntity savedDoc = kycDocumentRepository.save(ku);
             log.info("Uploaded kyc_documents row {} for frontend user {} (category={})",
                     savedDoc.getId(), customerId, docCategory);
+            writeUploadAudit(frontendUser.getId(), savedDoc.getId(), type, null, actorId, actorRole, ipAddress);
             return ResponseEntity.ok(Map.of("success", true, "id", savedDoc.getId(), "path", savedPath));
         }
 
@@ -125,17 +136,20 @@ public class PayinCustomerDocumentController {
             customerRepository.findByCustomerId(customerId).ifPresent(pc -> {
                 if (pc.getEmail() == null || pc.getEmail().isBlank()) return;
                 userRepository.findByEmail(pc.getEmail().trim().toLowerCase()).ifPresent(u -> {
+                    KycDocumentType mirrorType = mapPayinToKycType(docSide, docCategory);
+                    String mirrorHash = sha256(savedPath);
                     KycDocumentEntity mirror = KycDocumentEntity.builder()
                             .userId(u.getId())
-                            .documentType(mapPayinToKycType(docSide, docCategory))
+                            .documentType(mirrorType)
                             .documentNumber(documentNumber)
                             .filePath(savedPath)
-                            .fileHash(sha256(savedPath))   // mark as a real upload (realUpload=true) so it shows in all admin views
+                            .fileHash(mirrorHash)   // mark as a real upload (realUpload=true) so it shows in all admin views
                             .status(KycDocumentStatus.APPROVED)
                             .issueDate(issueDate != null && !issueDate.isBlank() ? LocalDate.parse(issueDate) : null)
                             .expiryDate(expiryDate != null && !expiryDate.isBlank() ? LocalDate.parse(expiryDate) : null)
                             .build();
-                    kycDocumentRepository.save(mirror);
+                    KycDocumentEntity savedMirror = kycDocumentRepository.save(mirror);
+                    writeUploadAudit(u.getId(), savedMirror.getId(), mirrorType, mirrorHash, actorId, actorRole, ipAddress);
                 });
             });
         } catch (Exception ex) {
@@ -406,6 +420,69 @@ public class PayinCustomerDocumentController {
             log.error("Failed to read kyc_documents file: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
+    }
+
+    /**
+     * Write a kyc_audit_log entry for a pay-in document upload that landed in kyc_documents.
+     * Pay-in uploads are saved APPROVED, so the action mirrors KycService's admin-upload path.
+     * Best-effort: a failure here must not fail the upload.
+     */
+    private void writeUploadAudit(Long userId, Long documentId, KycDocumentType type,
+                                  String fileHash, Long actorId, String actorRole, String ipAddress) {
+        try {
+            String hashJson = fileHash != null ? "\"" + fileHash + "\"" : "null";
+            KycAuditLogEntity audit = KycAuditLogEntity.builder()
+                    .userId(userId)
+                    .action("DOCUMENT_UPLOADED_AND_APPROVED")
+                    .actorId(actorId)
+                    .actorRole(actorRole)
+                    .details(String.format(
+                            "{\"documentId\": %d, \"documentType\": \"%s\", \"fileHash\": %s, \"source\": \"PAYIN_CUSTOMER_UPLOAD\"}",
+                            documentId, type, hashJson))
+                    .ipAddress(ipAddress)
+                    .build();
+            kycAuditLogRepository.save(audit);
+        } catch (Exception ex) {
+            log.warn("Failed to write kyc_audit_log for pay-in upload (userId={}): {}", userId, ex.getMessage());
+        }
+    }
+
+    /** Resolve the authenticated actor's users-side id (principal name is the user UUID). */
+    private Long resolveActorId() {
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                return userRepository.findByUuid(auth.getName()).map(UserEntity::getId).orElse(null);
+            }
+        } catch (Exception ignore) {}
+        return null;
+    }
+
+    /** Resolve the authenticated actor's role (e.g. PAYIN_PARTNER, ADMIN) from granted authorities. */
+    private String resolveActorRole() {
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getAuthorities() != null) {
+                return auth.getAuthorities().stream()
+                        .map(a -> a.getAuthority())
+                        .filter(a -> a.startsWith("ROLE_"))
+                        .map(a -> a.substring(5))
+                        .findFirst().orElse(null);
+            }
+        } catch (Exception ignore) {}
+        return null;
+    }
+
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        return request.getRemoteAddr();
     }
 
     private String saveFile(String customerId, String docSide, MultipartFile file, String ext) {

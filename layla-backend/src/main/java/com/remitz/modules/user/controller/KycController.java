@@ -76,6 +76,19 @@ public class KycController {
                 .build());
     }
 
+    @Operation(summary = "Get KYC audit trail", description = "Full KYC history for a user (uploads, approvals, tier changes) with actor role, IP address and timestamps — admin/compliance only")
+    @GetMapping("/audit-log")
+    @PreAuthorize("hasPermission(null, 'user:approve_kyc') or hasPermission(null, 'user:view')")
+    public ResponseEntity<ApiResponse<List<KycAuditLogResponse>>> getAuditLog(
+            @PathVariable String userId) {
+        List<KycAuditLogResponse> logs = kycService.getAuditLog(resolveUserId(userId));
+        return ResponseEntity.ok(ApiResponse.<List<KycAuditLogResponse>>builder()
+                .success(true)
+                .data(logs)
+                .message("KYC audit trail retrieved")
+                .build());
+    }
+
     @Operation(summary = "Get KYC documents", description = "Get all KYC documents for a user")
     @GetMapping("/documents")
     public ResponseEntity<ApiResponse<List<KycDocumentResponse>>> getDocuments(

@@ -15,6 +15,7 @@ import { CurrencyFormatPipe } from './pipes/currency-format.pipe';
 import { CountryFlagUrlPipe, CountryFlagSvgPipe } from './pipes/country-flag.pipe';
 import { AddressAutocompleteComponent } from './components/address-autocomplete/address-autocomplete.component';
 import { LatinNameDirective } from './directives/latin-name.directive';
+import { RateSlabsEditorComponent } from './components/rate-slabs-editor/rate-slabs-editor.component';
 
 @NgModule({
   declarations: [
@@ -28,7 +29,8 @@ import { LatinNameDirective } from './directives/latin-name.directive';
     CountryFlagUrlPipe,
     CountryFlagSvgPipe,
     AddressAutocompleteComponent,
-    LatinNameDirective
+    LatinNameDirective,
+    RateSlabsEditorComponent
   ],
   imports: [
     CommonModule,
@@ -57,7 +59,8 @@ import { LatinNameDirective } from './directives/latin-name.directive';
     CountryFlagUrlPipe,
     CountryFlagSvgPipe,
     AddressAutocompleteComponent,
-    LatinNameDirective
+    LatinNameDirective,
+    RateSlabsEditorComponent
   ]
 })
 export class SharedModule {}

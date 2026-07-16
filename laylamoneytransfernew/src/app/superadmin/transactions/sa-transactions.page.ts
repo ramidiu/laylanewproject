@@ -94,6 +94,18 @@ export class SATransactionsPage implements OnInit {
     return m[v] || v || '—';
   }
 
+  /** Human-readable collection type (how the customer paid in) for regular transactions. */
+  collectionLabel(txn: any): string {
+    switch (txn?.paymentMethodType) {
+      case 'CARD': return 'Trust Payments';
+      case 'OPEN_BANKING':
+      case 'BANK_TRANSFER': return 'Bank';
+      case 'AGENT_CASH': return 'Cash';
+      case 'WALLET': return 'Wallet';
+      default: return txn?.paymentMethodType || '—';
+    }
+  }
+
   loadStats(): void {
     this.statsLoading = true;
     this.transactionService.getTransactionStats().subscribe({

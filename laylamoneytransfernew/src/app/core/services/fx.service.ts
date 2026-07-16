@@ -97,13 +97,19 @@ export class FxService {
 
   // ── Amount-based rate slabs ────────────────────────────────────────────────
 
-  getRateSlabs(corridorId: number): Observable<any[]> {
-    return this.http.get<any>(`${environment.apiUrl}/admin/corridors/${corridorId}/rate-slabs`).pipe(map(res => res.data || res || []));
+  /** Rate slabs for a corridor. Optional deliveryMethod scopes to one payment type (cash/bank/mobile). */
+  getRateSlabs(corridorId: number, deliveryMethod?: string): Observable<any[]> {
+    const q = deliveryMethod ? `?deliveryMethod=${encodeURIComponent(deliveryMethod)}` : '';
+    return this.http.get<any>(`${environment.apiUrl}/admin/corridors/${corridorId}/rate-slabs${q}`).pipe(map(res => res.data || res || []));
   }
 
-  /** Replace all rate slabs for a corridor. slabs = [{minAmount, maxAmount|null, rate, isActive}]. */
-  saveRateSlabs(corridorId: number, slabs: any[]): Observable<any[]> {
-    return this.http.put<any>(`${environment.apiUrl}/admin/corridors/${corridorId}/rate-slabs`, slabs).pipe(map(res => res.data || res || []));
+  /**
+   * Replace all rate slabs for a corridor + payment type. slabs = [{minAmount, maxAmount|null, rate, isActive}].
+   * Optional deliveryMethod scopes the save to one payment type; other payment types are untouched.
+   */
+  saveRateSlabs(corridorId: number, slabs: any[], deliveryMethod?: string): Observable<any[]> {
+    const q = deliveryMethod ? `?deliveryMethod=${encodeURIComponent(deliveryMethod)}` : '';
+    return this.http.put<any>(`${environment.apiUrl}/admin/corridors/${corridorId}/rate-slabs${q}`, slabs).pipe(map(res => res.data || res || []));
   }
 
   // ── Manual Rate Override ───────────────────────────────────────────────────

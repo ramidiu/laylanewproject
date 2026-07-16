@@ -227,11 +227,15 @@ public class CorridorController {
     @GetMapping("/api/admin/corridors/{id}/rate-slabs")
     @PreAuthorize("hasPermission(null, 'config:manage_corridors')")
     @Tag(name = "Corridor Admin")
-    @Operation(summary = "Get amount-based rate slabs for a corridor")
-    public ResponseEntity<ApiResponse<List<CorridorRateSlabEntity>>> getRateSlabs(@PathVariable Long id) {
+    @Operation(summary = "Get amount-based rate slabs for a corridor",
+            description = "Optional deliveryMethod (BANK_DEPOSIT/CASH_PICKUP/MOBILE_WALLET/...) scopes to one "
+                    + "payment type. Omit for the corridor-wide (all payment types) slabs.")
+    public ResponseEntity<ApiResponse<List<CorridorRateSlabEntity>>> getRateSlabs(
+            @PathVariable Long id,
+            @RequestParam(required = false) String deliveryMethod) {
         return ResponseEntity.ok(ApiResponse.<List<CorridorRateSlabEntity>>builder()
                 .success(true)
-                .data(corridorRateSlabService.list(id))
+                .data(corridorRateSlabService.list(id, deliveryMethod))
                 .message("Rate slabs retrieved")
                 .build());
     }
@@ -239,13 +243,17 @@ public class CorridorController {
     @PutMapping("/api/admin/corridors/{id}/rate-slabs")
     @PreAuthorize("hasPermission(null, 'config:manage_corridors')")
     @Tag(name = "Corridor Admin")
-    @Operation(summary = "Replace the amount-based rate slabs for a corridor",
-            description = "Body: array of { minAmount, maxAmount (null = open-ended), rate, isActive }.")
+    @Operation(summary = "Replace the amount-based rate slabs for a corridor + payment type",
+            description = "Optional deliveryMethod scopes the save to one payment type (cash/bank/mobile); "
+                    + "other payment types are untouched. Omit for the corridor-wide scope. "
+                    + "Body: array of { minAmount, maxAmount (null = open-ended), rate, isActive }.")
     public ResponseEntity<ApiResponse<List<CorridorRateSlabEntity>>> setRateSlabs(
-            @PathVariable Long id, @RequestBody List<CorridorRateSlabEntity> slabs) {
+            @PathVariable Long id,
+            @RequestParam(required = false) String deliveryMethod,
+            @RequestBody List<CorridorRateSlabEntity> slabs) {
         return ResponseEntity.ok(ApiResponse.<List<CorridorRateSlabEntity>>builder()
                 .success(true)
-                .data(corridorRateSlabService.replaceSlabs(id, slabs))
+                .data(corridorRateSlabService.replaceSlabs(id, deliveryMethod, slabs))
                 .message("Rate slabs saved")
                 .build());
     }

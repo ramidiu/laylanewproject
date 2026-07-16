@@ -397,6 +397,9 @@ import { environment } from '../../../environments/environment';
                 <div class="ct-item-sub">{{ b.bankName }} &nbsp;·&nbsp; ****{{ b.accountNumber.slice(-4) }}</div>
                 <div class="ct-item-sub" *ngIf="b.ifscCode">IFSC: {{ b.ifscCode }}</div>
               </div>
+              <button class="ct-ben-edit-btn" (click)="editBeneficiary(b); $event.stopPropagation()" title="Edit recipient">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
               <ion-icon name="checkmark-circle" color="success" *ngIf="selectedBeneficiary?.id === b.id"></ion-icon>
             </div>
             <div class="ct-empty" *ngIf="filteredBeneficiaries.length === 0 && !beneficiarySearch">
@@ -407,14 +410,14 @@ import { environment } from '../../../environments/environment';
             </div>
           </div>
 
-          <button class="ct-add-ben-btn" (click)="showAddBeneficiary = true">
+          <button class="ct-add-ben-btn" (click)="openAddBeneficiary()">
             <ion-icon name="add-circle-outline"></ion-icon> Add New Beneficiary
           </button>
         </div>
 
         <!-- Add new beneficiary inline form -->
         <div class="ct-add-ben-form" *ngIf="showAddBeneficiary">
-          <h3 class="ct-add-ben-title">New Beneficiary Details</h3>
+          <h3 class="ct-add-ben-title">{{ editingBenId ? 'Edit Beneficiary Details' : 'New Beneficiary Details' }}</h3>
 
           <!-- Common fields -->
           <div class="ct-form-grid">
@@ -422,13 +425,27 @@ import { environment } from '../../../environments/environment';
               <label>Full Name <span class="ct-req">*</span></label>
               <input appLatinName [(ngModel)]="newBen.name" placeholder="Beneficiary full name" />
             </div>
-            <div class="ct-field">
+            <!-- Hidden for mobile money: the Wallet Number below IS the payout number. -->
+            <div class="ct-field" *ngIf="!isMobileMoney()">
               <label>Mobile Number <span class="ct-req">*</span></label>
-              <input [(ngModel)]="newBen.mobileNumber" placeholder="e.g. +256781234567" />
+              <input [(ngModel)]="newBen.mobileNumber" placeholder="e.g. 781234567 (no country code)" />
+            </div>
+            <!-- Smarty international address search — patches Address (street) and City into their own separate fields -->
+            <div class="ct-field ct-field--full" *ngIf="receiveCountry && !isSudanBank()">
+              <label>Address search</label>
+              <app-address-autocomplete
+                [country]="receiveCountry"
+                placeholder="Start typing the address…"
+                (addressSelected)="onPayinAddressSelected($event)">
+              </app-address-autocomplete>
             </div>
             <div class="ct-field ct-field--full" *ngIf="!isSudanBank()">
               <label>Address <span class="ct-req">*</span></label>
               <input [(ngModel)]="newBen.address" placeholder="Beneficiary address" />
+            </div>
+            <div class="ct-field" *ngIf="!isSudanBank()">
+              <label>City <span class="ct-req">*</span></label>
+              <input [(ngModel)]="newBen.city" placeholder="e.g. Riyadh" />
             </div>
           </div>
 
@@ -443,18 +460,10 @@ import { environment } from '../../../environments/environment';
                   <option *ngFor="let b of bankNames" [value]="b">{{ b }}</option>
                 </select>
               </div>
-              <div class="ct-field" *ngIf="!isSudan()">
-                <label>Branch Name <span class="ct-req">*</span></label>
-                <input [(ngModel)]="newBen.sortCode" placeholder="e.g. First Abu Dhabi Bank" />
-              </div>
-              <div class="ct-field" *ngIf="!isSudan()">
-                <label>Bank State <span class="ct-req">*</span></label>
-                <input [(ngModel)]="newBen.branchState" placeholder="Any Branch" />
-              </div>
-              <div class="ct-field" *ngIf="!isSudan()">
-                <label>Bank City <span class="ct-req">*</span></label>
-                <input [(ngModel)]="newBen.branchCity" placeholder="Any Branch" />
-              </div>
+              <!-- Branch Name field removed for USI — the Bank Name is used as the branch (bank_branch = bank name). -->
+
+              <!-- Bank State / Bank City are hard-coded to "Any Branch" for USI bank transactions
+                   (client requirement) — kept in the model as defaults, not shown in the form. -->
               <!-- IBAN countries (Turkey, Saudi Arabia, UAE, Qatar): a single IBAN field.
                    submit() maps IBAN into both account_number and iban for USI. -->
               <div class="ct-field" *ngIf="isUsiIbanCountry()">
@@ -488,7 +497,7 @@ import { environment } from '../../../environments/environment';
               </div>
               <div class="ct-field">
                 <label>Wallet Number <span class="ct-req">*</span></label>
-                <input [(ngModel)]="newBen.accountNumber" placeholder="e.g. +256781234567" />
+                <input [(ngModel)]="newBen.accountNumber" placeholder="e.g. 781234567 (no country code)" />
               </div>
             </div>
           </ng-container>
@@ -526,8 +535,11 @@ import { environment } from '../../../environments/environment';
           </ng-container>
 
           <div class="ct-add-ben-actions">
-            <button class="ct-btn ct-btn--outline" (click)="showAddBeneficiary = false">Cancel</button>
-            <button class="ct-btn ct-btn--success" (click)="useNewBeneficiary()">Use This Beneficiary</button>
+            <button class="ct-btn ct-btn--outline" (click)="cancelBenForm()" [disabled]="savingBen">Cancel</button>
+            <button *ngIf="!editingBenId" class="ct-btn ct-btn--success" (click)="useNewBeneficiary()">Use This Beneficiary</button>
+            <button *ngIf="editingBenId" class="ct-btn ct-btn--success" (click)="saveEditBeneficiary()" [disabled]="savingBen">
+              {{ savingBen ? 'Saving…' : 'Save & Sync to USI' }}
+            </button>
           </div>
         </div>
 
@@ -696,6 +708,9 @@ import { environment } from '../../../environments/environment';
     .ct-search-hint { display:flex; align-items:center; gap:8px; color:#9ca3af; font-size:0.85rem; padding:20px; justify-content:center; }
 
     .ct-ben-item--selected { border-color:#00B894 !important; background:#f0fdf8 !important; }
+    .ct-ben-edit-btn { background:none; border:none; cursor:pointer; color:#1B3571; padding:6px; border-radius:6px; display:flex; align-items:center; flex-shrink:0; }
+    .ct-ben-edit-btn:hover { background:#eef2ff; }
+    .ct-ben-edit-btn ion-icon { font-size:1.15rem; }
 
     /* Receive country cards */
     .ct-corridor-label { display:block; font-size:0.875rem; font-weight:600; color:#374151; margin:4px 0 10px; }
@@ -882,8 +897,10 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
   loadingBeneficiaries = false;
   selectedBeneficiary: any = null;
   showAddBeneficiary = false;
+  editingBenId: string | null = null;   // non-null when the inline form is editing an existing recipient
+  savingBen = false;
   newBen: any = {
-    name: '', address: '', mobileNumber: '',
+    name: '', address: '', city: '', mobileNumber: '',
     // Bank fields
     bankName: '', sortCode: '', branchState: 'Any Branch', branchCity: 'Any Branch',
     accountNumber: '', iban: '', ifscCode: '', swiftBic: '',
@@ -916,6 +933,10 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
   /** Sudan minimal form applies to bank-deposit beneficiaries. */
   isSudanBank(): boolean {
     return this.isSudan() && (this.selectedDeliveryMethod === 'BANK_DEPOSIT' || this.selectedDeliveryMethod === 'BANK_TRANSFER');
+  }
+  /** Mobile-money delivery — the wallet number IS the payout number (goes into mobile_number). */
+  isMobileMoney(): boolean {
+    return this.selectedDeliveryMethod === 'MOBILE_WALLET' || this.selectedDeliveryMethod === 'MOBILE_MONEY';
   }
 
   /** IBAN countries — Turkey, Saudi Arabia, UAE (Qatar is cash-collection only, not IBAN). */
@@ -1445,39 +1466,162 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
   selectBeneficiary(b: any): void {
     this.selectedBeneficiary = b;
     this.showAddBeneficiary = false;
+    this.editingBenId = null;
     this.newBen = { name: '', bankName: '', accountNumber: '', ifscCode: '' };
   }
 
+  /** Fill the new-beneficiary Address (street only) and City from a Smarty selection — kept in separate fields. */
+  onPayinAddressSelected(detail: any): void {
+    if (!detail) return;
+    const street = detail.street || detail.fullAddress || '';
+    // Address gets the STREET line only so it stays distinct from City (never duplicate the city here).
+    this.newBen.address = street;
+    if (detail.city) this.newBen.city = detail.city;
+  }
+
+  /** Open the inline form in create mode (clears any edit state). */
+  openAddBeneficiary(): void {
+    this.editingBenId = null;
+    this.stepError = '';
+    this.newBen = {
+      name: '', address: '', city: '', mobileNumber: '',
+      bankName: '', sortCode: '', branchState: 'Any Branch', branchCity: 'Any Branch',
+      accountNumber: '', iban: '', ifscCode: '', swiftBic: '', mobileProvider: '',
+      collectionPointName: '', collectionPointCode: '', collectionPointAddress: '', collectionPointCity: ''
+    };
+    this.showAddBeneficiary = true;
+  }
+
+  /** Open the inline form in EDIT mode, pre-filled from an existing recipient. */
+  editBeneficiary(b: any): void {
+    this.editingBenId = b.id;
+    this.selectedBeneficiary = null;
+    this.stepError = '';
+    this.newBen = {
+      name: b.name || '',
+      address: b.address || '',
+      city: b.city || '',
+      mobileNumber: b.mobileNumber || '',
+      bankName: b.bankName || '',
+      sortCode: b.sortCode || '',
+      branchState: b.branchState || 'Any Branch',
+      branchCity: b.branchCity || 'Any Branch',
+      // Mobile money: the wallet lives in mobile_number → show it in the Wallet Number field
+      // (fall back to legacy account_number for older mis-saved records).
+      accountNumber: this.isMobileMoney() ? (b.mobileNumber || b.rawAccountNumber || '') : (b.rawAccountNumber || ''),
+      iban: b.iban || '',
+      ifscCode: b.ifscCode || '',
+      swiftBic: b.swiftBic || '',
+      mobileProvider: b.mobileProvider || '',
+      collectionPointName: '', collectionPointCode: '', collectionPointAddress: '', collectionPointCity: b.city || ''
+    };
+    this.showAddBeneficiary = true;
+  }
+
+  cancelBenForm(): void {
+    this.showAddBeneficiary = false;
+    this.editingBenId = null;
+    this.stepError = '';
+  }
+
+  /** Save an edit to an existing recipient → updates the backend + pushes to USI Money. */
+  saveEditBeneficiary(): void {
+    if (!this.editingBenId) return;
+    const vErr = this.validateNewBeneficiaryForUsi();
+    if (vErr) { this.stepError = vErr; return; }
+
+    this.savingBen = true;
+    const req: any = {
+      fullName: this.newBen.name?.trim() || null,
+      // Mobile money: the Wallet Number IS the payout number → send it as mobileNumber.
+      mobileNumber: (this.isMobileMoney() ? this.newBen.accountNumber : this.newBen.mobileNumber)?.trim() || null,
+      address: this.newBen.address?.trim() || null,
+      city: this.newBen.city?.trim() || null,
+      bankName: this.newBen.bankName?.trim() || null,
+      sortCode: this.newBen.sortCode?.trim() || null,
+      branchState: this.newBen.branchState?.trim() || null,
+      branchCity: this.newBen.branchCity?.trim() || null,
+      // Leave accountNumber empty for mobile money so it isn't treated as a bank account.
+      accountNumber: this.isMobileMoney() ? null : (this.newBen.accountNumber?.trim() || this.newBen.iban?.trim() || null),
+      iban: this.newBen.iban?.trim() || null,
+      swiftBic: this.newBen.swiftBic?.trim() || null,
+      mobileProvider: this.newBen.mobileProvider || null
+    };
+    const editedId = this.editingBenId;
+    this.partnerService.updatePayinBeneficiary(editedId, req).subscribe({
+      next: () => {
+        this.savingBen = false;
+        this.showAddBeneficiary = false;
+        this.editingBenId = null;
+        this.stepError = '';
+        // Reload the list and re-select the edited recipient.
+        this.partnerService.getPayinBeneficiariesForCustomer(this.selectedCustomer.customerId).subscribe({
+          next: (res: any) => {
+            this.beneficiaries = Array.isArray(res) ? res : (res?.data || []);
+            this.filterBeneficiaries();
+            const match = this.beneficiaries.find(x => x.id === editedId);
+            if (match) this.selectBeneficiary(match);
+          }
+        });
+      },
+      error: (e: any) => {
+        this.savingBen = false;
+        this.stepError = e?.error?.message || 'Failed to update beneficiary';
+      }
+    });
+  }
+
   useNewBeneficiary(): void {
-    if (!this.newBen.name.trim()) {
-      this.stepError = 'Beneficiary name is required';
-      return;
-    }
-    const isBank   = this.selectedDeliveryMethod === 'BANK_DEPOSIT'  || this.selectedDeliveryMethod === 'BANK_TRANSFER';
-    const isMobile = this.selectedDeliveryMethod === 'MOBILE_WALLET' || this.selectedDeliveryMethod === 'MOBILE_MONEY';
-    if (isBank) {
-      if (!this.newBen.bankName.trim() || !this.newBen.accountNumber.trim()) {
-        this.stepError = 'Bank name and account number are required';
-        return;
-      }
-      if (this.isUsiIbanCountry() && !this.newBen.iban?.trim()) {
-        this.stepError = 'IBAN is required for this country';
-        return;
-      }
-    } else if (isMobile) {
-      if (!this.newBen.mobileProvider || !this.newBen.accountNumber.trim()) {
-        this.stepError = 'Mobile network and wallet number are required';
-        return;
-      }
-    } else if (this.selectedDeliveryMethod === 'CASH_PICKUP') {
-      if (!this.newBen.collectionPointName?.trim() || !this.newBen.collectionPointCode?.trim()) {
-        this.stepError = 'Collection point name and code are required';
-        return;
-      }
-    }
+    const err = this.validateNewBeneficiaryForUsi();
+    if (err) { this.stepError = err; return; }
     this.selectedBeneficiary = null;
     this.showAddBeneficiary = false;
     this.stepError = '';
+  }
+
+  /**
+   * Strict USI-aligned validation for the new-beneficiary form. Returns an error message, or null if valid.
+   * Enforces the rules USI Money requires so a recipient doesn't fail at createBeneficiary/transaction time.
+   */
+  private validateNewBeneficiaryForUsi(): string | null {
+    const NAME  = /^[A-Za-z]+(?:[ '.\-][A-Za-z]+)+$/;      // >= 2 Latin name parts (USI strips non-letters)
+    const PHONE = /^\+?\d{7,15}$/;                          // 7-15 digits, optional leading +
+    const IBAN  = /^[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}$/;   // ISO IBAN shape
+
+    const name = (this.newBen.name || '').trim();
+    if (!name) return 'Beneficiary name is required';
+    if (!NAME.test(name)) return "Enter the recipient's full name — first and last name, letters only";
+
+    const isBank   = this.selectedDeliveryMethod === 'BANK_DEPOSIT'  || this.selectedDeliveryMethod === 'BANK_TRANSFER';
+    const isMobile = this.selectedDeliveryMethod === 'MOBILE_WALLET' || this.selectedDeliveryMethod === 'MOBILE_MONEY';
+
+    if (isMobile) {
+      if (!this.newBen.mobileProvider) return 'Select the mobile network';
+      const wallet = (this.newBen.accountNumber || '').replace(/\s/g, '');
+      if (!wallet) return 'Wallet number is required';
+      if (!PHONE.test(wallet)) return 'Enter a valid wallet number (7-15 digits, optional +)';
+      if (!this.newBen.address?.trim()) return 'Address is required';
+      if (!this.newBen.city?.trim())    return 'City is required';
+    } else if (isBank) {
+      if (!this.newBen.bankName?.trim()) return 'Bank name is required';
+      if (this.isUsiIbanCountry()) {
+        const iban = (this.newBen.iban || '').replace(/\s/g, '');
+        if (!iban) return 'IBAN is required';
+        if (!IBAN.test(iban)) return 'Enter a valid IBAN (e.g. SA03 8000 0000 6080 1016 7519)';
+      } else {
+        const acct = (this.newBen.accountNumber || '').trim();
+        if (!acct) return 'Account number is required';
+        if (acct.length < 5) return 'Enter a valid account number (at least 5 characters)';
+      }
+      if (!this.isSudanBank()) {
+        if (!this.newBen.address?.trim()) return 'Address is required';
+        if (!this.newBen.city?.trim())    return 'City is required';
+      }
+    } else if (this.selectedDeliveryMethod === 'CASH_PICKUP') {
+      if (!this.newBen.collectionPointName?.trim() || !this.newBen.collectionPointCode?.trim())
+        return 'Collection point name and code are required';
+    }
+    return null;
   }
 
   /** Auto-fill cash-collection fields from a USI getCollectionPoints entry. */
@@ -1508,7 +1652,8 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
 
   goToStep3(): void {
     this.stepError = '';
-    const hasBeneficiary = this.selectedBeneficiary || (this.newBen.name && this.newBen.bankName && this.newBen.accountNumber);
+    // Account is satisfied by an account number OR an IBAN (IBAN countries have no account-number field).
+    const hasBeneficiary = this.selectedBeneficiary || (this.newBen.name && this.newBen.bankName && (this.newBen.accountNumber || this.newBen.iban));
     if (!hasBeneficiary) {
       this.stepError = 'Select an existing beneficiary or add a new one';
       return;
@@ -1546,14 +1691,18 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
       payload.beneficiaryDetails = {
         name: this.newBen.name?.trim() || '',
         address: this.newBen.address?.trim() || null,
-        mobileNumber: this.newBen.mobileNumber?.trim() || null,
+        city: this.newBen.city?.trim() || null,
+        // Mobile money: the Wallet Number IS the payout number → send it as mobileNumber
+        // (the payout reads mobile_number). Otherwise use the contact Mobile Number field.
+        mobileNumber: (this.isMobileMoney() ? this.newBen.accountNumber : this.newBen.mobileNumber)?.trim() || null,
 
         // Bank
         bankName: this.newBen.bankName?.trim() || null,
         sortCode: this.newBen.sortCode?.trim() || null,          // Branch name (USI bank_branch)
         branchState: this.newBen.branchState?.trim() || null,
         branchCity: this.newBen.branchCity?.trim() || null,
-        accountNumber: this.newBen.accountNumber?.trim() || this.newBen.iban?.trim() || null,
+        // Leave accountNumber empty for mobile money so it isn't treated as a bank account.
+        accountNumber: this.isMobileMoney() ? null : (this.newBen.accountNumber?.trim() || this.newBen.iban?.trim() || null),
         iban: this.newBen.iban?.trim() || null,
         swiftBic: this.newBen.swiftBic?.trim() || null,
         ifscCode: this.newBen.ifscCode?.trim() || null,

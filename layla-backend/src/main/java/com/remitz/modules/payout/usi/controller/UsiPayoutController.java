@@ -59,6 +59,14 @@ public class UsiPayoutController {
         return ResponseEntity.ok(service.verifyRemitter(userId));
     }
 
+    @PostMapping("/remitter/{userId}/sync")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PAYOUT_PARTNER')")
+    @Operation(summary = "Re-push a USI remitter — sends updateRemitter with the user's current profile, then re-verifies",
+            description = "Creates the remitter if missing, else updates it on USI (e.g. to apply a new address format), then refreshes the verified flag.")
+    public ResponseEntity<Map<String, Object>> syncRemitter(@PathVariable Long userId) {
+        return ResponseEntity.ok(service.syncRemitter(userId));
+    }
+
     // ── Beneficiary ───────────────────────────────────────────────────
 
     @PostMapping("/beneficiary/{beneficiaryId}")
@@ -66,6 +74,14 @@ public class UsiPayoutController {
     @Operation(summary = "Create or fetch a USI beneficiary for a local beneficiary")
     public ResponseEntity<Map<String, Object>> createBeneficiary(@PathVariable Long beneficiaryId) {
         return ResponseEntity.ok(service.createBeneficiary(beneficiaryId));
+    }
+
+    @PostMapping("/beneficiary/{beneficiaryId}/sync")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PAYOUT_PARTNER')")
+    @Operation(summary = "Re-push a USI beneficiary — sends updateBeneficiary with the local beneficiary's current data",
+            description = "Creates the USI beneficiary if missing, else updates it on USI (e.g. to correct a bank name that was frozen from an earlier version, since USI dedupes and createBeneficiary only links an existing record).")
+    public ResponseEntity<Map<String, Object>> syncBeneficiary(@PathVariable Long beneficiaryId) {
+        return ResponseEntity.ok(service.syncBeneficiary(beneficiaryId));
     }
 
     @GetMapping("/beneficiary/{usiBeneficiaryId}/search")

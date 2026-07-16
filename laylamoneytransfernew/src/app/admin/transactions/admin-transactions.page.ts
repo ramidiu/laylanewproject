@@ -39,6 +39,18 @@ export class AdminTransactionsPage implements OnInit {
     if (txn?.id != null) this.router.navigate(['/receipt', txn.id]);
   }
 
+  /** Human-readable collection type (how the customer paid in). */
+  collectionLabel(txn: any): string {
+    switch (txn?.paymentMethodType) {
+      case 'CARD': return 'Trust Payments';
+      case 'OPEN_BANKING':
+      case 'BANK_TRANSFER': return 'Bank';
+      case 'AGENT_CASH': return 'Cash';
+      case 'WALLET': return 'Wallet';
+      default: return txn?.paymentMethodType || '—';
+    }
+  }
+
   ngOnInit(): void {
     this.loadTransactions();
     this.loadStats();

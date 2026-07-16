@@ -137,6 +137,9 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     Page<TransactionEntity> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    /** Default admin listing: same as findAll but hides archived (stale-pending) transactions. */
+    Page<TransactionEntity> findByStatusNotOrderByCreatedAtDesc(TransactionStatus status, Pageable pageable);
+
     long countByPayoutPartnerId(Long payoutPartnerId);
 
     @Query("SELECT COALESCE(SUM(t.sendAmount), 0) FROM TransactionEntity t WHERE t.senderId = :senderId AND t.createdAt >= CURRENT_DATE")

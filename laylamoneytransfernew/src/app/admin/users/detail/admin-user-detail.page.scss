@@ -178,3 +178,28 @@
     gap: $fb-space-1;
   }
 }
+
+.ben-edit {
+  margin-top: $fb-space-4;
+  padding-top: $fb-space-4;
+  border-top: 1px solid var(--fb-border, #e5e7eb);
+
+  &__hint {
+    color: var(--fb-text-muted, #6b7280);
+    font-size: 0.85rem;
+    margin: 0 0 $fb-space-3;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: $fb-space-2 $fb-space-4;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $fb-space-2;
+    margin-top: $fb-space-4;
+  }
+}

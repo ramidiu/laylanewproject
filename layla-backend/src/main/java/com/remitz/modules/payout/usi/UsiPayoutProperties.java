@@ -24,4 +24,19 @@ public class UsiPayoutProperties {
     private String password = "";
     private String pin = "";
     private String agentName = "Layla London";
+    /**
+     * Comma-separated USI remitter IDs whose automatic re-sync (updateRemitter/verify) is PAUSED.
+     * Use for remitters whose USI record is in a bad state (e.g. a duplicate/malformed ID that only
+     * USI Support can fix) so we stop pushing updateRemitter at a locked record. Env: USI_SYNC_PAUSED_REMITTERS.
+     */
+    private String syncPausedRemitters = "";
+
+    /** True if the given USI remitter id is in the paused set. */
+    public boolean isRemitterSyncPaused(String remitterId) {
+        if (remitterId == null || syncPausedRemitters == null || syncPausedRemitters.isBlank()) return false;
+        for (String id : syncPausedRemitters.split(",")) {
+            if (remitterId.trim().equals(id.trim())) return true;
+        }
+        return false;
+    }
 }

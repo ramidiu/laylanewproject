@@ -336,6 +336,37 @@
       (closed)="workspaceOpen = false"
       (changed)="reloadKyc()">
     </app-kyc-workspace>
+
+    <!-- KYC Audit Trail (who did what, from which IP, when) -->
+    <div class="fb-card" style="margin-top:16px;">
+      <h3 style="margin:0 0 12px; font-size:1rem; font-weight:700;">KYC Audit Trail</h3>
+      <div *ngIf="kycAuditLoading" class="empty-state"><p class="empty-state__text">Loading audit trail…</p></div>
+      <div *ngIf="!kycAuditLoading && kycAudit.length === 0" class="empty-state">
+        <p class="empty-state__text">No KYC audit events</p>
+      </div>
+      <div style="overflow-x:auto;" *ngIf="!kycAuditLoading && kycAudit.length > 0">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+          <thead>
+            <tr style="text-align:left; border-bottom:2px solid #e5e7eb;">
+              <th style="padding:8px;">Date &amp; Time</th>
+              <th style="padding:8px;">Action</th>
+              <th style="padding:8px;">By (role)</th>
+              <th style="padding:8px;">IP Address</th>
+              <th style="padding:8px;">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ev of kycAudit" style="border-bottom:1px solid #f0f0f0;">
+              <td style="padding:8px; white-space:nowrap;">{{ ev.createdAt | date:'MMM d, y HH:mm:ss' }}</td>
+              <td style="padding:8px;">{{ ev.action }}</td>
+              <td style="padding:8px;">{{ ev.actorRole || '—' }}</td>
+              <td style="padding:8px; font-family:monospace;">{{ ev.ipAddress || '—' }}</td>
+              <td style="padding:8px;">{{ kycAuditSummary(ev.details) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- ── Transactions Tab ── -->

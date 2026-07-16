@@ -24,8 +24,9 @@ public class UsiBeneficiaryEntity {
     @Column(name = "local_beneficiary_id", length = 64, nullable = false, unique = true)
     private String localBeneficiaryId;
 
-    /** USI-side beneficiary id from createBeneficiary. */
-    @Column(name = "usi_beneficiary_id", length = 64, nullable = false, unique = true)
+    /** USI-side beneficiary id from createBeneficiary. Not unique: USI dedups by person, so one
+     *  usi_beneficiary_id can map to several local beneficiaries (same recipient added twice). See V553. */
+    @Column(name = "usi_beneficiary_id", length = 64, nullable = false)
     private String usiBeneficiaryId;
 
     @Column(name = "status", length = 30, nullable = false)

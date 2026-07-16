@@ -16,6 +16,16 @@ public interface UsiPayoutService {
     RemitterVerifyResponse verifyRemitter(Long userId);
 
     /**
+     * Push a user's current profile to USI Money and refresh their verification status.
+     * Called whenever KYC-relevant user data changes (self profile edit or admin edit):
+     * creates the remitter when none exists yet, otherwise sends an updateRemitter so USI
+     * holds the new name/address/phone/etc, then re-runs verifyRemitter so the local
+     * `verified` flag reflects USI's current status. Best-effort — never throws; returns a
+     * status map (SKIPPED / MISSING_INFO / SUCCESS / FAILED, plus verified/verifyStatus).
+     */
+    Map<String, Object> syncRemitter(Long userId);
+
+    /**
      * Pay-in entry point: validate the selected customer has the data USI needs for a
      * remitter and, if so, create it — keyed by the pay-in customer UUID. Returns a
      * status of READY / MISSING_INFO / FAILED / SKIPPED with a human-readable message,
@@ -34,6 +44,14 @@ public interface UsiPayoutService {
 
     Map<String, Object> createBeneficiary(Long beneficiaryId);
     String searchBeneficiary(String usiBeneficiaryId);
+
+    /**
+     * Push a beneficiary's current data to USI Money whenever it changes (recipient edit).
+     * Creates the USI beneficiary when none exists yet (and the owner already has a remitter),
+     * otherwise sends an updateBeneficiary so USI holds the new name/address/bank/mobile. Best-
+     * effort — never throws; returns a status map (SKIPPED / SUCCESS / FAILED).
+     */
+    Map<String, Object> syncBeneficiary(Long beneficiaryId);
 
     Map<String, Object> createTransaction(String referenceNumber);
     Map<String, Object> confirmTransaction(String referenceNumber);

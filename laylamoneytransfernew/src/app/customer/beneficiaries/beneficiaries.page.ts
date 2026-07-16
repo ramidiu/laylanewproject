@@ -125,7 +125,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
     // fires only on first mount; queryParams fires on every URL change.
 
     this.addForm = this.fb.group({
-      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      fullName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z]+(?:[ '.\-][A-Za-z]+)+$/)]],
       country: ['', Validators.required],
       deliveryMethod: ['', Validators.required],
       mobileNumber: [''],
@@ -145,7 +145,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
     });
 
     this.editForm = this.fb.group({
-      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      fullName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z]+(?:[ '.\-][A-Za-z]+)+$/)]],
       country: [''],
       deliveryMethod: [''],
       mobileNumber: [''],
@@ -594,7 +594,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
 
     switch (method) {
       case 'BANK_DEPOSIT':
-        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
+        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7), Validators.pattern(/^\+?\d{7,15}$/)]);
         this.addForm.get('bankName')!.setValidators([Validators.required]);
         // Account number required for non-IBAN countries. For IBAN countries the field is hidden
         // and accountNumber is auto-filled from the IBAN (see iban valueChanges sync), so no validator.
@@ -608,7 +608,8 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
         this.addForm.get('address')!.setValidators([Validators.required]);
         this.addForm.get('city')!.setValidators([Validators.required]);
         this.addForm.get('relationship')!.setValidators([Validators.required]);
-        this.addForm.get('sortCode')!.setValidators([Validators.required]);
+        // Branch Name (sortCode) is no longer collected for USI bank payments — the Bank Name is used
+        // as the branch (backend: bank_branch = sortCode || bankName). So no validator here.
         this.addForm.get('branchState')!.setValidators([Validators.required]);
         this.addForm.get('branchCity')!.setValidators([Validators.required]);
         if (ibanCountry) {
@@ -620,7 +621,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
         }
         break;
       case 'CASH_PICKUP':
-        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
+        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7), Validators.pattern(/^\+?\d{7,15}$/)]);
         this.addForm.get('address')!.setValidators([Validators.required]);
         this.addForm.get('relationship')!.setValidators([Validators.required]);
         this.addForm.get('bankName')!.setValidators([Validators.required]);
@@ -630,7 +631,7 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
         break;
       case 'MOBILE_WALLET':
         this.addForm.get('mobileProvider')!.setValidators([Validators.required]);
-        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
+        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7), Validators.pattern(/^\+?\d{7,15}$/)]);
         this.addForm.get('address')!.setValidators([Validators.required]);
         this.addForm.get('city')!.setValidators([Validators.required]);
         this.addForm.get('relationship')!.setValidators([Validators.required]);
@@ -641,10 +642,10 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
       case 'HOME_DELIVERY':
         this.addForm.get('addressLine1')!.setValidators([Validators.required]);
         this.addForm.get('city')!.setValidators([Validators.required]);
-        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
+        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7), Validators.pattern(/^\+?\d{7,15}$/)]);
         break;
       case 'AIRTIME_TOPUP':
-        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7)]);
+        this.addForm.get('mobileNumber')!.setValidators([Validators.required, Validators.minLength(7), Validators.pattern(/^\+?\d{7,15}$/)]);
         break;
     }
 
@@ -727,7 +728,9 @@ export class BeneficiariesPage implements OnInit, OnDestroy {
     const street = detail.street || detail.fullAddress || '';
     const patch: any = {};
     if (form.get('address')) {
-      patch.address = detail.fullAddress || street;
+      // Patch ONLY the street line into Address so it stays distinct from City.
+      // (Never use fullAddress here — it contains the city and would duplicate it.)
+      patch.address = street;
     }
     if (form.get('city') && detail.city) {
       patch.city = detail.city;

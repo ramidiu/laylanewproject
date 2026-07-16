@@ -175,7 +175,7 @@ public class AdminTransactionController {
 
         Page<TransactionEntity> txnPage = (txStatus != null || searchTerm != null || start != null || end != null)
                 ? transactionRepository.searchTransactions(null, txStatus, null, start, end, searchTerm, pageable)
-                : transactionRepository.findAllByOrderByCreatedAtDesc(pageable);
+                : transactionRepository.findByStatusNotOrderByCreatedAtDesc(TransactionStatus.ARCHIVED, pageable);
 
         // Enrich with sender and beneficiary names
         List<Map<String, Object>> enriched = txnPage.getContent().stream().map(tx -> {
@@ -220,7 +220,9 @@ public class AdminTransactionController {
                     map.put("beneficiaryName", b.getFullName());
                     map.put("beneficiaryPhone", b.getMobileNumber());
                     map.put("beneficiaryCountry", b.getCountry());
-                    map.put("beneficiaryCity", b.getBranchCity());
+                    // The recipient's actual city — was wrongly reading branch_city ("Any Branch").
+                    map.put("beneficiaryCity",
+                            (b.getCity() != null && !b.getCity().isBlank()) ? b.getCity() : b.getBranchCity());
                     map.put("beneficiaryBankName", b.getBankName());
                     map.put("beneficiaryAccountNumber",
                             (b.getAccountNumber() != null && !b.getAccountNumber().isBlank())

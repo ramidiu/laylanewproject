@@ -154,6 +154,8 @@ usi:
   pin: ${USI_PIN:}
   agent-name: ${USI_AGENT_NAME:Layla London}
   status-poll-interval-ms: ${USI_STATUS_POLL_INTERVAL_MS:300000}
+  # Comma-separated USI remitter IDs whose auto re-sync is paused (bad/locked USI records).
+  sync-paused-remitters: ${USI_SYNC_PAUSED_REMITTERS:}
 
 kuber:
   enabled: ${KUBER_ENABLED:true}

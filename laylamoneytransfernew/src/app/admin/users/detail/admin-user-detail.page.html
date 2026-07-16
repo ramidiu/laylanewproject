@@ -76,6 +76,136 @@
     </div>
   </div>
 
+  <!-- Recipients (Beneficiaries) -->
+  <div class="fb-card">
+    <h3 class="section-title">Recipients</h3>
+    <div *ngIf="benLoading" class="empty-section"><p>Loading recipients…</p></div>
+    <div *ngIf="!benLoading && beneficiaries.length === 0" class="empty-section">
+      <p>No recipients found</p>
+    </div>
+
+    <table class="fb-table" *ngIf="!benLoading && beneficiaries.length > 0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Country</th>
+          <th>Delivery</th>
+          <th>Bank / Mobile</th>
+          <th>City</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ben of beneficiaries">
+          <td>{{ ben.fullName }}</td>
+          <td>{{ ben.country }}</td>
+          <td>{{ ben.deliveryMethod }}</td>
+          <td>{{ ben.bankName || ben.mobileNumber || '—' }}</td>
+          <td>{{ ben.city || '—' }}</td>
+          <td>
+            <ion-button fill="outline" size="small" color="primary" (click)="openBenEdit(ben)">
+              <ion-icon name="create-outline" slot="start"></ion-icon>
+              Edit
+            </ion-button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Inline edit form -->
+    <div class="ben-edit" *ngIf="editingBen">
+      <h4 class="section-title">Edit recipient — {{ editingBen.fullName }}</h4>
+      <p class="ben-edit__hint">Changes are pushed to USI Money automatically on save.</p>
+      <div class="ben-edit__grid">
+        <!-- Common fields (all delivery methods) -->
+        <ion-item>
+          <ion-label position="stacked">Full Name</ion-label>
+          <ion-input [(ngModel)]="benForm.fullName"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Country</ion-label>
+          <ion-input [(ngModel)]="benForm.country"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Delivery Method</ion-label>
+          <ion-select [(ngModel)]="benForm.deliveryMethod" interface="popover">
+            <ion-select-option *ngFor="let dm of deliveryMethods" [value]="dm">{{ dm }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Address</ion-label>
+          <ion-input [(ngModel)]="benForm.address"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">City</ion-label>
+          <ion-input [(ngModel)]="benForm.city"></ion-input>
+        </ion-item>
+
+        <!-- Bank transfer fields -->
+        <ng-container *ngIf="benForm.deliveryMethod === 'BANK_DEPOSIT'">
+          <ion-item>
+            <ion-label position="stacked">Bank Name</ion-label>
+            <ion-input [(ngModel)]="benForm.bankName"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Account Number</ion-label>
+            <ion-input [(ngModel)]="benForm.accountNumber"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">IBAN</ion-label>
+            <ion-input [(ngModel)]="benForm.iban"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Sort Code / Branch</ion-label>
+            <ion-input [(ngModel)]="benForm.sortCode"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">SWIFT/BIC</ion-label>
+            <ion-input [(ngModel)]="benForm.swiftBic"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Mobile Number</ion-label>
+            <ion-input [(ngModel)]="benForm.mobileNumber"></ion-input>
+          </ion-item>
+        </ng-container>
+
+        <!-- Mobile wallet fields -->
+        <ng-container *ngIf="benForm.deliveryMethod === 'MOBILE_WALLET'">
+          <ion-item>
+            <ion-label position="stacked">Mobile Provider</ion-label>
+            <ion-input [(ngModel)]="benForm.mobileProvider"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Mobile Number</ion-label>
+            <ion-input [(ngModel)]="benForm.mobileNumber"></ion-input>
+          </ion-item>
+        </ng-container>
+
+        <!-- Cash pickup fields -->
+        <ng-container *ngIf="benForm.deliveryMethod === 'CASH_PICKUP'">
+          <ion-item>
+            <ion-label position="stacked">Collection Point</ion-label>
+            <ion-input [(ngModel)]="benForm.bankName"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Account Number</ion-label>
+            <ion-input [(ngModel)]="benForm.accountNumber"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Mobile Number</ion-label>
+            <ion-input [(ngModel)]="benForm.mobileNumber"></ion-input>
+          </ion-item>
+        </ng-container>
+      </div>
+      <div class="ben-edit__actions">
+        <ion-button fill="clear" color="medium" (click)="closeBenEdit()" [disabled]="benSaving">Cancel</ion-button>
+        <ion-button color="primary" (click)="saveBen()" [disabled]="benSaving">
+          {{ benSaving ? 'Saving…' : 'Save & Sync to USI' }}
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
   <!-- KYC Documents -->
   <div class="fb-card">
     <h3 class="section-title">KYC Documents</h3>
@@ -102,6 +232,35 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- KYC Audit Trail (who did what, from which IP, when) -->
+  <div class="fb-card">
+    <h3 class="section-title">KYC Audit Trail</h3>
+    <div *ngIf="kycAuditLoading" class="empty-section"><p>Loading audit trail…</p></div>
+    <div *ngIf="!kycAuditLoading && kycAudit.length === 0" class="empty-section">
+      <p>No KYC audit events</p>
+    </div>
+    <table class="fb-table" *ngIf="!kycAuditLoading && kycAudit.length > 0">
+      <thead>
+        <tr>
+          <th>Date &amp; Time</th>
+          <th>Action</th>
+          <th>By (role)</th>
+          <th>IP Address</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ev of kycAudit">
+          <td>{{ ev.createdAt | date:'MMM d, y HH:mm:ss' }}</td>
+          <td>{{ ev.action }}</td>
+          <td>{{ ev.actorRole || '—' }}</td>
+          <td class="fb-currency">{{ ev.ipAddress || '—' }}</td>
+          <td>{{ kycAuditSummary(ev.details) }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- Transaction History -->

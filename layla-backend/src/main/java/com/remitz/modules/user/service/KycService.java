@@ -172,6 +172,21 @@ public class KycService {
                 .collect(Collectors.toList());
     }
 
+    /** Full KYC audit trail for a user (uploads, approvals/rejections, tier changes) with actor + IP. */
+    public List<com.remitz.common.dto.KycAuditLogResponse> getAuditLog(Long userId) {
+        return kycAuditLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(a -> com.remitz.common.dto.KycAuditLogResponse.builder()
+                        .id(a.getId())
+                        .action(a.getAction())
+                        .actorId(a.getActorId())
+                        .actorRole(a.getActorRole())
+                        .ipAddress(a.getIpAddress())
+                        .details(a.getDetails())
+                        .createdAt(a.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     /**
      * Delete a user's own PENDING document. Used by the frontend to ROLL BACK a partial
      * submission: if one document in a multi-document KYC submit succeeds but a later one

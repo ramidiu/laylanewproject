@@ -157,6 +157,7 @@
             <th>Reference</th>
             <th>Sender</th>
             <th>Beneficiary</th>
+            <th>Collection Type</th>
             <th>Send Amount</th>
             <th>Receive Amount</th>
             <th>Fee</th>
@@ -170,6 +171,7 @@
             <td class="fb-currency ref-cell"><a class="ref-link" href="/receipt/{{ txn.id }}" title="View receipt">{{ txn.referenceNumber }}</a></td>
             <td>{{ txn.senderName || 'User #' + txn.senderId }}</td>
             <td>{{ txn.beneficiaryName || 'Beneficiary #' + txn.beneficiaryId }}</td>
+            <td>{{ collectionLabel(txn) }}</td>
             <td class="fb-currency">{{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}</td>
             <td class="fb-currency">{{ txn.receiveAmount | number:'1.2-2' }} {{ txn.receiveCurrency }}</td>
             <td class="fb-currency">{{ txn.feeAmount | number:'1.2-2' }}</td>

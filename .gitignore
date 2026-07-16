@@ -28,3 +28,7 @@ Thumbs.db
 # Local env secrets (never commit)
 .env
 *.env.local
+
+# Production env secrets (never commit)
+*.env.production
+deploy-live/.env.production

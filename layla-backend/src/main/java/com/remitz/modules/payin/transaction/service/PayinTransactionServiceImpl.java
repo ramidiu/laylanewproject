@@ -387,11 +387,27 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
     }
 
     private DeliveryMethod resolveDeliveryMethod(String raw) {
-        if (raw == null) return DeliveryMethod.BANK_DEPOSIT;
-        try {
-            return DeliveryMethod.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return DeliveryMethod.BANK_DEPOSIT;
+        if (raw == null || raw.isBlank()) return DeliveryMethod.BANK_DEPOSIT;
+        String v = raw.trim().toUpperCase();
+        // Map pay-in payout-type names (BANK_TRANSFER / MOBILE_MONEY / CASH_COLLECTION) to the
+        // DeliveryMethod enum. Without this, valueOf("MOBILE_MONEY") threw and the recipient was
+        // silently saved as BANK_DEPOSIT — so mobile-money recipients showed up under "Bank".
+        switch (v) {
+            case "BANK_TRANSFER":
+            case "BANK_DEPOSIT":
+                return DeliveryMethod.BANK_DEPOSIT;
+            case "MOBILE_MONEY":
+            case "MOBILE_WALLET":
+                return DeliveryMethod.MOBILE_WALLET;
+            case "CASH_COLLECTION":
+            case "CASH_PICKUP":
+                return DeliveryMethod.CASH_PICKUP;
+            default:
+                try {
+                    return DeliveryMethod.valueOf(v);
+                } catch (IllegalArgumentException e) {
+                    return DeliveryMethod.BANK_DEPOSIT;
+                }
         }
     }
 
@@ -492,6 +508,9 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                         .sortCode(hasText(details.getSortCode()) ? details.getSortCode().trim() : null)
                         .branchState(details.getBranchState())
                         .branchCity(city)
+                        // The recipient's own city (USI beneficiary "city" field) — distinct from the
+                        // bank branch city. Falls back to the branch/collection city if not supplied.
+                        .city(pickFirst(details.getCity(), details.getCollectionPointCity(), details.getBranchCity()))
                         .mobileNumber(details.getMobileNumber())
                         .mobileProvider(details.getMobileProvider())
                         .address(address)

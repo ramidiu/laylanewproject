@@ -57,6 +57,9 @@
             <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('fullName')?.touched) && addForm.get('fullName')?.hasError('required')">
               {{ 'BENEFICIARIES.ERROR_FULL_NAME' | translate }}
             </div>
+            <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('fullName')?.touched) && addForm.get('fullName')?.hasError('pattern')">
+              Enter first and last name (letters only)
+            </div>
             <div class="fb-field__error" *ngIf="addForm.get('fullName')?.touched && addForm.get('fullName')?.hasError('minlength')">
               {{ 'BENEFICIARIES.ERROR_FULL_NAME_MIN' | translate }}
             </div>
@@ -102,6 +105,15 @@
               <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('mobileNumber')?.touched) && addForm.get('mobileNumber')?.hasError('required')">
                 {{ 'BENEFICIARIES.ERROR_MOBILE' | translate }}
               </div>
+            </div>
+            <!-- Smarty international address search — patches Address (street) and City into their own separate fields -->
+            <div class="fb-field" *ngIf="!isSudanBank() && addForm.get('country')?.value">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} search</label>
+              <app-address-autocomplete
+                [country]="addForm.get('country')?.value"
+                placeholder="Start typing the address…"
+                (addressSelected)="onBeneficiaryAddressSelected(addForm, $event)">
+              </app-address-autocomplete>
             </div>
             <div class="fb-field" *ngIf="!isSudanBank()">
               <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} *</label>
@@ -155,15 +167,8 @@
               </div>
             </div>
 
-            <div class="fb-field" *ngIf="!isSudan()">
-              <label class="fb-field__label">Branch Name *</label>
-              <input type="text" class="fb-input" formControlName="sortCode"
-                placeholder="e.g. First Abu Dhabi Bank"
-                [class.fb-input--error]="(addFormSubmitted || addForm.get('sortCode')?.touched) && addForm.get('sortCode')?.invalid" />
-              <div class="fb-field__error" *ngIf="(addFormSubmitted || addForm.get('sortCode')?.touched) && addForm.get('sortCode')?.hasError('required')">
-                Branch name is required
-              </div>
-            </div>
+            <!-- Branch Name field removed for USI — the Bank Name is used as the branch (bank_branch = bank name). -->
+
 
             <div class="fb-field-row" *ngIf="!isSudan()">
               <div class="fb-field">
@@ -251,6 +256,16 @@
               <div class="fb-field__error" *ngIf="addForm.get('mobileNumber')?.touched && addForm.get('mobileNumber')?.hasError('minlength')">
                 {{ 'BENEFICIARIES.ERROR_MOBILE_MIN' | translate }}
               </div>
+            </div>
+
+            <!-- Smarty international address search — patches Address (street) and City into their own separate fields -->
+            <div class="fb-field" *ngIf="addForm.get('country')?.value">
+              <label class="fb-field__label">{{ 'BENEFICIARIES.ADDRESS' | translate }} search</label>
+              <app-address-autocomplete
+                [country]="addForm.get('country')?.value"
+                placeholder="Start typing the address…"
+                (addressSelected)="onBeneficiaryAddressSelected(addForm, $event)">
+              </app-address-autocomplete>
             </div>
 
             <!-- Address — USI requires beneficiary address for Mobile Wallet payouts -->
@@ -564,11 +579,7 @@
             <input type="text" class="fb-input" formControlName="accountNumber"
               [placeholder]="'BENEFICIARIES.ACCOUNT_PLACEHOLDER' | translate" />
           </div>
-          <div class="fb-field">
-            <label class="fb-field__label">{{ 'BENEFICIARIES.BANK_BRANCH_NAME' | translate }} *</label>
-            <input type="text" class="fb-input" formControlName="sortCode"
-              [placeholder]="'BENEFICIARIES.BANK_BRANCH_PLACEHOLDER' | translate" />
-          </div>
+          <!-- Branch Name field removed for USI — the Bank Name is used as the branch (bank_branch = bank name). -->
           <div class="fb-field">
             <label class="fb-field__label">{{ 'BENEFICIARIES.SWIFT_CODE' | translate }} *</label>
             <input type="text" class="fb-input" formControlName="swiftBic" [placeholder]="editBankCodePlaceholder" />

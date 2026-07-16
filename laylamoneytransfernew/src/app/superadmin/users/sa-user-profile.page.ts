@@ -23,6 +23,10 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
   kycStatus: KycStatusResponse | null = null;
   documents: KycDocumentResponse[] = [];
 
+  // KYC audit trail (uploads, approvals, tier changes) with actor role + IP
+  kycAudit: any[] = [];
+  kycAuditLoading = false;
+
   /** Docs shown in the UI: hide imported/placeholder docs (no real file), keep all real uploads. */
   get displayDocuments(): KycDocumentResponse[] {
     return this.documents.filter(d => {
@@ -65,6 +69,30 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
   reloadKyc(): void {
     this.kycService.getDocuments(this.uuid).subscribe({ next: d => this.documents = d, error: () => {} });
     this.kycService.getStatus(this.uuid).subscribe({ next: s => this.kycStatus = s, error: () => {} });
+    this.loadKycAudit();
+  }
+
+  loadKycAudit(): void {
+    this.kycAuditLoading = true;
+    this.kycService.getAuditLog(this.uuid).subscribe({
+      next: (logs) => { this.kycAudit = logs || []; this.kycAuditLoading = false; },
+      error: () => { this.kycAudit = []; this.kycAuditLoading = false; }
+    });
+  }
+
+  /** Human-readable summary of a KYC audit event's JSON details. */
+  kycAuditSummary(details: string): string {
+    if (!details) return '';
+    try {
+      const d = JSON.parse(details);
+      const parts: string[] = [];
+      if (d.newStatus) parts.push('Status: ' + d.newStatus);
+      if (d.documentId) parts.push('Doc #' + d.documentId);
+      if (d.newTier) parts.push('Tier: ' + d.newTier);
+      if (d.previousTier) parts.push('(was ' + d.previousTier + ')');
+      if (d.rejectionReason) parts.push('Reason: ' + d.rejectionReason);
+      return parts.join(' · ');
+    } catch { return details; }
   }
 
   switchSection(section: 'identity' | 'address'): void {
@@ -145,6 +173,7 @@ export class SAUserProfilePage implements OnInit, OnDestroy {
         this.initForm(user);
         this.loadTransactions(user.id);
         this.loadRiskScore(user.id);
+        this.loadKycAudit();
         this.loading = false;
       },
       error: () => {

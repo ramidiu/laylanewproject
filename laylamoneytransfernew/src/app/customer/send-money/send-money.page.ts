@@ -985,6 +985,7 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       ['currencyiso3a',         'GBP'],
       ['mainamount',            mainamount],
       ['version',               '2'],
+      ['orderreference',        this.sanitize(txn?.referenceNumber || '')],
       ['billingfirstname',      this.sanitize(this.billingFirstName)],
       ['billinglastname',       this.sanitize(this.billingLastName)],
       ['billingcountryiso2a',   'GB'],
@@ -995,6 +996,19 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       ['successfulurlredirect', callbackUrl],
       ['declinedurlredirect',   callbackUrl],
     ];
+
+    // Billing address (AVS) — Trust Payments' address rules (STR-11) can require these.
+    // Send each only when present so we never post an empty required field.
+    const billPremise  = this.sanitize(this.billingPremise);
+    const billStreet   = this.sanitize(this.billingStreet);
+    const billTown     = this.sanitize(this.billingTown);
+    const billCounty   = this.sanitize(this.billingCounty);
+    const billPostcode = this.sanitize(this.billingPostcode);
+    if (billPremise)  fields.push(['billingpremise',  billPremise]);
+    if (billStreet)   fields.push(['billingstreet',   billStreet]);
+    if (billTown)     fields.push(['billingtown',     billTown]);
+    if (billCounty)   fields.push(['billingcounty',   billCounty]);
+    if (billPostcode) fields.push(['billingpostcode', billPostcode]);
 
     // Only send DOB if it parsed to a valid YYYY-MM-DD
     if (safeDob) fields.splice(6, 0, ['billingdob', safeDob]);

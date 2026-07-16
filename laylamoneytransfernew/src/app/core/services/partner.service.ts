@@ -48,6 +48,7 @@ export class PartnerService {
   markPayinTransactionPaid(transactionId: string): Observable<any> { return this.http.put(`${environment.apiUrl}/payin/transaction/${transactionId}/mark-paid`, {}); }
   downloadPayinReceipt(transactionId: string): Observable<Blob> { return this.http.get(`${environment.apiUrl}/payin/transaction/${transactionId}/receipt.pdf`, { responseType: 'blob' }); }
   getPayinBeneficiariesForCustomer(customerId: string): Observable<any> { return this.http.get(`${environment.apiUrl}/payin/beneficiary/list/${customerId}`); }
+  updatePayinBeneficiary(id: string, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/payin/beneficiary/${id}`, data); }
   getPayinCustomerDocuments(customerId: string): Observable<any> { return this.http.get(`${environment.apiUrl}/payin/customer/${customerId}/documents`); }
 
   /** Upload a KYC document for a payin customer. docCategory: IDENTITY|ADDRESS, docSide: FRONT|BACK */

@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -80,6 +81,36 @@ public class BeneficiaryController {
             Authentication authentication) {
         Long userId = extractUserId(authentication);
         BeneficiaryResponse response = beneficiaryService.updateBeneficiary(userId, id, request);
+        return ResponseEntity.ok(ApiResponse.<BeneficiaryResponse>builder()
+                .success(true)
+                .data(response)
+                .message("Beneficiary updated successfully")
+                .build());
+    }
+
+    // ── Admin: edit any user's beneficiaries on their behalf ──────────────────
+    // Gated by the 'user:manage_beneficiary' permission (ADMIN / SUPER_ADMIN). These mirror the
+    // owner endpoints above but are NOT ownership-scoped, and changes still sync to USI Money.
+
+    @GetMapping("/admin/by-user/{userId}")
+    @PreAuthorize("hasPermission(null, 'user:manage_beneficiary')")
+    @Operation(summary = "Admin: list a user's beneficiaries", description = "Lists all beneficiaries for the given user id (admin only)")
+    public ResponseEntity<ApiResponse<List<BeneficiaryResponse>>> adminListUserBeneficiaries(
+            @PathVariable Long userId) {
+        List<BeneficiaryResponse> responses = beneficiaryService.getBeneficiariesForUserAdmin(userId);
+        return ResponseEntity.ok(ApiResponse.<List<BeneficiaryResponse>>builder()
+                .success(true)
+                .data(responses)
+                .build());
+    }
+
+    @PutMapping("/admin/{id}")
+    @PreAuthorize("hasPermission(null, 'user:manage_beneficiary')")
+    @Operation(summary = "Admin: update a beneficiary", description = "Updates any user's beneficiary on their behalf (admin only); syncs to USI Money")
+    public ResponseEntity<ApiResponse<BeneficiaryResponse>> adminUpdateBeneficiary(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateBeneficiaryRequest request) {
+        BeneficiaryResponse response = beneficiaryService.adminUpdateBeneficiary(id, request);
         return ResponseEntity.ok(ApiResponse.<BeneficiaryResponse>builder()
                 .success(true)
                 .data(response)

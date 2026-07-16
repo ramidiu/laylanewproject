@@ -394,8 +394,26 @@ public class PayoutPartnerController {
         TransactionEntity tx = transactionRepository.findById(txnId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", txnId));
 
-        if (!partner.getId().equals(tx.getPayoutPartnerId())) {
-            throw new RemitzException("Transaction not assigned to this partner", HttpStatus.FORBIDDEN);
+        // Assignment check — MUST mirror the scoping used by getMyTransactions(), which lists
+        // by receive currency because payout_partner_id is null on most historical data. If we
+        // only accepted an exact payoutPartnerId match here, every currency-scoped transaction
+        // the partner can SEE would fail to mark paid with "not assigned to this partner"
+        // (e.g. TXN3848 / id 6746). When the txn is unclaimed and its receive currency matches
+        // the partner's payout currency, claim-on-payout: lock it to this partner and proceed.
+        Long assignedPartnerId = tx.getPayoutPartnerId();
+        if (!partner.getId().equals(assignedPartnerId)) {
+            String partnerCurrency = receiveCurrencyForPartnerName(partner.getPartnerName());
+            boolean currencyMatches = partnerCurrency != null
+                    && partnerCurrency.equalsIgnoreCase(tx.getReceiveCurrency());
+            boolean unclaimed = assignedPartnerId == null;
+            if (currencyMatches && unclaimed) {
+                tx.setPayoutPartnerId(partner.getId());
+                transactionRepository.save(tx);
+                log.info("Claim-on-payout: assigned txn {} ({}) to payout partner {} ({})",
+                        tx.getReferenceNumber(), tx.getId(), partner.getPartnerName(), partner.getId());
+            } else {
+                throw new RemitzException("Transaction not assigned to this partner", HttpStatus.FORBIDDEN);
+            }
         }
 
         // RULE (Pay-Out stage): partner can act ONLY when ACTIVE. INACTIVE → admin handles.

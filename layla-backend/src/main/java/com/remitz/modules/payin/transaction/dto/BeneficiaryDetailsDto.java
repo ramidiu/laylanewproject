@@ -20,6 +20,7 @@ import lombok.NoArgsConstructor;
 public class BeneficiaryDetailsDto {
     private String name;
     private String address;
+    private String city;              // → BeneficiaryEntity.city (USI beneficiary "city" field)
     private String mobileNumber;
 
     // Bank deposit

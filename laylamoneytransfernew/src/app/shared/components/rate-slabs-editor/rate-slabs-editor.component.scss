@@ -1,0 +1,65 @@
+.slab-card {
+  padding: 20px;
+}
+
+.slab-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--fb-navy, #1B3A6B);
+  }
+}
+
+.slab-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  max-width: 520px;
+  line-height: 1.4;
+}
+
+.slab-selectors {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .fb-field { min-width: 190px; }
+}
+
+.slab-table {
+  width: 100%;
+  margin-top: 8px;
+
+  th { font-size: 0.78rem; color: #6b7280; text-align: left; padding: 6px 8px; }
+  td { padding: 6px 8px; }
+  input.fb-input { width: 100%; }
+}
+
+.slab-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  padding: 18px 8px;
+}
+
+.slab-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.slab-hint {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}

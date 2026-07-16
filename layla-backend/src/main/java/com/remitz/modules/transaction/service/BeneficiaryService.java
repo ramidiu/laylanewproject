@@ -6,6 +6,7 @@ import com.remitz.common.enums.DeliveryMethod;
 import com.remitz.common.dto.UpdateBeneficiaryRequest;
 import com.remitz.common.exception.RemitzException;
 import com.remitz.common.exception.ResourceNotFoundException;
+import com.remitz.modules.payout.usi.service.UsiPayoutService;
 import com.remitz.modules.transaction.entity.BeneficiaryEntity;
 import com.remitz.modules.transaction.repository.BeneficiaryRepository;
 import com.remitz.modules.user.service.SystemConfigService;
@@ -14,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -29,6 +32,7 @@ public class BeneficiaryService {
     private final BeneficiaryRepository beneficiaryRepository;
     // Code added by Naresh: System Controls Phase 7 — runtime beneficiary write gate.
     private final SystemConfigService systemConfigService;
+    private final UsiPayoutService usiPayoutService;
 
     private static boolean blank(String s) { return s == null || s.isBlank(); }
 
@@ -119,6 +123,49 @@ public class BeneficiaryService {
         BeneficiaryEntity entity = beneficiaryRepository.findByUserIdAndId(userId, id)
                 .orElseThrow(() -> new ResourceNotFoundException("Beneficiary", "id", id));
 
+        applyBeneficiaryUpdates(entity, request);
+
+        BeneficiaryEntity saved = beneficiaryRepository.save(entity);
+        log.info("Beneficiary updated id={} for userId={}", id, userId);
+
+        // Push the updated recipient to USI Money. Runs after the DB commit and is best-effort,
+        // so a USI/HTTP failure can never roll back the beneficiary save.
+        triggerUsiBeneficiarySync(saved.getId());
+
+        return mapToResponse(saved);
+    }
+
+    /**
+     * Admin edit: update ANY user's beneficiary by id (no ownership scoping). Gated by the
+     * 'user:manage_beneficiary' permission at the controller. Like the owner edit, it pushes the
+     * change to USI Money after commit. Used by the admin "Edit recipients" UI.
+     */
+    @Transactional
+    public BeneficiaryResponse adminUpdateBeneficiary(Long id, UpdateBeneficiaryRequest request) {
+        ensureBeneficiaryWritesEnabled();
+        BeneficiaryEntity entity = beneficiaryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Beneficiary", "id", id));
+
+        applyBeneficiaryUpdates(entity, request);
+
+        BeneficiaryEntity saved = beneficiaryRepository.save(entity);
+        log.info("Beneficiary admin-updated id={} (ownerUserId={})", id, saved.getUserId());
+
+        triggerUsiBeneficiarySync(saved.getId());
+
+        return mapToResponse(saved);
+    }
+
+    /** Admin: list a user's beneficiaries (read-only, no ownership scoping). */
+    @Transactional(readOnly = true)
+    public List<BeneficiaryResponse> getBeneficiariesForUserAdmin(Long userId) {
+        return beneficiaryRepository.findByUserIdAndIsBlockedFalse(userId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /** Apply the non-null fields of an update request onto a beneficiary (shared by owner + admin edit). */
+    private void applyBeneficiaryUpdates(BeneficiaryEntity entity, UpdateBeneficiaryRequest request) {
         if (request.getFullName() != null) entity.setFullName(request.getFullName());
         if (request.getCountry() != null) entity.setCountry(request.getCountry());
         if (request.getDeliveryMethod() != null) entity.setDeliveryMethod(request.getDeliveryMethod());
@@ -134,10 +181,30 @@ public class BeneficiaryService {
         if (request.getRelationship() != null) entity.setRelationship(request.getRelationship());
         if (request.getAddress() != null) entity.setAddress(request.getAddress());
         if (request.getCity() != null) entity.setCity(request.getCity());
+    }
 
-        BeneficiaryEntity saved = beneficiaryRepository.save(entity);
-        log.info("Beneficiary updated id={} for userId={}", id, userId);
-        return mapToResponse(saved);
+    /** Sync this beneficiary to USI after the update commits (best-effort, non-fatal). */
+    private void triggerUsiBeneficiarySync(Long beneficiaryId) {
+        Runnable sync = () -> {
+            try {
+                java.util.Map<String, Object> result = usiPayoutService.syncBeneficiary(beneficiaryId);
+                log.info("USI beneficiary sync for {} — status: {}", beneficiaryId, result.get("status"));
+            } catch (Exception e) {
+                log.error("USI beneficiary sync failed for {} (non-fatal, update unaffected): {}",
+                        beneficiaryId, e.getMessage());
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sync.run();
+                }
+            });
+        } else {
+            sync.run();
+        }
     }
 
     @Transactional

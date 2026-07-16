@@ -55,4 +55,18 @@ export class BeneficiaryService {
       map(res => res || [])
     );
   }
+
+  // ── Admin: manage a user's beneficiaries (requires user:manage_beneficiary) ──
+
+  listForUserAdmin(userId: number | string): Observable<BeneficiaryResponse[]> {
+    return this.http.get<any>(`${this.baseUrl}/admin/by-user/${userId}`).pipe(
+      map(res => res.data || res || [])
+    );
+  }
+
+  updateAdmin(id: string, request: UpdateBeneficiaryRequest): Observable<BeneficiaryResponse> {
+    return this.http.put<any>(`${this.baseUrl}/admin/${id}`, request).pipe(
+      map(res => res.data || res)
+    );
+  }
 }

@@ -49,6 +49,14 @@ export class KycService {
     );
   }
 
+  /** Full KYC audit trail (uploads, approvals, tier changes) with actor role + IP + timestamps. */
+  getAuditLog(userId: string): Observable<any[]> {
+    if (!userId) return of([]);
+    return this.http.get<any>(`${this.baseUrl}/${userId}/kyc/audit-log`).pipe(
+      map(res => res.data || res || [])
+    );
+  }
+
   reviewDocument(userId: string, docId: string, request: KycReviewRequest): Observable<any> {
     return this.http.put(`${this.baseUrl}/${userId}/kyc/documents/${docId}`, request);
   }

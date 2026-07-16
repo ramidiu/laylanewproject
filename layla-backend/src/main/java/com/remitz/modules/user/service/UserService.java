@@ -8,6 +8,7 @@ import com.remitz.common.exception.RemitzException;
 import com.remitz.common.exception.ResourceNotFoundException;
 import com.remitz.modules.auth.entity.UserEntity;
 import com.remitz.modules.auth.repository.UserRepository;
+import com.remitz.modules.payout.usi.service.UsiPayoutService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -25,6 +28,7 @@ import org.springframework.util.StringUtils;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UsiPayoutService usiPayoutService;
 
     @Transactional(readOnly = true)
     public UserResponse getUserByUuid(String uuid) {
@@ -111,7 +115,40 @@ public class UserService {
 
         UserEntity saved = userRepository.save(user);
         log.info("Updated user profile: {} (sensitiveChanged={})", uuid, sensitiveChanged);
+
+        // Push the updated profile to USI Money and refresh the user's verification status.
+        // Fires whether the change came from the user's own Edit Profile or an admin edit
+        // (both flow through this method). Runs after the DB commit and is best-effort, so a
+        // USI/HTTP failure can never roll back the profile save.
+        Long savedId = saved.getId();
+        triggerUsiRemitterSync(savedId);
+
         return toUserResponse(saved);
+    }
+
+    /** Sync this user's remitter to USI after the profile update commits (best-effort, non-fatal). */
+    private void triggerUsiRemitterSync(Long userId) {
+        Runnable sync = () -> {
+            try {
+                java.util.Map<String, Object> result = usiPayoutService.syncRemitter(userId);
+                log.info("USI remitter sync for user {} — status: {}, verified: {}",
+                        userId, result.get("status"), result.get("verified"));
+            } catch (Exception e) {
+                log.error("USI remitter sync failed for user {} (non-fatal, profile unaffected): {}",
+                        userId, e.getMessage());
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sync.run();
+                }
+            });
+        } else {
+            sync.run();
+        }
     }
 
     @Transactional(readOnly = true)

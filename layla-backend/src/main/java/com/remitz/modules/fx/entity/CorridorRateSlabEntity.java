@@ -27,6 +27,14 @@ public class CorridorRateSlabEntity {
     @Column(name = "corridor_id", nullable = false)
     private Long corridorId;
 
+    /**
+     * The payout delivery method this rate band applies to (DeliveryMethod enum name,
+     * e.g. BANK_DEPOSIT / CASH_PICKUP / MOBILE_WALLET). NULL = applies to every payment
+     * type on this corridor (legacy corridor-wide slab).
+     */
+    @Column(name = "delivery_method", length = 30)
+    private String deliveryMethod;
+
     @Column(name = "min_amount", nullable = false, precision = 18, scale = 2)
     private BigDecimal minAmount;
 

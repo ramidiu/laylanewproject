@@ -4,9 +4,11 @@ import { ToastController, AlertController } from '@ionic/angular';
 import { UserService, RiskScoreResponse } from '../../../core/services/user.service';
 import { KycService } from '../../../core/services/kyc.service';
 import { TransactionService } from '../../../core/services/transaction.service';
+import { BeneficiaryService } from '../../../core/services/beneficiary.service';
 import { UserResponse } from '../../../core/models/user.model';
 import { KycDocumentResponse, KycDocumentStatus } from '../../../core/models/kyc.model';
 import { TransactionResponse } from '../../../core/models/transaction.model';
+import { BeneficiaryResponse, UpdateBeneficiaryRequest } from '../../../core/models/beneficiary.model';
 
 @Component({
   selector: 'app-admin-user-detail',
@@ -21,11 +23,24 @@ export class AdminUserDetailPage implements OnInit {
   riskLoading = false;
   loading = true;
 
+  // KYC audit trail (uploads, approvals, tier changes) with actor role + IP
+  kycAudit: any[] = [];
+  kycAuditLoading = false;
+
+  // Admin recipient (beneficiary) management
+  beneficiaries: BeneficiaryResponse[] = [];
+  benLoading = false;
+  editingBen: BeneficiaryResponse | null = null;
+  benSaving = false;
+  benForm: UpdateBeneficiaryRequest = {};
+  readonly deliveryMethods = ['BANK_DEPOSIT', 'MOBILE_WALLET', 'CASH_PICKUP'];
+
   constructor(
     private route: ActivatedRoute,
     private userService: UserService,
     private kycService: KycService,
     private transactionService: TransactionService,
+    private beneficiaryService: BeneficiaryService,
     private toastCtrl: ToastController,
     private alertCtrl: AlertController
   ) {}
@@ -42,8 +57,10 @@ export class AdminUserDetailPage implements OnInit {
       next: (user) => {
         this.user = user;
         this.loadDocuments(id);
+        this.loadKycAudit(id);
         this.loadTransactions(id);
         this.loadRiskScore(user.id);
+        this.loadBeneficiaries(user.id);
         this.loading = false;
       },
       error: () => this.loading = false
@@ -83,6 +100,29 @@ export class AdminUserDetailPage implements OnInit {
       next: (docs) => this.documents = docs,
       error: () => this.documents = []
     });
+  }
+
+  loadKycAudit(userId: string): void {
+    this.kycAuditLoading = true;
+    this.kycService.getAuditLog(userId).subscribe({
+      next: (logs) => { this.kycAudit = logs || []; this.kycAuditLoading = false; },
+      error: () => { this.kycAudit = []; this.kycAuditLoading = false; }
+    });
+  }
+
+  /** Human-readable summary of a KYC audit event's JSON details. */
+  kycAuditSummary(details: string): string {
+    if (!details) return '';
+    try {
+      const d = JSON.parse(details);
+      const parts: string[] = [];
+      if (d.newStatus) parts.push('Status: ' + d.newStatus);
+      if (d.documentId) parts.push('Doc #' + d.documentId);
+      if (d.newTier) parts.push('Tier: ' + d.newTier);
+      if (d.previousTier) parts.push('(was ' + d.previousTier + ')');
+      if (d.rejectionReason) parts.push('Reason: ' + d.rejectionReason);
+      return parts.join(' · ');
+    } catch { return details; }
   }
 
   loadTransactions(userId: string): void {
@@ -151,6 +191,62 @@ export class AdminUserDetailPage implements OnInit {
         this.loadUser(this.user!.uuid);
       },
       error: () => this.showToast('Failed to activate user', 'danger')
+    });
+  }
+
+  loadBeneficiaries(numericId: number): void {
+    this.benLoading = true;
+    this.beneficiaryService.listForUserAdmin(numericId).subscribe({
+      next: (list) => {
+        this.beneficiaries = list || [];
+        this.benLoading = false;
+      },
+      error: () => {
+        this.beneficiaries = [];
+        this.benLoading = false;
+      }
+    });
+  }
+
+  openBenEdit(ben: BeneficiaryResponse): void {
+    this.editingBen = ben;
+    // Seed the form with the current values; only changed fields are sent on save.
+    this.benForm = {
+      fullName: ben.fullName,
+      country: ben.country,
+      deliveryMethod: ben.deliveryMethod,
+      bankName: ben.bankName,
+      accountNumber: ben.accountNumber,
+      iban: ben.iban,
+      swiftBic: ben.swiftBic,
+      sortCode: ben.sortCode,
+      mobileNumber: ben.mobileNumber,
+      mobileProvider: ben.mobileProvider,
+      address: ben.address,
+      city: ben.city,
+      relationship: ben.relationship
+    };
+  }
+
+  closeBenEdit(): void {
+    this.editingBen = null;
+    this.benForm = {};
+  }
+
+  saveBen(): void {
+    if (!this.editingBen) return;
+    this.benSaving = true;
+    this.beneficiaryService.updateAdmin(this.editingBen.id, this.benForm).subscribe({
+      next: () => {
+        this.benSaving = false;
+        this.showToast('Recipient updated — synced to USI', 'success');
+        this.closeBenEdit();
+        if (this.user) this.loadBeneficiaries(this.user.id);
+      },
+      error: () => {
+        this.benSaving = false;
+        this.showToast('Failed to update recipient', 'danger');
+      }
     });
   }
 

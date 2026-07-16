@@ -86,6 +86,10 @@ public class QuoteService {
         DeliveryMethod deliveryMethod = request.getDeliveryMethod() != null
                 ? request.getDeliveryMethod() : DeliveryMethod.BANK_DEPOSIT;
 
+        // Rate-slab lookup is scoped to the REQUESTED payment type (cash/bank/mobile).
+        // Null when the caller didn't specify one, which falls back to corridor-wide slabs.
+        String slabMethod = request.getDeliveryMethod() != null ? request.getDeliveryMethod().name() : null;
+
         BigDecimal sendAmount;
         BigDecimal receiveAmount;
         // When an amount-based rate slab matches the send amount, its rate REPLACES the
@@ -94,7 +98,7 @@ public class QuoteService {
 
         if (request.getSendAmount() != null) {
             sendAmount = request.getSendAmount();
-            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount);
+            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount, slabMethod);
             if (slab.isPresent()) { appliedRate = slab.get(); slabApplied = true; }
             BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount);
             receiveAmount = sendAmount.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
@@ -108,7 +112,7 @@ public class QuoteService {
             sendAmount = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
             // The slab depends on the send amount, so resolve it from the implied send amount
             // and re-derive the send amount with the slab rate (single correction pass).
-            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount);
+            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount, slabMethod);
             if (slab.isPresent()) {
                 appliedRate = slab.get();
                 slabApplied = true;

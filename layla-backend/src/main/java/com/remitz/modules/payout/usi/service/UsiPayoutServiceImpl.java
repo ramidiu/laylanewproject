@@ -328,6 +328,129 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         }
     }
 
+    // REQUIRES_NEW: this runs from an afterCommit callback (no active transaction), so the
+    // remitter insert / verified-flag update must open their own transaction to persist.
+    @Override
+    @org.springframework.transaction.annotation.Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public Map<String, Object> syncRemitter(Long userId) {
+        Map<String, Object> json = new LinkedHashMap<>();
+        if (!props.isEnabled()) {
+            json.put("status", "SKIPPED");
+            json.put("message", "USI integration disabled");
+            return json;
+        }
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            json.put("status", "SKIPPED");
+            json.put("message", "User not found for userId: " + userId);
+            return json;
+        }
+
+        // Can't build a remitter without the USI-required fields — surface, don't call out.
+        List<String> missing = collectMissingRemitterFields(user);
+        if (!missing.isEmpty()) {
+            json.put("status", "MISSING_INFO");
+            json.put("missing", missing);
+            json.put("message", "Remitter " + missing.get(0) + " is required.");
+            return json;
+        }
+
+        UsiRemitterEntity existing = usiRemitterRepository.findByUserId(userId).orElse(null);
+
+        // Pause guard: skip re-syncing remitters whose USI record is locked/bad (e.g. duplicate ID
+        // that only USI Support can fix). Avoids firing updateRemitter at a record we can't change.
+        if (existing != null && props.isRemitterSyncPaused(existing.getRemitterId())) {
+            json.put("status", "SKIPPED");
+            json.put("remitterId", existing.getRemitterId());
+            json.put("message", "Remitter sync paused for " + existing.getRemitterId());
+            log.info("USI remitter sync PAUSED for remitter {} (user {})", existing.getRemitterId(), userId);
+            return json;
+        }
+
+        try {
+            if (existing == null) {
+                // First time the user has enough data — create the remitter on USI.
+                Map<String, Object> created = createRemitter(userId);
+                json.putAll(created);
+                existing = usiRemitterRepository.findByUserId(userId).orElse(null);
+            } else {
+                // Remitter already on USI — push the changed profile via updateRemitter.
+                String iso3 = countryIso3(user);
+                MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+                body.add("group", "remitter");
+                body.add("method", "updateRemitter");
+                body.add("remitter_id", existing.getRemitterId());
+                addRemitterProfileFields(body, user, iso3);
+                addCreds(body);
+
+                String responseBody = postMultipart("/remitter/updateRemitter", body);
+                Document doc = parse(responseBody);
+                String status = tag(doc, "status", 0);
+                json.put("status", status);
+                json.put("remitterId", existing.getRemitterId());
+                if ("SUCCESS".equalsIgnoreCase(status)) {
+                    json.put("message", "Remitter updated on USI");
+                    log.info("USI remitter {} updated for user {}", existing.getRemitterId(), userId);
+                } else {
+                    json.put("message", firstNonBlank(tag(doc, "error", 0), tag(doc, "message", 0)));
+                    log.warn("USI updateRemitter for user {} returned {}: {}", userId, status, json.get("message"));
+                }
+            }
+        } catch (Exception e) {
+            json.put("status", "FAILED");
+            json.put("message", "USI remitter sync failed: " + e.getMessage());
+            log.error("USI syncRemitter failed for user {} (non-fatal): {}", userId, e.getMessage());
+            return json;
+        }
+
+        // Refresh the verification flag from USI so transaction gating reflects the latest
+        // status — once verified the user can send on the USI corridors.
+        if (existing != null) {
+            try {
+                RemitterVerifyResponse v = verifyRemitter(userId);
+                json.put("verified", v.isVerified());
+                json.put("verifyStatus", v.getStatus());
+            } catch (Exception e) {
+                log.warn("USI verifyRemitter after sync failed for user {} (non-fatal): {}", userId, e.getMessage());
+            }
+        }
+        return json;
+    }
+
+    /**
+     * The shared remitter profile fields (everything except group/method/remitter_id/creds).
+     * Kept identical to the createRemitter body so an update sends the same data the create did.
+     */
+    private void addRemitterProfileFields(MultiValueMap<String, Object> body, UserEntity user, String iso3) {
+        body.add("firstname", capitalize(user.getFirstName()));
+        body.add("lastname", capitalize(user.getLastName()));
+        body.add("type", "registered");
+        body.add("agent_name", props.getAgentName());
+        body.add("nationality", iso3);
+        body.add("status", "valid");
+        body.add("gender", user.getGender() != null ? user.getGender() : "Male");
+        // Line 2 (flat/unit) first, then line 1 (street) — matches createRemitter.
+        body.add("address1", joinAddressLines(user.getAddressLine2(), user.getAddressLine1()));
+        body.add("city", user.getCity() != null ? user.getCity() : "");
+        body.add("postcode", user.getPostcode() != null ? user.getPostcode() : "");
+        body.add("mobile", normalisePhone(user.getPhone(), iso3));
+        body.add("dob", user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : "1990-01-01");
+        KycDocumentEntity primaryId = pickPrimaryId(user.getId());
+        body.add("id_type",          primaryId != null && primaryId.getDocumentType() != null
+                ? mapKycToUsiIdType(primaryId.getDocumentType().name()) : "Other");
+        body.add("id_details",       primaryId != null && primaryId.getDocumentNumber() != null
+                ? primaryId.getDocumentNumber() : "NA");
+        body.add("id_issue_country", iso3);
+        // USI's updateRemitter rejects a blank id_expiry ("ID1 Expiry Date is required"), so
+        // fall back to a far-future placeholder when no document expiry is on file — same
+        // best-effort approach as the dob placeholder above.
+        body.add("id_expiry",        primaryId != null && primaryId.getExpiryDate() != null
+                ? primaryId.getExpiryDate().toString() : "2035-01-01");
+        body.add("orgtype", "Individual");
+    }
+
     // ── Beneficiary ──────────────────────────────────────────────────────
 
     @Override
@@ -377,8 +500,10 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
             // Whitespace is stripped from the account/IBAN so a stray leading space isn't rejected.
             body.add("bank",             value(bnf.getBankName(), ""));
             body.add("bank_branch",      value(bnf.getSortCode(), bnf.getBankName()));
-            body.add("bank_branch_city", value(bnf.getBranchCity(), "Any Branch"));
-            body.add("bank_branch_state",value(bnf.getBranchState(), "Any Branch"));
+            // Branch city + state are hard-coded to "Any Branch" for USI bank transactions
+            // (client requirement). The recipient's real city goes in the top-level `city` field only.
+            body.add("bank_branch_city", "Any Where");
+            body.add("bank_branch_state","Any Where");
             body.add("account_number",   value(bnf.getAccountNumber(), "").replaceAll("\\s", ""));
 
             // IBAN required for non-Uganda/non-Egypt corridors
@@ -411,6 +536,15 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                 // USI returns <existing_beneficiary_id>NNN</existing_beneficiary_id> on duplicates.
                 // Link the existing one locally so subsequent calls work.
                 String existingBnfId = tag(doc, "existing_beneficiary_id", 0);
+                // Fallback: some USI duplicate responses carry the existing id only in the message text
+                // (e.g. "...already exists with beneficiary id 320776"), not the dedicated tag. Extract it
+                // so an edit still links + reconciles instead of silently failing the sync.
+                if ((existingBnfId == null || existingBnfId.isBlank()) && msg != null) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern
+                            .compile("(?:exist|id|number|beneficiary)\\D{0,15}(\\d{3,})", java.util.regex.Pattern.CASE_INSENSITIVE)
+                            .matcher(msg);
+                    if (m.find()) existingBnfId = m.group(1);
+                }
                 if (existingBnfId != null && !existingBnfId.isBlank()) {
                     usiBeneficiaryRepository.save(UsiBeneficiaryEntity.builder()
                             .localBeneficiaryId(String.valueOf(beneficiaryId))
@@ -421,6 +555,17 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                     json.put("usiBeneficiaryId", existingBnfId);
                     json.put("message", "Existing USI beneficiary " + existingBnfId + " linked.");
                     log.info("USI beneficiary already existed — linked id {} to local beneficiary {}", existingBnfId, beneficiaryId);
+
+                    // USI deduped us onto a record that may hold STALE data (it was first created
+                    // from an earlier version of this recipient — e.g. an old bank name before a
+                    // bank-list correction). Reconcile it with our current data so the frozen record
+                    // doesn't keep paying out with the wrong details. Best-effort — never fatal.
+                    try {
+                        pushBeneficiaryUpdate(existingBnfId, bnf);
+                    } catch (Exception e) {
+                        log.warn("USI reconcile updateBeneficiary for {} (local {}) failed (non-fatal): {}",
+                                existingBnfId, beneficiaryId, e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
@@ -438,6 +583,148 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         body.add("beneficiary_id", usiBeneficiaryId);
         addCreds(body);
         return postMultipart("/beneficiary/searchBeneficiary", body);
+    }
+
+    // REQUIRES_NEW: runs from an afterCommit callback (no active transaction), so a first-time
+    // createBeneficiary insert must open its own transaction to persist.
+    @Override
+    @org.springframework.transaction.annotation.Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public Map<String, Object> syncBeneficiary(Long beneficiaryId) {
+        Map<String, Object> json = new LinkedHashMap<>();
+        if (!props.isEnabled()) {
+            json.put("status", "SKIPPED");
+            json.put("message", "USI integration disabled");
+            return json;
+        }
+
+        BeneficiaryEntity bnf = beneficiaryRepository.findById(beneficiaryId).orElse(null);
+        if (bnf == null) {
+            json.put("status", "SKIPPED");
+            json.put("message", "Beneficiary not found: " + beneficiaryId);
+            return json;
+        }
+
+        UsiBeneficiaryEntity existing = usiBeneficiaryRepository
+                .findByLocalBeneficiaryId(String.valueOf(beneficiaryId)).orElse(null);
+
+        // Not on USI yet → create it, but only once the owner has a remitter (USI links a
+        // beneficiary to a remitter). Otherwise leave it — it gets created at transaction time.
+        if (existing == null) {
+            if (usiRemitterRepository.findByUserId(bnf.getUserId()).isEmpty()) {
+                json.put("status", "SKIPPED");
+                json.put("message", "Owner has no USI remitter yet — beneficiary will be pushed when a transaction is created.");
+                return json;
+            }
+            try {
+                json.putAll(createBeneficiary(beneficiaryId));
+            } catch (Exception e) {
+                json.put("status", "FAILED");
+                json.put("message", "USI beneficiary create failed: " + e.getMessage());
+                log.error("USI syncBeneficiary create failed for {} (non-fatal): {}", beneficiaryId, e.getMessage());
+            }
+            return json;
+        }
+
+        // Already on USI → push the changed data via updateBeneficiary.
+        try {
+            String status = pushBeneficiaryUpdate(existing.getUsiBeneficiaryId(), bnf);
+            if ("SUCCESS".equalsIgnoreCase(status)) {
+                json.put("status", "SUCCESS");
+                json.put("usiBeneficiaryId", existing.getUsiBeneficiaryId());
+                json.put("message", "Beneficiary updated on USI");
+                return json;
+            }
+            // updateBeneficiary failed — the linked USI id may be stale/invalid. Re-resolve by
+            // re-creating (USI dedupes by identity, so this re-links to the SAME record rather than
+            // duplicating, now that the create path can read the id from the message). Restore the
+            // original link if we still can't resolve one, so we never lose it.
+            log.warn("USI updateBeneficiary for {} returned {} — re-resolving USI link for local {}",
+                    existing.getUsiBeneficiaryId(), status, beneficiaryId);
+            String previousId = existing.getUsiBeneficiaryId();
+            usiBeneficiaryRepository.delete(existing);
+            Map<String, Object> recreated = createBeneficiary(beneficiaryId);
+            Object newId = recreated.get("usiBeneficiaryId");
+            if (newId == null || String.valueOf(newId).isBlank()) {
+                usiBeneficiaryRepository.save(UsiBeneficiaryEntity.builder()
+                        .localBeneficiaryId(String.valueOf(beneficiaryId))
+                        .usiBeneficiaryId(previousId)
+                        .status("ACTIVE")
+                        .build());
+            }
+            json.putAll(recreated);
+        } catch (Exception e) {
+            json.put("status", "FAILED");
+            json.put("message", "USI beneficiary sync failed: " + e.getMessage());
+            log.error("USI syncBeneficiary failed for {} (non-fatal): {}", beneficiaryId, e.getMessage());
+        }
+        return json;
+    }
+
+    /**
+     * POST beneficiary/updateBeneficiary with the local beneficiary's current data so USI's stored
+     * record matches ours. USI dedupes beneficiaries by identity, so createBeneficiary can silently
+     * link an EXISTING USI record that was first created with stale data (e.g. an old bank name from
+     * before a bank-list correction) — calling this after linking reconciles it. Returns the USI
+     * status string; the caller decides whether a non-SUCCESS is fatal.
+     */
+    private String pushBeneficiaryUpdate(String usiBeneficiaryId, BeneficiaryEntity bnf) throws Exception {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("group", "beneficiary");
+        body.add("method", "updateBeneficiary");
+        body.add("beneficiary_id", usiBeneficiaryId);
+        addBeneficiaryProfileFields(body, bnf);
+        usiRemitterRepository.findByUserId(bnf.getUserId())
+                .ifPresent(r -> body.add("linked_member_id", r.getRemitterId()));
+        addCreds(body);
+
+        String responseBody = postMultipart("/beneficiary/updateBeneficiary", body);
+        Document doc = parse(responseBody);
+        String status = tag(doc, "status", 0);
+        if ("SUCCESS".equalsIgnoreCase(status)) {
+            log.info("USI beneficiary {} reconciled via updateBeneficiary (local {})", usiBeneficiaryId, bnf.getId());
+        } else {
+            log.warn("USI updateBeneficiary for {} (local {}) returned {}: {}", usiBeneficiaryId, bnf.getId(),
+                    status, firstNonBlank(tag(doc, "error", 0), tag(doc, "message", 0)));
+        }
+        return status;
+    }
+
+    /**
+     * The shared beneficiary fields (everything except group/method/beneficiary_id/linked_member_id/creds).
+     * Kept identical to the createBeneficiary body so an update sends the same data the create did.
+     */
+    private void addBeneficiaryProfileFields(MultiValueMap<String, Object> body, BeneficiaryEntity bnf) {
+        // USI demands at least 2 name parts. Normalise + pad with "Recipient" if needed.
+        String cleaned = ((bnf.getFullName() == null ? "" : bnf.getFullName()).replaceAll("[^a-zA-Z ]", "")).trim().replaceAll("\\s+", " ");
+        String fullName = cleaned.contains(" ") ? cleaned : (cleaned.isEmpty() ? "Customer User" : cleaned + " Recipient");
+        body.add("name", fullName);
+        body.add("organisation_type", "INDIVIDUAL");
+        // USI requires non-empty address1 + city — fall back to the country capital when blank.
+        String address = (bnf.getAddress() != null && !bnf.getAddress().isBlank())
+                ? bnf.getAddress() : defaultCityFor(bnf.getCountry());
+        String city = (bnf.getCity() != null && !bnf.getCity().isBlank())
+                ? bnf.getCity() : defaultCityFor(bnf.getCountry());
+        body.add("address1", address);
+        body.add("city", city);
+        body.add("country", expandCountryName(bnf.getCountry()));
+        body.add("mobile", normalisePhone(bnf.getMobileNumber(), iso2OrThree(bnf.getCountry())));
+
+        if (bnf.getDeliveryMethod() == DeliveryMethod.BANK_DEPOSIT) {
+            body.add("bank",             value(bnf.getBankName(), ""));
+            body.add("bank_branch",      value(bnf.getSortCode(), bnf.getBankName()));
+            // Branch city + state are hard-coded to "Any Branch" for USI bank transactions
+            // (client requirement). The recipient's real city goes in the top-level `city` field only.
+            body.add("bank_branch_city", "Any Where");
+            body.add("bank_branch_state","Any Where");
+            body.add("account_number",   value(bnf.getAccountNumber(), "").replaceAll("\\s", ""));
+
+            // IBAN required for non-Uganda/non-Egypt corridors
+            String c = bnf.getCountry() != null ? bnf.getCountry().toUpperCase() : "";
+            if (!c.contains("UGANDA") && !c.contains("EGYPT")) {
+                body.add("benef_bank_iban", value(bnf.getIban(), "").replaceAll("\\s", ""));
+            }
+        }
     }
 
     // ── Transaction ──────────────────────────────────────────────────────
@@ -628,6 +915,26 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         addCreds(body);
 
         String responseBody = postMultipart("/transaction/confirmTransaction", body);
+
+        // USI's confirm endpoint can return HTTP 5xx with an empty/non-XML body (e.g. the Qatar
+        // cash-collection rail). Parsing that throws "Premature end of file", which used to bubble
+        // up as a raw 500 to the customer and leave the row stuck at "initiated". Treat an empty
+        // response the same as any other confirm failure: mark it confirm_failed and return a clean
+        // message instead of throwing.
+        if (responseBody == null || responseBody.isBlank()) {
+            String msg = "USI did not return a valid confirmation response (payout provider error). "
+                    + "The transaction was created but could not be confirmed — please retry shortly; "
+                    + "if it persists this payout corridor may be temporarily unavailable at USI.";
+            log.warn("USI confirmTransaction returned an empty/error body for {} (session {}) — marking confirm_failed",
+                    referenceNumber, row.getTransSessionId());
+            json.put("status", "FAILED");
+            json.put("message", msg);
+            row.setErrorMessage(msg);
+            row.setStatus("confirm_failed");
+            usiTransactionRepository.save(row);
+            return json;
+        }
+
         try {
             Document doc = parse(responseBody);
             String status = tag(doc, "status", 0);
@@ -935,16 +1242,18 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
     }
 
     /**
-     * Combine address line 1 + line 2 into a single, complete address string for USI's
-     * single "address1" field. Either part may be blank/null. Trailing/duplicate commas
-     * and surrounding whitespace are cleaned so e.g. ("Sherlock Court", "Flat 33,") becomes
-     * "Sherlock Court, Flat 33".
+     * Combine address line 1 + line 2 into the full street address for USI's single "address1"
+     * field. Either part may be blank/null. Per the USI client requirement, the address1 field
+     * carries the full address with NO commas — parts are space-joined and any commas stripped,
+     * so e.g. ("Sherlock Court", "Flat 33,") becomes "Flat 33 Sherlock Court". City / state /
+     * postcode / country are sent unchanged in their own fields.
      */
     private String joinAddressLines(String line1, String line2) {
         String a = line1 == null ? "" : line1.trim();
         String b = line2 == null ? "" : line2.trim();
-        String joined = (a.isEmpty() || b.isEmpty()) ? (a + b) : (a + ", " + b);
-        return joined.replaceAll("\\s*,\\s*", ", ").replaceAll("(,\\s*)+$", "").trim();
+        String joined = (a.isEmpty() || b.isEmpty()) ? (a + b) : (a + " " + b);
+        // No commas in address1, and collapse any doubled-up whitespace.
+        return joined.replace(",", " ").replaceAll("\\s+", " ").trim();
     }
 
     private String iso2OrThree(String country) {
@@ -1127,8 +1436,14 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         if (digits.startsWith("+")) return digits;
         if (digits.startsWith("00")) return "+" + digits.substring(2);
         String code = countryCode == null ? "" : DIAL.getOrDefault(countryCode.toUpperCase(Locale.ROOT), "");
-        if (code.isEmpty()) return digits.startsWith("+") ? digits : "+" + digits;
-        // Strip a leading 0 the way most national-format numbers carry it.
+        if (code.isEmpty()) return "+" + digits;
+        // User already typed the country dialing code without a '+' (e.g. "256781234567" for UG) —
+        // keep it as-is instead of prepending the code again (which produced "+256256..."). Guard on
+        // length so a local number that merely starts with the same digits isn't misread.
+        if (digits.startsWith(code) && digits.length() >= code.length() + 7) {
+            return "+" + digits;
+        }
+        // Otherwise strip a leading 0 (national format) and prepend the country code.
         if (digits.startsWith("0")) digits = digits.substring(1);
         return "+" + code + digits;
     }
