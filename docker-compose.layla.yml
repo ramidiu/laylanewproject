@@ -63,7 +63,7 @@ services:
       - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8096}
       - BRAND_NAME=Layla Money Transfer
-      - BRAND_SUPPORT_EMAIL=support@laylamoneytransfer.com
+      - BRAND_SUPPORT_EMAIL=info@laylamoneytransfer.co.uk
       - KUBER_ENABLED=${KUBER_ENABLED:-false}
       - USI_ENABLED=${USI_ENABLED:-true}
       - USI_URL=${USI_URL:-https://test4.remit.by/universalsecuritiestest/ws}

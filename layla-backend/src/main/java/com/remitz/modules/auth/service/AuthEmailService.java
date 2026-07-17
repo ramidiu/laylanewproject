@@ -34,7 +34,7 @@ public class AuthEmailService {
     @Value("${brand.address:}")
     private String brandAddress;
 
-    @Value("${brand.support-email:support@laylamoneytransfer.com}")
+    @Value("${brand.support-email:info@laylamoneytransfer.co.uk}")
     private String brandSupportEmail;
 
     @Value("${brand.logo-url:}")

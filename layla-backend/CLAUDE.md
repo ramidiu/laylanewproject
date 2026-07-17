@@ -14,7 +14,7 @@ Java 17, Spring Boot 3.2.3, Spring Security, MySQL 8.0, Redis 7, Flyway, JJWT 0.
 ```yaml
 brand:
   name: Layla Money Transfer
-  support-email: support@laylamoneytransfer.com
+  support-email: info@laylamoneytransfer.co.uk
   frontend-url: https://layla.money
 ```
 

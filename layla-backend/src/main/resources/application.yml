@@ -119,8 +119,8 @@ twilio:
 brand:
   name: ${BRAND_NAME:Layla Money Transfer}
   tagline: ${BRAND_TAGLINE:FAST. SAFE. AFFORDABLE.}
-  address: ${BRAND_ADDRESS:193 Seven Sisters Road, Finsbury Park, London N4 3NG}
-  support-email: ${BRAND_SUPPORT_EMAIL:support@laylamoneytransfer.com}
+  address: ${BRAND_ADDRESS:133 Broadley St, Marylebone, London NW8 8BA}
+  support-email: ${BRAND_SUPPORT_EMAIL:info@laylamoneytransfer.co.uk}
   # Hosted https URL for the email logo. Leave blank to derive from app.frontend-url
   # (<frontend>/assets/images/email-logo.png). NEVER inline as base64 — Gmail strips
   # data: URIs and a large inline logo breaches Gmail's 102KB clip limit.

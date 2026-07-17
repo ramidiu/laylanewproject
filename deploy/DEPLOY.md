@@ -149,7 +149,7 @@ Environment=KYC_UPLOAD_DIR=/var/www/layla/data/kyc-uploads
 
 # Brand
 Environment=BRAND_NAME=Layla Money Transfer
-Environment=BRAND_SUPPORT_EMAIL=support@laylamoneytransfer.com
+Environment=BRAND_SUPPORT_EMAIL=info@laylamoneytransfer.co.uk
 Environment=FRONTEND_URL=https://test.laylamoneytransfer.co.uk
 
 # Email (Brevo)

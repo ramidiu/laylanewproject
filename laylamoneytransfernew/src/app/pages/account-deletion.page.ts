@@ -34,7 +34,7 @@ import { Component } from '@angular/core';
       <p>Deletion requests are normally processed within 30 days.</p>
 
       <h2>Need Help?</h2>
-      <p>For assistance contact <a href="mailto:support@laylamoneytransfer.co.uk">support@laylamoneytransfer.co.uk</a>.</p>
+      <p>For assistance contact <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>.</p>
       <p>See also our <a href="/privacy-policy">Privacy Policy</a>.</p>
     </div>
   </div></ion-content>`

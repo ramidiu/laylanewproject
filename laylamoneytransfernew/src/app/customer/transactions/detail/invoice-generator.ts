@@ -255,12 +255,12 @@ function drawParties(doc: any, profile: UserResponse | null): void {
 
   const fromLines: string[] = [
     'Layla Money Transfer Ltd.',
-    '193 Seven Sisters Road',
-    'Finsbury Park, London, N4 3NG',
+    '133 Broadley St',
+    'Marylebone, London, NW8 8BA',
     'United Kingdom'
   ];
-  const fromEmail = 'support@laylamoneytransfer.com';
-  const fromPhone = '+44 (0) 203 000 0000';
+  const fromEmail = 'info@laylamoneytransfer.co.uk';
+  const fromPhone = '+44 (0) 207 7238 555';
 
   // Name — bold
   doc.setFont('helvetica', 'bold');

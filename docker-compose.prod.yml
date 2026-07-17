@@ -63,7 +63,7 @@ services:
       - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-}
       - FRONTEND_URL=${FRONTEND_URL:-http://68.169.59.140:8096}
       - BRAND_NAME=Layla Money Transfer
-      - BRAND_SUPPORT_EMAIL=support@laylamoneytransfer.com
+      - BRAND_SUPPORT_EMAIL=info@laylamoneytransfer.co.uk
       - KUBER_ENABLED=${KUBER_ENABLED:-false}
       - VOLUME_ENABLED=${VOLUME_ENABLED:-true}
       - VOLUME_APPLICATION_ID=${VOLUME_APPLICATION_ID:-30f61de5-013a-405a-9ae2-e01ae02036e2}
