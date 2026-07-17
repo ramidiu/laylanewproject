@@ -14,4 +14,5 @@ public interface UsiTransactionRepository extends JpaRepository<UsiTransactionEn
     Optional<UsiTransactionEntity> findByReferenceNumber(String referenceNumber);
     List<UsiTransactionEntity> findByStatus(String status);
     List<UsiTransactionEntity> findByStatusIn(java.util.Collection<String> statuses);
+    List<UsiTransactionEntity> findByStatusInAndUpdatedAtAfter(java.util.Collection<String> statuses, java.time.LocalDateTime after);
 }

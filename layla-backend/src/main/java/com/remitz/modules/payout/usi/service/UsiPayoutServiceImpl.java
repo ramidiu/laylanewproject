@@ -1034,9 +1034,11 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
 
             // Mirror the USI payout outcome onto the main transaction status so the two never drift apart.
             TransactionStatus mainStatus = null;
+            boolean inFlight = false;   // USI still progressing (non-terminal) — keep tracking
             if ("PROCESSED".equalsIgnoreCase(txnStatus)) {
                 row.setStatus("paid");
                 row.setPaymentStatus("funds received");
+                row.setErrorMessage(null);
                 mainStatus = TransactionStatus.PAID;
                 json.put("message", "Transaction PAID");
             } else if ("ABORTED".equalsIgnoreCase(txnStatus)) {
@@ -1057,22 +1059,45 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                 json.put("message", "Transaction FAILED on USI: " + msg);
             } else if ("AGENT_OK".equalsIgnoreCase(txnStatus)) {
                 row.setStatus("awaiting_compliance");
+                row.setErrorMessage(null);
+                inFlight = true;
                 json.put("message", "Awaiting USI compliance review");
             } else if ("HQ_OK".equalsIgnoreCase(txnStatus)) {
-                // Already known intermediate — keep "sent for pay"; USI will flip it next cycle.
+                row.setStatus("sent for pay");
+                row.setErrorMessage(null);
+                inFlight = true;
                 json.put("message", "USI HQ accepted — awaiting payout: " + txnStatus);
             } else {
+                // Any other in-flight status (SENT_FOR_PAY, INITIATED, …) — keep tracking it.
+                row.setStatus("sent for pay");
+                row.setErrorMessage(null);
+                inFlight = true;
                 json.put("message", "Transaction in progress: " + txnStatus);
             }
             row.setUsiStatus(txnStatus);
             usiTransactionRepository.save(row);
 
-            // Sync the main transaction row when USI reached a terminal state.
+            // Sync the main transaction row.
             if (mainStatus != null) {
+                // USI reached a terminal state — set it directly.
                 final TransactionStatus finalMainStatus = mainStatus;
                 transactionRepository.findByReferenceNumber(row.getTransactionId()).ifPresent(txn -> {
                     txn.setStatus(finalMainStatus);
                     transactionRepository.save(txn);
+                });
+            } else if (inFlight) {
+                // USI is still progressing. If the local txn got stuck at FAILED/CANCELLED (e.g. a
+                // validation error USI Support later cleared), recover it to in-progress so it reflects
+                // reality and tracks through to PAID instead of staying failed with a stale error.
+                transactionRepository.findByReferenceNumber(row.getTransactionId()).ifPresent(txn -> {
+                    if (txn.getStatus() == TransactionStatus.FAILED || txn.getStatus() == TransactionStatus.CANCELLED) {
+                        TransactionStatus was = txn.getStatus();
+                        txn.setStatus(TransactionStatus.SENT_TO_PAYOUT);
+                        txn.setFailureReason(null);
+                        transactionRepository.save(txn);
+                        log.info("USI recovered {} from {} -> SENT_TO_PAYOUT (USI now {})",
+                                row.getTransactionId(), was, txnStatus);
+                    }
                 });
             }
         } catch (Exception e) {

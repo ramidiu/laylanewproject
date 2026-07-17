@@ -35,9 +35,15 @@ public class UsiTransactionStatusScheduler {
             return;
         }
 
-        // Poll every non-terminal status — once we see PROCESSED/cancelled/failed we stop.
-        List<UsiTransactionEntity> pending = usiTransactionRepository.findByStatusIn(java.util.List.of(
-                "sent for pay", "awaiting_compliance", "initiated"));
+        // Poll every non-terminal status.
+        List<UsiTransactionEntity> pending = new java.util.ArrayList<>(usiTransactionRepository.findByStatusIn(
+                java.util.List.of("sent for pay", "awaiting_compliance", "initiated")));
+        // Also re-check recently-FAILED transactions: USI Support can clear a validation failure
+        // (e.g. a duplicate ID document) after the fact, and USI then advances the payout. getTransactionStatus
+        // recovers the local record if USI is progressing again; if it's still failed, nothing changes.
+        // Bounded to 14 days so we don't re-poll ancient failures forever.
+        pending.addAll(usiTransactionRepository.findByStatusInAndUpdatedAtAfter(
+                java.util.List.of("failed"), java.time.LocalDateTime.now().minusDays(14)));
         if (pending.isEmpty()) {
             log.debug("USI status poll — no in-flight transactions");
             return;
