@@ -16,6 +16,7 @@ import { AdminNotificationsPage } from './notifications/admin-notifications.page
 import { AdminPayinPartnersPage } from './payin-partners/admin-payin-partners.page';
 import { AdminPayinCustomersPage } from './payin-customers/admin-payin-customers.page';
 import { AdminTransferConfigPage } from './transfer-config/admin-transfer-config.page';
+import { AdminUsiPnlPage } from './usi-pnl/admin-usi-pnl.page';
 
 const routes: Routes = [
   {
@@ -39,7 +40,8 @@ const routes: Routes = [
       { path: 'support', component: AdminSupportPage },
       { path: 'payin-partners', component: AdminPayinPartnersPage },
       { path: 'payin-customers', component: AdminPayinCustomersPage },
-      { path: 'transfer-config',   component: AdminTransferConfigPage }
+      { path: 'transfer-config',   component: AdminTransferConfigPage },
+      { path: 'usi-pnl',           component: AdminUsiPnlPage }
     ]
   }
 ];

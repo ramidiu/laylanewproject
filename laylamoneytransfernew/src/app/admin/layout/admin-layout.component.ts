@@ -87,7 +87,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
           label: 'Configuration',
           items: [
             { label: 'FX Rates', icon: 'trending-up-outline', route: '/admin/fx' },
-            { label: 'Corridors', icon: 'git-network-outline', route: '/admin/corridors' }
+            { label: 'Corridors', icon: 'git-network-outline', route: '/admin/corridors' },
+            { label: 'USI P&L', icon: 'stats-chart-outline', route: '/admin/usi-pnl' }
           ]
         },
         {

@@ -17,6 +17,7 @@ import { AdminNotificationsPage } from './notifications/admin-notifications.page
 import { AdminPayinPartnersPage } from './payin-partners/admin-payin-partners.page';
 import { AdminPayinCustomersPage } from './payin-customers/admin-payin-customers.page';
 import { AdminTransferConfigPage } from './transfer-config/admin-transfer-config.page';
+import { AdminUsiPnlPage } from './usi-pnl/admin-usi-pnl.page';
 
 @NgModule({
   declarations: [
@@ -35,7 +36,8 @@ import { AdminTransferConfigPage } from './transfer-config/admin-transfer-config
     AdminNotificationsPage,
     AdminPayinPartnersPage,
     AdminPayinCustomersPage,
-    AdminTransferConfigPage
+    AdminTransferConfigPage,
+    AdminUsiPnlPage
   ],
   imports: [
     SharedModule,
