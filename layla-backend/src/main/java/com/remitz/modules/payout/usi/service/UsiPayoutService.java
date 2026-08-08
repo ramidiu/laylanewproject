@@ -3,7 +3,9 @@ package com.remitz.modules.payout.usi.service;
 import com.remitz.modules.payout.usi.dto.CollectionPointResponse;
 import com.remitz.modules.payout.usi.dto.RemitterVerifyResponse;
 import com.remitz.modules.payout.usi.dto.UsiAdminTransactionDto;
+import com.remitz.modules.payout.usi.dto.UsiChargesResult;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +56,14 @@ public interface UsiPayoutService {
     Map<String, Object> syncBeneficiary(Long beneficiaryId);
 
     Map<String, Object> createTransaction(String referenceNumber);
+
+    /**
+     * Read-only USI getCharges quote for a corridor + payout method. Returns the USI rate and
+     * charges WITHOUT creating anything and WITHOUT touching customer quotes (Phase 1).
+     */
+    UsiChargesResult getCharges(String destinationCountry, String usiTransType,
+                                String sourceCurrency, String destCurrency, BigDecimal sourceAmount);
+
     Map<String, Object> confirmTransaction(String referenceNumber);
     Map<String, Object> getTransactionStatus(String referenceNumber);
 

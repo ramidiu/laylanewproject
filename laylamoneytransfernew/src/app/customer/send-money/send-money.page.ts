@@ -162,6 +162,12 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   ngOnInit(): void {
+    // Trust test mode: open the Send page with ?trusttest=1 to route THIS device's card payments to
+    // the Trust SANDBOX site reference (?trusttest=0 to turn it off). Persisted per-device so it
+    // survives navigation. Live customers never pass this flag, so their payments stay on live.
+    const ttParam = new URLSearchParams(window.location.search).get('trusttest');
+    if (ttParam !== null) localStorage.setItem('trust_test', ttParam === '0' ? '0' : '1');
+
     this.loadCorridors();
     this.loadWalletBalance();
     this.loadUserBillingInfo();
@@ -967,6 +973,12 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     const total      = this.effectiveTotal;
     const mainamount = total.toFixed(2);
 
+    // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
+    // everyone else uses the LIVE reference, so real customer payments go through live.
+    const trustTest = localStorage.getItem('trust_test') === '1';
+    const siteRef   = trustTest ? 'test_laylalondo147950' : 'laylalondo147951';
+    if (trustTest) console.log('[Trust] TEST MODE — using sandbox site reference:', siteRef);
+
     const bene        = this.selectedBeneficiary;
     const nameParts   = (bene?.fullName || '').trim().split(/\s+/);
     const custFirst   = this.sanitize(nameParts[0] || '');
@@ -980,7 +992,7 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     const callbackUrl = `${window.location.origin}/home/trust-callback`;
 
     const fields: Array<[string, string]> = [
-      ['sitereference',         'laylalondo147951'],
+      ['sitereference',         siteRef],
       ['stprofile',             'default'],
       ['currencyiso3a',         'GBP'],
       ['mainamount',            mainamount],

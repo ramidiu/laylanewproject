@@ -96,6 +96,10 @@
           <span>{{ 'SEND_MONEY.TRANSFER_FEE' | translate }}</span>
           <span class="rate-card__value">{{ quote.fee | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
         </div>
+        <div class="rate-card__row">
+          <span>{{ 'SEND_MONEY.AMOUNT_CONVERTED' | translate }}</span>
+          <span class="rate-card__value">{{ (quote.sendAmount - quote.fee) | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
         <div class="rate-card__row" *ngIf="useWallet && walletAmountToUse > 0">
           <span>{{ 'SEND_MONEY.SUBTOTAL' | translate }}</span>
           <span class="rate-card__value">{{ quote.totalCost | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
@@ -298,6 +302,10 @@
         <div class="review-row">
           <span class="review-row__label">{{ 'SEND_MONEY.FEE_REVIEW' | translate }}</span>
           <span class="review-row__value mono">{{ quote.fee | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+        </div>
+        <div class="review-row">
+          <span class="review-row__label">{{ 'SEND_MONEY.AMOUNT_CONVERTED' | translate }}</span>
+          <span class="review-row__value mono">{{ (quote.sendAmount - quote.fee) | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
         </div>
         <div class="review-row" *ngIf="useWallet && walletAmountToUse > 0" style="color:#059669;">
           <span class="review-row__label">{{ 'SEND_MONEY.WALLET_CREDIT' | translate }}</span>

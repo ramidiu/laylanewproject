@@ -10,6 +10,7 @@ import com.remitz.modules.fx.dto.QuoteDetails;
 import com.remitz.modules.fx.entity.CorridorEntity;
 import com.remitz.modules.fx.entity.FxMarginEntity;
 import com.remitz.modules.fx.repository.CorridorRepository;
+import com.remitz.modules.payout.usi.service.UsiRateService;
 import com.remitz.modules.user.service.SystemConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class QuoteService {
     private final CorridorFeeService corridorFeeService;
     private final CorridorRateSlabService rateSlabService;
     private final CorridorRepository corridorRepository;
+    private final UsiRateService usiRateService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final FxProperties fxProperties;
     private final ObjectMapper objectMapper;
@@ -59,8 +61,25 @@ public class QuoteService {
             corridorId = corridor.getId();
         }
 
-        // Get mid-market rate
+        // Get mid-market rate (API or manual override)
         BigDecimal midRate = fxRateService.getRate(request.getSendCurrency(), request.getReceiveCurrency());
+
+        // USI-rate-driven quoting (feature-flagged, default OFF). When ON and a cached USI rate exists
+        // for this corridor + payout method, use it as the base the margin is applied to. Otherwise the
+        // normal mid-market/manual rate is kept — a quote is NEVER blocked by a missing/stale USI rate.
+        if (usiRateService.isRateDrivenQuotes()) {
+            BigDecimal usiRate = usiRateService.getCachedUsiRate(
+                    request.getSendCurrency(), request.getReceiveCurrency(), request.getDeliveryMethod());
+            if (usiRate != null && usiRate.compareTo(BigDecimal.ZERO) > 0) {
+                log.info("Quote base rate from USI: {} {}/{} method={} (mid was {})",
+                        usiRate, request.getSendCurrency(), request.getReceiveCurrency(),
+                        request.getDeliveryMethod(), midRate);
+                midRate = usiRate;
+            } else {
+                log.debug("USI rate-driven quoting ON but no cached USI rate for {}/{} method={}; using mid {}",
+                        request.getSendCurrency(), request.getReceiveCurrency(), request.getDeliveryMethod(), midRate);
+            }
+        }
 
         // Get applicable margin
         FxMarginEntity margin = fxMarginService.getApplicableMargin(
@@ -86,6 +105,15 @@ public class QuoteService {
         DeliveryMethod deliveryMethod = request.getDeliveryMethod() != null
                 ? request.getDeliveryMethod() : DeliveryMethod.BANK_DEPOSIT;
 
+        // USI commission passed on to the customer: the per-transaction commission USI charges Layla
+        // is added to the fee so it is deducted from the customer on every quote. Both the customer
+        // FX calculator and the pay-in flow quote through here, so both pick it up identically.
+        // Zero/absent for non-USI corridors (nothing cached).
+        BigDecimal usiCommission = usiRateService.getCachedUsiCommission(
+                request.getSendCurrency(), request.getReceiveCurrency(), request.getDeliveryMethod());
+        BigDecimal usiCommissionFee = (usiCommission != null && usiCommission.signum() > 0)
+                ? usiCommission : BigDecimal.ZERO;
+
         // Rate-slab lookup is scoped to the REQUESTED payment type (cash/bank/mobile).
         // Null when the caller didn't specify one, which falls back to corridor-wide slabs.
         String slabMethod = request.getDeliveryMethod() != null ? request.getDeliveryMethod().name() : null;
@@ -100,30 +128,36 @@ public class QuoteService {
             sendAmount = request.getSendAmount();
             java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount, slabMethod);
             if (slab.isPresent()) { appliedRate = slab.get(); slabApplied = true; }
-            BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount);
-            receiveAmount = sendAmount.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal totalCost = sendAmount.add(fee);
+            BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount).add(usiCommissionFee);
+            // Fee is deducted from the amount the customer sends BEFORE conversion: the customer pays
+            // exactly sendAmount, the fee is taken out of it, and only the remainder is converted.
+            // So receive = (sendAmount - fee) * rate and total-to-pay = sendAmount.
+            BigDecimal amountToConvert = sendAmount.subtract(fee).max(BigDecimal.ZERO);
+            receiveAmount = amountToConvert.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalCost = sendAmount;
 
             return buildQuoteResponse(request, midRate, appliedRate,
                     slabApplied ? BigDecimal.ZERO : marginPercentage,
-                    fee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
+                    fee, usiCommissionFee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
         } else {
             receiveAmount = request.getReceiveAmount();
-            sendAmount = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
-            // The slab depends on the send amount, so resolve it from the implied send amount
-            // and re-derive the send amount with the slab rate (single correction pass).
-            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount, slabMethod);
+            // Fee-inclusive: the converted portion must hit the requested receive amount, and the fee
+            // sits on top, so the customer pays (converted + fee) in total.
+            BigDecimal amountToConvert = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
+            // The slab depends on the converted amount, so resolve it from that and re-derive.
+            java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, amountToConvert, slabMethod);
             if (slab.isPresent()) {
                 appliedRate = slab.get();
                 slabApplied = true;
-                sendAmount = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
+                amountToConvert = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
             }
-            BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount);
-            BigDecimal totalCost = sendAmount.add(fee);
+            BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, amountToConvert).add(usiCommissionFee);
+            sendAmount = amountToConvert.add(fee);
+            BigDecimal totalCost = sendAmount;
 
             return buildQuoteResponse(request, midRate, appliedRate,
                     slabApplied ? BigDecimal.ZERO : marginPercentage,
-                    fee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
+                    fee, usiCommissionFee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
         }
     }
 
@@ -148,7 +182,7 @@ public class QuoteService {
 
     private QuoteResponse buildQuoteResponse(QuoteRequest request, BigDecimal midRate,
                                               BigDecimal appliedRate, BigDecimal marginPercentage,
-                                              BigDecimal fee, BigDecimal sendAmount,
+                                              BigDecimal fee, BigDecimal usiCommission, BigDecimal sendAmount,
                                               BigDecimal receiveAmount, BigDecimal totalCost,
                                               Long corridorId, DeliveryMethod deliveryMethod) {
         String quoteId = UUID.randomUUID().toString();
@@ -169,6 +203,7 @@ public class QuoteService {
                 .appliedRate(appliedRate)
                 .marginApplied(marginPercentage)
                 .fee(fee)
+                .usiCommission(usiCommission)
                 .totalCost(totalCost)
                 .corridorId(corridorId)
                 .deliveryMethod(deliveryMethod.name())
@@ -205,6 +240,7 @@ public class QuoteService {
                 .appliedRate(appliedRate)
                 .marginApplied(marginPercentage)
                 .fee(fee)
+                .usiCommission(usiCommission)
                 .totalCost(totalCost)
                 .rateLockedUntil(rateLockedUntil)
                 .expiresInSeconds(ttl)

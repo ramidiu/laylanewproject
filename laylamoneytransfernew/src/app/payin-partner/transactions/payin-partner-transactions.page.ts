@@ -67,7 +67,7 @@ import { PartnerService } from '../../core/services/partner.service';
                 </td>
                 <td>{{ paymentModeLabel(txn.paymentMode) }}</td>
                 <td>{{ deliveryLabel(txn.deliveryMethod) }}</td>
-                <td><span class="status-chip" [class]="'status-chip--' + txn.status?.toLowerCase()">{{ txn.status }}</span></td>
+                <td><app-status-chip [status]="txn.status"></app-status-chip></td>
                 <td class="mono">{{ txn.externalReferenceId || '—' }}</td>
                 <td>{{ txn.createdAt | date:'MMM d, y HH:mm' }}</td>
               </tr>

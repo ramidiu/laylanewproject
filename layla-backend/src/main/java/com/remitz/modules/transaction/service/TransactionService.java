@@ -235,6 +235,7 @@ public class TransactionService {
                         .appliedRate(node.has("appliedRate") ? parseBd(node.get("appliedRate")) : null)
                         .marginApplied(node.has("marginApplied") ? parseBd(node.get("marginApplied")) : null)
                         .fee(node.has("fee") ? parseBd(node.get("fee")) : null)
+                        .usiCommission(node.has("usiCommission") ? parseBd(node.get("usiCommission")) : null)
                         .totalCost(node.has("totalCost") ? parseBd(node.get("totalCost")) : null)
                         .expiresInSeconds(60L)
                         .build();
@@ -293,6 +294,7 @@ public class TransactionService {
                         .appliedRate(boostedAppliedRate)
                         .marginApplied(quote.getMarginApplied())
                         .fee(quote.getFee())
+                        .usiCommission(quote.getUsiCommission())
                         .totalCost(quote.getTotalCost())
                         .expiresInSeconds(60L)
                         .build();
@@ -385,6 +387,7 @@ public class TransactionService {
                 .feeAmount(quote.getFee() != null ? quote.getFee() : BigDecimal.ZERO)
                 .feeCurrency(request.getSendCurrency())
                 .fxMarginAmount(quote.getMarginApplied() != null ? quote.getMarginApplied() : BigDecimal.ZERO)
+                .usiCommissionAmount(quote.getUsiCommission() != null ? quote.getUsiCommission() : BigDecimal.ZERO)
                 .totalDebitAmount(quote.getTotalCost() != null ? quote.getTotalCost() : request.getSendAmount())
                 .paymentMethodType(request.getPaymentMethodType())
                 .payoutPartnerId(payoutPartnerId)

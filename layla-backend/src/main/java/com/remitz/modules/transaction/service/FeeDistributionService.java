@@ -49,6 +49,19 @@ public class FeeDistributionService {
         if (feeAmount == null || feeAmount.compareTo(BigDecimal.ZERO) <= 0) return;
         BigDecimal feeAmountUsd = convertToUsd(feeAmount, settlementRate);
 
+        // The USI commission is baked into feeAmount but is a pass-through COST: Layla collects it
+        // from the customer inside the fee and pays it to USI. Book it as a distinct COST debit so
+        // platform P&L nets it out of the fee revenue credited below — previously the whole fee
+        // (commission included) was counted as revenue, overstating profit. Booked before the fee
+        // split so it applies in every path (with or without a corridor fee-share config).
+        BigDecimal usiCommission = tx.getUsiCommissionAmount();
+        if (usiCommission != null && usiCommission.compareTo(BigDecimal.ZERO) > 0) {
+            platformLedgerService.addEntry(tx.getId(), tx.getReferenceNumber(),
+                    "DEBIT", usiCommission, tx.getFeeCurrency(),
+                    convertToUsd(usiCommission, settlementRate), settlementRate,
+                    "USI commission (cost) for " + tx.getReferenceNumber(), "COST");
+        }
+
         List<CorridorFeeConfig> feeConfigs = corridorFeeConfigRepository
                 .findByFromCurrencyAndToCurrency(tx.getSendCurrency(), tx.getReceiveCurrency());
 

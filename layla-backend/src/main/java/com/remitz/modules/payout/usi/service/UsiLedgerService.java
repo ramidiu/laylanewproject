@@ -44,7 +44,9 @@ public class UsiLedgerService {
                 SELECT COUNT(*)                          AS cnt,
                        COALESCE(SUM(t.send_amount), 0)   AS volume,
                        COALESCE(SUM(t.fee_amount), 0)    AS fee,
-                       COALESCE(SUM(u.commission), 0)    AS usi_comm
+                       COALESCE(SUM(u.commission), 0)    AS usi_comm,
+                       COALESCE(SUM(t.send_amount - COALESCE(u.source_transfer_amount,0)), 0)             AS fx_margin,
+                       COALESCE(SUM(t.send_amount + t.fee_amount - COALESCE(u.agent_to_pay_hq,0)), 0)     AS real_profit
                 """ + FROM_JOIN, fromDate, toDate);
 
         return UsiLedgerSummary.builder()
@@ -55,6 +57,8 @@ public class UsiLedgerService {
                 .totalFee(asBigDecimal(row.get("fee")))
                 .totalProfit(asBigDecimal(row.get("fee")))
                 .totalUsiCommission(asBigDecimal(row.get("usi_comm")))
+                .totalFxMargin(asBigDecimal(row.get("fx_margin")))
+                .totalRealProfit(asBigDecimal(row.get("real_profit")))
                 .byCorridor(byCorridor(fromDate, toDate))
                 .byDay(byDay(fromDate, toDate))
                 .transactions(transactions(fromDate, toDate))
@@ -65,21 +69,37 @@ public class UsiLedgerService {
         String sql = """
                 SELECT t.reference_number, t.status, t.sender_email,
                        t.send_amount, t.send_currency, t.receive_amount, t.receive_currency,
-                       t.fee_amount, u.commission, u.reference_number AS usi_ref, t.created_at
+                       t.fee_amount, u.commission, u.reference_number AS usi_ref, t.created_at,
+                       u.rate AS usi_rate,
+                       COALESCE(u.source_transfer_amount, 0) AS usi_source,
+                       COALESCE(u.agent_to_pay_hq, 0)        AS usi_total_paid
                 """ + FROM_JOIN + " ORDER BY t.created_at DESC LIMIT 300";
-        return jdbc.query(sql, (rs, n) -> UsiLedgerSummary.TxRow.builder()
-                .referenceNumber(rs.getString("reference_number"))
-                .status(rs.getString("status"))
-                .senderEmail(rs.getString("sender_email"))
-                .sendAmount(rs.getBigDecimal("send_amount"))
-                .sendCurrency(rs.getString("send_currency"))
-                .receiveAmount(rs.getBigDecimal("receive_amount"))
-                .receiveCurrency(rs.getString("receive_currency"))
-                .fee(rs.getBigDecimal("fee_amount"))
-                .usiCommission(rs.getBigDecimal("commission"))
-                .usiReference(rs.getString("usi_ref"))
-                .createdAt(String.valueOf(rs.getTimestamp("created_at")))
-                .build(), from, to);
+        return jdbc.query(sql, (rs, n) -> {
+            BigDecimal send      = nz(rs.getBigDecimal("send_amount"));
+            BigDecimal fee       = nz(rs.getBigDecimal("fee_amount"));
+            BigDecimal usiSource = nz(rs.getBigDecimal("usi_source"));
+            BigDecimal usiPaid   = nz(rs.getBigDecimal("usi_total_paid"));
+            BigDecimal custPaid  = send.add(fee);
+            return UsiLedgerSummary.TxRow.builder()
+                    .referenceNumber(rs.getString("reference_number"))
+                    .status(rs.getString("status"))
+                    .senderEmail(rs.getString("sender_email"))
+                    .sendAmount(send)
+                    .sendCurrency(rs.getString("send_currency"))
+                    .receiveAmount(rs.getBigDecimal("receive_amount"))
+                    .receiveCurrency(rs.getString("receive_currency"))
+                    .fee(fee)
+                    .usiCommission(nz(rs.getBigDecimal("commission")))
+                    .usiReference(rs.getString("usi_ref"))
+                    .createdAt(String.valueOf(rs.getTimestamp("created_at")))
+                    .usiRate(rs.getBigDecimal("usi_rate"))
+                    .usiSource(usiSource)
+                    .usiTotalPaid(usiPaid)
+                    .custPaid(custPaid)
+                    .fxMargin(send.subtract(usiSource))
+                    .realProfit(custPaid.subtract(usiPaid))
+                    .build();
+        }, from, to);
     }
 
     private List<UsiLedgerSummary.Bucket> byCorridor(Date from, Date to) {
@@ -118,6 +138,10 @@ public class UsiLedgerService {
 
     private static long asLong(Object o) {
         return o == null ? 0L : ((Number) o).longValue();
+    }
+
+    private static BigDecimal nz(BigDecimal b) {
+        return b == null ? BigDecimal.ZERO : b;
     }
 
     private static BigDecimal asBigDecimal(Object o) {

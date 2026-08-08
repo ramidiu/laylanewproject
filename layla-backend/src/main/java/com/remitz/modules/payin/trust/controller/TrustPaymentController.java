@@ -7,8 +7,10 @@ import com.remitz.modules.payin.trust.repository.TrustPaymentRepository;
 import com.remitz.modules.transaction.entity.TransactionEntity;
 import com.remitz.modules.transaction.repository.TransactionRepository;
 import com.remitz.modules.transaction.service.TransactionStateMachine;
+import com.remitz.modules.payin.trust.service.TrustSignatureVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,7 @@ public class TrustPaymentController {
     private final TrustPaymentRepository trustPaymentRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionStateMachine stateMachine;
+    private final TrustSignatureVerifier signatureVerifier;
 
     /**
      * Called by the frontend after Trust Payments redirects back (success or failure).
@@ -72,6 +75,14 @@ public class TrustPaymentController {
         log.info("Trust payment callback (webhook): errorcode={} orderRef={} txRef={}", errorCode, orderRef, txRef);
 
         saveTrustRecord(params.get("transactionref"), orderRef, txRef, params);
+
+        // SEC-04: authenticate the webhook via Trust's responsesitesecurity hash. Log-only by default
+        // (app.trust.verify-signature=false) — reject() is only ever true once enforcement is switched on.
+        TrustSignatureVerifier.Result sig = signatureVerifier.verify(params, "callback");
+        if (sig.reject()) {
+            log.error("Trust callback REJECTED by signature verification: {}", sig.reason());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         String internalRef = resolveInternalRef(orderRef, txRef);
         if (internalRef == null) {

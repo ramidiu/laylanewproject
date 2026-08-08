@@ -7,6 +7,7 @@ import com.remitz.modules.payout.usi.UsiPayoutProperties;
 import com.remitz.modules.payout.usi.dto.CollectionPointResponse;
 import com.remitz.modules.payout.usi.dto.RemitterVerifyResponse;
 import com.remitz.modules.payout.usi.dto.UsiAdminTransactionDto;
+import com.remitz.modules.payout.usi.dto.UsiChargesResult;
 import com.remitz.modules.payout.usi.entity.UsiBeneficiaryEntity;
 import com.remitz.modules.payout.usi.entity.UsiRemitterEntity;
 import com.remitz.modules.payout.usi.entity.UsiTestAccountEntity;
@@ -900,6 +901,70 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         return json;
     }
 
+    /**
+     * Read-only getCharges quote. Asks USI what it would charge/convert for a corridor + payout
+     * method at a sample SOURCE amount. Creates nothing; safe to call for reporting. Never throws —
+     * failures come back on the result's status/error so a caller iterating corridors keeps going.
+     */
+    @Override
+    public UsiChargesResult getCharges(String destinationCountry, String usiTransType,
+                                       String sourceCurrency, String destCurrency, BigDecimal sourceAmount) {
+        UsiChargesResult r = new UsiChargesResult();
+        r.setSourceCurrency(sourceCurrency);
+        r.setDestCurrency(destCurrency);
+        r.setSourceAmount(sourceAmount);
+        try {
+            guardEnabled();
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("destination_country", expandCountryName(destinationCountry));
+            body.add("trans_type", usiTransType);
+            body.add("payment_method", "74");
+            body.add("service_level", "1");
+            body.add("sms_confirmation", "f");
+            body.add("sms_notification", "f");
+            body.add("amount_type", "SOURCE");
+            body.add("amount_to_send", sourceAmount.toPlainString());
+            body.add("source_currency", sourceCurrency);
+            body.add("dest_currency", destCurrency);
+            addCreds(body);
+
+            String responseBody = postMultipart("/transaction/getCharges", body);
+            if (responseBody == null || responseBody.isBlank()) {
+                r.setStatus("ERROR");
+                r.setError("Empty response from USI getCharges");
+                return r;
+            }
+            Document doc = parse(responseBody);
+            String status = tag(doc, "status", 0);
+            r.setStatus(status);
+            if (!"SUCCESS".equalsIgnoreCase(status)) {
+                r.setError(value(firstNonBlank(tag(doc, "error", 0), tag(doc, "message", 0)), "USI getCharges did not succeed"));
+                return r;
+            }
+            r.setRate(decimal(tag(doc, "rate", 0)));
+            r.setDestAmount(decimal(tag(doc, "destination_amount", 0)));
+            r.setCommission(decimal(tag(doc, "commission", 0)));
+            r.setAgentFee(decimal(tag(doc, "agent_fee", 0)));
+            r.setHqFee(decimal(tag(doc, "hq_fee", 0)));
+            r.setTax(decimal(tag(doc, "tax", 0)));
+            r.setTotalCharges(decimal(tag(doc, "total_charges", 0)));
+        } catch (Exception e) {
+            r.setStatus("ERROR");
+            r.setError(e.getMessage());
+        }
+        return r;
+    }
+
+    /** Map Layla's delivery method to the USI trans_type string (same mapping createTransaction uses). */
+    public static String usiTransType(DeliveryMethod method) {
+        if (method == null) return "Account";
+        return switch (method) {
+            case MOBILE_WALLET -> "Mobile Transfer";
+            case CASH_PICKUP   -> "Cash Collection";
+            default            -> "Account";   // BANK_DEPOSIT and anything else
+        };
+    }
+
     @Override
     public Map<String, Object> confirmTransaction(String referenceNumber) {
         guardEnabled();
@@ -985,6 +1050,21 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
             }
             usiTransactionRepository.save(row);
 
+            // Sync the main transaction to SENT_TO_PAYOUT the moment USI confirms the payout
+            // ("sent for pay"), so the Layla status never lags behind the USI status. Previously
+            // only terminal USI states (PAID/FAILED/CANCELLED) synced back on a status refresh,
+            // leaving a confirmed payout showing an earlier stage. Never overwrite a terminal success.
+            transactionRepository.findByReferenceNumber(row.getTransactionId()).ifPresent(txn -> {
+                if (txn.getStatus() != TransactionStatus.PAID
+                        && txn.getStatus() != TransactionStatus.COMPLETED
+                        && txn.getStatus() != TransactionStatus.SENT_TO_PAYOUT) {
+                    TransactionStatus was = txn.getStatus();
+                    txn.setStatus(TransactionStatus.SENT_TO_PAYOUT);
+                    transactionRepository.save(txn);
+                    log.info("USI confirm: synced main txn {} {} -> SENT_TO_PAYOUT", row.getTransactionId(), was);
+                }
+            });
+
             json.put("referenceNumber", row.getReferenceNumber());
             json.put("paymentToken", row.getPaymentToken());
             json.put("usiStatus", row.getUsiStatus());
@@ -1032,6 +1112,11 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                     errorDetails != null ? errorDetails : "",
                     deletedReason != null ? deletedReason : "").trim();
 
+            // Business rule: USI's "ID document already registered" is a de-duplication notice, not a
+            // hard block — per ops it should NOT be flagged as a validation failure. Treat it as a
+            // benign in-flight state (shown as normal "Sending"). All other validation errors are surfaced.
+            boolean ignorableValidation = msg.toLowerCase().contains("already registered");
+
             // Mirror the USI payout outcome onto the main transaction status so the two never drift apart.
             TransactionStatus mainStatus = null;
             boolean inFlight = false;   // USI still progressing (non-terminal) — keep tracking
@@ -1058,21 +1143,43 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                 mainStatus = TransactionStatus.FAILED;
                 json.put("message", "Transaction FAILED on USI: " + msg);
             } else if ("AGENT_OK".equalsIgnoreCase(txnStatus)) {
-                row.setStatus("awaiting_compliance");
-                row.setErrorMessage(null);
                 inFlight = true;
-                json.put("message", "Awaiting USI compliance review");
+                if (!msg.isBlank() && !ignorableValidation) {
+                    row.setStatus("validation_failed");
+                    row.setErrorMessage(msg);
+                    json.put("message", "USI validation issue (awaiting compliance): " + msg);
+                } else {
+                    row.setStatus("awaiting_compliance");
+                    row.setErrorMessage(null);
+                    json.put("message", "Awaiting USI compliance review");
+                }
             } else if ("HQ_OK".equalsIgnoreCase(txnStatus)) {
-                row.setStatus("sent for pay");
-                row.setErrorMessage(null);
                 inFlight = true;
-                json.put("message", "USI HQ accepted — awaiting payout: " + txnStatus);
+                if (!msg.isBlank() && !ignorableValidation) {
+                    row.setStatus("validation_failed");
+                    row.setErrorMessage(msg);
+                    json.put("message", "USI validation issue: " + msg);
+                } else {
+                    row.setStatus("sent for pay");
+                    row.setErrorMessage(null);
+                    json.put("message", "USI HQ accepted — awaiting payout: " + txnStatus);
+                }
             } else {
-                // Any other in-flight status (SENT_FOR_PAY, INITIATED, …) — keep tracking it.
-                row.setStatus("sent for pay");
-                row.setErrorMessage(null);
+                // Any other in-flight status (SENT_FOR_PAY, INITIATED, …). USI populates
+                // error_reason/error_details only on a real problem, so if a (non-ignorable) message is
+                // present the payout is BLOCKED — surface it as "validation_failed" with the reason
+                // instead of silently showing "Sending". The "already registered" dedup notice is
+                // treated as benign (ignorableValidation) and left as a normal in-flight "Sending".
                 inFlight = true;
-                json.put("message", "Transaction in progress: " + txnStatus);
+                if (!msg.isBlank() && !ignorableValidation) {
+                    row.setStatus("validation_failed");
+                    row.setErrorMessage(msg);
+                    json.put("message", "USI validation failed — action needed: " + msg);
+                } else {
+                    row.setStatus("sent for pay");
+                    row.setErrorMessage(null);
+                    json.put("message", "Transaction in progress: " + txnStatus);
+                }
             }
             row.setUsiStatus(txnStatus);
             usiTransactionRepository.save(row);

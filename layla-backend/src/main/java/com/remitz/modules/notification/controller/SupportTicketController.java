@@ -15,6 +15,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -97,8 +98,11 @@ public class SupportTicketController {
     }
 
     // ==================== Admin Endpoints ====================
+    // SECURITY (SEC-11): these carried no method security and fell through to .authenticated(),
+    // so any logged-in user could read/answer any ticket. Restricted to staff roles.
 
     @GetMapping("/admin/tickets")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @Operation(summary = "Get all tickets (admin)", description = "Admin: list all support tickets with optional filters")
     public ResponseEntity<ApiResponse<List<TicketResponse>>> getAllTickets(
             @RequestParam(required = false) String status,
@@ -112,6 +116,7 @@ public class SupportTicketController {
     }
 
     @GetMapping("/admin/tickets/{ticketId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @Operation(summary = "Get ticket detail (admin)", description = "Admin: view any support ticket with all messages")
     public ResponseEntity<ApiResponse<TicketResponse>> getTicketDetailAdmin(@PathVariable Long ticketId) {
         TicketResponse response = supportTicketService.getTicketDetailAdmin(ticketId);
@@ -122,6 +127,7 @@ public class SupportTicketController {
     }
 
     @PostMapping("/admin/tickets/{ticketId}/reply")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @Operation(summary = "Admin reply to ticket", description = "Admin: reply to a support ticket as an agent")
     public ResponseEntity<ApiResponse<TicketMessageResponse>> adminReplyToTicket(
             HttpServletRequest request,
@@ -145,6 +151,7 @@ public class SupportTicketController {
     }
 
     @PutMapping("/admin/tickets/{ticketId}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @Operation(summary = "Update ticket status (admin)", description = "Admin: update ticket status and assignment")
     public ResponseEntity<ApiResponse<TicketResponse>> updateTicketStatus(
             @PathVariable Long ticketId,

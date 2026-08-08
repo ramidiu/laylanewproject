@@ -147,7 +147,7 @@ export class PayinPartnerSettlementsPage implements OnInit {
 
   settlementForm = {
     amount: null as number | null,
-    currency: 'USD',
+    currency: 'GBP',
     reference: '',
     notes: ''
   };

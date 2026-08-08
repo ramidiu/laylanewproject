@@ -382,7 +382,9 @@ public class PayinCustomerDocumentController {
     }
 
     @GetMapping("/document/{docId}/file")
-    @PreAuthorize("isAuthenticated()")
+    // SECURITY (SEC-06): PII document served by id. Was open to ANY authenticated user (docId
+    // enumeration). Restricted to pay-in partner / admin roles. (Per-partner ownership = later phase.)
+    @PreAuthorize("hasAnyRole('PAYIN_PARTNER', 'ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Serve a document file")
     public ResponseEntity<byte[]> getFile(@PathVariable Long docId) {
         PayinCustomerDocumentEntity doc = documentRepository.findById(docId).orElse(null);
@@ -403,7 +405,9 @@ public class PayinCustomerDocumentController {
     }
 
     @GetMapping("/kyc-document/{docId}/file")
-    @PreAuthorize("isAuthenticated()")
+    // SECURITY (SEC-06): PII document served by id. Was open to ANY authenticated user (docId
+    // enumeration). Restricted to pay-in partner / admin roles. (Per-partner ownership = later phase.)
+    @PreAuthorize("hasAnyRole('PAYIN_PARTNER', 'ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Serve a kyc_documents file (frontend / imported users)")
     public ResponseEntity<byte[]> getKycDocFile(@PathVariable Long docId) {
         KycDocumentEntity doc = kycDocumentRepository.findById(docId).orElse(null);

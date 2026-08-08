@@ -8,6 +8,7 @@ import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.user.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -48,7 +49,11 @@ public class WalletController {
                 .build());
     }
 
+    // SECURITY (SEC-01): these move money against an arbitrary userId in the body. Restricted to the
+    // finance permission and removed from the SecurityConfig permitAll list. Internal flows (refund,
+    // referral credit) call WalletService directly and are unaffected.
     @PostMapping("/debit")
+    @PreAuthorize("hasPermission(null, 'settlement:manage')")
     public ResponseEntity<ApiResponse<WalletEntity>> debit(@RequestBody Map<String, Object> body) {
         Long userId = Long.valueOf(body.get("userId").toString());
         BigDecimal amount = new BigDecimal(body.get("amount").toString());
@@ -65,6 +70,7 @@ public class WalletController {
     }
 
     @PostMapping("/credit")
+    @PreAuthorize("hasPermission(null, 'settlement:manage')")
     public ResponseEntity<ApiResponse<WalletEntity>> credit(@RequestBody Map<String, Object> body) {
         Long userId = Long.valueOf(body.get("userId").toString());
         BigDecimal amount = new BigDecimal(body.get("amount").toString());
@@ -82,7 +88,11 @@ public class WalletController {
 
     // ── Admin Endpoints ─────────────────────────────────────────────────
 
+    // SECURITY (SEC-02): admin wallet endpoints had no method security and fell through to
+    // .authenticated() — any logged-in customer could read/modify any wallet. Reads require the
+    // finance read permission; writes require settlement:manage.
     @GetMapping("/admin/all")
+    @PreAuthorize("hasPermission(null, 'ledger:view')")
     public ResponseEntity<ApiResponse<List<WalletEntity>>> getAllWallets() {
         List<WalletEntity> wallets = walletService.getAllWallets();
         return ResponseEntity.ok(ApiResponse.<List<WalletEntity>>builder()
@@ -93,6 +103,7 @@ public class WalletController {
     }
 
     @GetMapping("/admin/{userId}/transactions")
+    @PreAuthorize("hasPermission(null, 'ledger:view')")
     public ResponseEntity<ApiResponse<List<WalletLedgerEntity>>> getAdminTransactions(
             @PathVariable Long userId) {
         List<WalletLedgerEntity> transactions = walletService.getTransactions(userId);
@@ -104,6 +115,7 @@ public class WalletController {
     }
 
     @PostMapping("/admin/{userId}/credit")
+    @PreAuthorize("hasPermission(null, 'settlement:manage')")
     public ResponseEntity<ApiResponse<WalletEntity>> adminCredit(
             @PathVariable Long userId,
             @RequestBody Map<String, Object> body) {
@@ -119,6 +131,7 @@ public class WalletController {
     }
 
     @PostMapping("/admin/{userId}/debit")
+    @PreAuthorize("hasPermission(null, 'settlement:manage')")
     public ResponseEntity<ApiResponse<WalletEntity>> adminDebit(
             @PathVariable Long userId,
             @RequestBody Map<String, Object> body) {

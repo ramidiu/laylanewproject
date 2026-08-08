@@ -465,20 +465,13 @@ public class AdminTransactionController {
         // PROCESSING → PAID → COMPLETED (same terminal state the payout-partner flow produces).
         TransactionEntity paid = stateMachine.transition(tx, TransactionStatus.PAID, 0L, ActorType.ADMIN, "Marked PAID by admin");
 
-        // Platform ledger DEBIT — cash outflow for the payout (equivalent to partner path).
+        // Platform ledger — value the payout in GBP as the principal actually sent (send - fee);
+        // the fee stays behind as profit. Also ensures the matching "money in" credit exists.
         try {
-            BigDecimal receiveAmount = paid.getReceiveAmount() != null ? paid.getReceiveAmount() : BigDecimal.ZERO;
-            String receiveCurrency = paid.getReceiveCurrency() != null ? paid.getReceiveCurrency() : "GBP";
-            BigDecimal fxRate = settlementRateRepository.findByCurrency(receiveCurrency)
-                    .map(r -> r.getRateToUsd()).orElse(BigDecimal.ONE);
-            BigDecimal usdAmount = receiveAmount.multiply(fxRate).setScale(4, RoundingMode.HALF_UP);
-
-            platformLedgerService.addEntry(paid.getId(), paid.getReferenceNumber(),
-                    "DEBIT", receiveAmount, receiveCurrency,
-                    usdAmount, fxRate,
-                    "Payout by admin for " + paid.getReferenceNumber(), "PAYOUT");
+            platformLedgerService.recordPayout(paid.getId(), paid.getReferenceNumber(),
+                    paid.getSendAmount(), paid.getFeeAmount());
         } catch (Exception e) {
-            log.warn("Failed to create platform ledger DEBIT for admin mark-paid tx {}: {}", paid.getId(), e.getMessage());
+            log.warn("Failed to create platform ledger payout for admin mark-paid tx {}: {}", paid.getId(), e.getMessage());
         }
 
         // Final settlement step: PAID → COMPLETED + admin notification event

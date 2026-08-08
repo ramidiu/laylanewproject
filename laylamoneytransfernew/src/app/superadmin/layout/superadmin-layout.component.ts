@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { LanguageService } from '../../core/services/language.service';
+import { UsiMoneyService } from '../../core/services/usi-money.service';
 
 @Component({
   selector: 'app-superadmin-layout',
@@ -14,7 +15,9 @@ export class SuperAdminLayoutComponent implements OnInit, OnDestroy {
   sidenavCollapsed = false;
   mobileMenuOpen = false;
   notificationCount = 0;
+  usiPendingCount = 0;                 // transactions funded & awaiting "Create on USI"
   private notificationSub?: Subscription;
+  private usiPollTimer?: any;
 
   menuGroups = [
     {
@@ -56,7 +59,9 @@ export class SuperAdminLayoutComponent implements OnInit, OnDestroy {
         { label: 'Corridor Dashboard', icon: 'bar-chart-outline', route: '/superadmin/dash-corridors' },
         { label: 'Corridors', icon: 'globe-outline', route: '/superadmin/corridor-management' },
         { label: 'FX Rates', icon: 'trending-up-outline', route: '/superadmin/fx' },
-        { label: 'Transfer Config', icon: 'options-outline', route: '/superadmin/transfer-config' }
+        { label: 'Transfer Config', icon: 'options-outline', route: '/superadmin/transfer-config' },
+        { label: 'USI P&L', icon: 'stats-chart-outline', route: '/superadmin/usi-pnl' },
+        { label: 'Platform Ledger', icon: 'book-outline', route: '/superadmin/ledger' }
       ]
     },
     {
@@ -76,8 +81,17 @@ export class SuperAdminLayoutComponent implements OnInit, OnDestroy {
     public authService: AuthService,
     private router: Router,
     private notificationService: NotificationService,
-    public languageService: LanguageService
+    public languageService: LanguageService,
+    private usiMoney: UsiMoneyService
   ) {}
+
+  /** Live count of funded transactions awaiting "Create on USI" — shown as a sidebar badge. */
+  private loadUsiPending(): void {
+    this.usiMoney.listTransactions('new', 500).subscribe({
+      next: (rows: any[]) => { this.usiPendingCount = (rows || []).filter(r => r.nextAction === 'CREATE').length; },
+      error: () => {}
+    });
+  }
 
   private get isSuperAdmin(): boolean {
     return this.authService.getUserRoles().includes('SUPER_ADMIN');
@@ -101,10 +115,15 @@ export class SuperAdminLayoutComponent implements OnInit, OnDestroy {
     this.notificationSub = this.notificationService.unreadCount$.subscribe(count => {
       this.notificationCount = count;
     });
+
+    // Poll the "awaiting USI" count for the sidebar badge.
+    this.loadUsiPending();
+    this.usiPollTimer = setInterval(() => this.loadUsiPending(), 60000);
   }
 
   ngOnDestroy(): void {
     this.notificationSub?.unsubscribe();
+    if (this.usiPollTimer) clearInterval(this.usiPollTimer);
   }
 
   openNotifications(): void {

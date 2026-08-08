@@ -15,6 +15,31 @@
     font-size: $fb-text-lg;
     ion-icon { font-size: 22px; }
   }
+
+  // Unread-count badge on the notification bell (matches the desktop topbar badge).
+  &__bell {
+    position: relative;
+    overflow: visible;
+  }
+  &__badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 2;
+  }
 }
 
 .toolbar-avatar {
@@ -37,6 +62,9 @@
 // ─────────────────────────────────────────────
 .home-content {
   --background: #{$fb-gray-50};
+
+  // Safety net: never allow the page to scroll/spill horizontally on mobile.
+  &::part(scroll) { overflow-x: hidden; }
 }
 
 // ─────────────────────────────────────────────
@@ -63,6 +91,14 @@
   &__greeting {
     flex: 1;
     min-width: 0;
+
+    // On mobile the hero stacks (column), so this block sizes to its content — a long
+    // customer name with white-space:nowrap would then blow past the screen. Pin it to the
+    // full width so the name actually truncates with the ellipsis it already has.
+    @media (max-width: $fb-breakpoint-sm) {
+      width: 100%;
+      max-width: 100%;
+    }
   }
 
   &__welcome {
@@ -148,17 +184,19 @@
 // ─────────────────────────────────────────────
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  // minmax(0, 1fr) (not bare 1fr) so a card's content can't force the track — and the
+  // whole page — wider than the screen on mobile.
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: $fb-space-3;
   padding: $fb-space-4 $fb-space-4 0;
   margin-bottom: $fb-space-2;
 
   @media (max-width: $fb-breakpoint-md) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   @media (max-width: $fb-breakpoint-sm) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -212,13 +250,13 @@
 // ─────────────────────────────────────────────
 .home-two-col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: $fb-space-4;
   padding: 0 $fb-space-4;
   margin-top: $fb-space-6;
 
   @media (max-width: $fb-breakpoint-lg) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .home-section {
@@ -637,6 +675,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: $fb-space-3;
+
+  // Single column on the narrowest phones so each rate card stays readable.
+  @media (max-width: 380px) { grid-template-columns: 1fr; }
 }
 
 .rate-card {

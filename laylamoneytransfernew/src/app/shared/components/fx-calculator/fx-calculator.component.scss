@@ -7,6 +7,7 @@
   padding: $fb-space-8 $fb-space-6;
   width: 100%;
   max-width: 420px;
+  box-sizing: border-box;
   font-family: $fb-font-body;
 
   @media (min-width: $fb-breakpoint-sm) {

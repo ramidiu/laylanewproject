@@ -90,13 +90,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/transactions/lookup/mobile-services").permitAll()
                         .requestMatchers("/api/transactions/lookup/cash-points").permitAll()
                         // User public endpoints
-                        .requestMatchers("/api/users/*").permitAll()
+                        // SECURITY (SEC-03): /api/users/* removed from permitAll — GET/PUT /api/users/{uuid}
+                        // now require auth + owner-or-staff (@PreAuthorize in UserController). The KYC
+                        // reference subtree and the document-file endpoint stay public.
                         .requestMatchers("/api/users/kyc/**").permitAll()
                         .requestMatchers("/api/users/*/kyc/documents/*/file").permitAll()
                         .requestMatchers("/api/referrals/validate/**").permitAll()
                         .requestMatchers("/api/referrals/on-completed").permitAll()
-                        .requestMatchers("/api/wallet/credit").permitAll()
-                        .requestMatchers("/api/wallet/debit").permitAll()
+                        // SECURITY (SEC-01): /api/wallet/credit and /api/wallet/debit removed from
+                        // permitAll — they are now authenticated + @PreAuthorize('settlement:manage')
+                        // in WalletController. Internal callers use WalletService directly.
                         // Notification public endpoints
                         .requestMatchers("/api/support/attachments/*/file").permitAll()
                         // Swagger / actuator

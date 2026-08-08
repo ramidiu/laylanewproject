@@ -35,7 +35,7 @@
             </td>
             <td class="mono-value">{{ w.walletNumber || '-' }}</td>
             <td class="mono-value balance-value">{{ w.balance | number:'1.2-2' }}</td>
-            <td>{{ w.currency || 'USD' }}</td>
+            <td>{{ w.currency || 'GBP' }}</td>
             <td>
               <ion-badge [color]="getStatusColor(w.status)">{{ w.status || 'ACTIVE' }}</ion-badge>
             </td>
@@ -65,7 +65,7 @@
           Wallet Ledger &mdash; {{ selectedWallet.userName || selectedWallet.userEmail || 'User #' + selectedWallet.userId }}
         </h2>
         <p class="ledger-detail__subtitle">
-          Wallet: {{ selectedWallet.walletNumber || '-' }} | Balance: {{ selectedWallet.balance | number:'1.2-2' }} {{ selectedWallet.currency || 'USD' }}
+          Wallet: {{ selectedWallet.walletNumber || '-' }} | Balance: {{ selectedWallet.balance | number:'1.2-2' }} {{ selectedWallet.currency || 'GBP' }}
         </p>
       </div>
       <div class="ledger-detail__actions">

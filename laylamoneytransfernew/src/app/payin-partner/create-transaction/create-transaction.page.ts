@@ -276,6 +276,7 @@ import { environment } from '../../../environments/environment';
             <div *ngIf="!loadingQuote && quote" class="ct-rate-box">
               <div class="ct-rate-value">1 {{ sendCurrency }} = {{ quote.appliedRate | number:'1.4-4' }} {{ receiveCurrency }}</div>
               <div class="ct-fee-value">Fee: {{ sendCurrency }} {{ quote.fee | number:'1.2-2' }}</div>
+              <div class="ct-fee-value">Amount converted: {{ sendCurrency }} {{ (quote.sendAmount - quote.fee) | number:'1.2-2' }}</div>
             </div>
             <ion-icon name="arrow-forward-outline" *ngIf="!loadingQuote && !quote"></ion-icon>
           </div>
@@ -613,6 +614,10 @@ import { environment } from '../../../environments/environment';
           <div class="ct-review-row">
             <span class="ct-review-label">Fee</span>
             <span class="ct-review-value">{{ sendCurrency }} {{ quote?.fee | number:'1.2-2' }}</span>
+          </div>
+          <div class="ct-review-row">
+            <span class="ct-review-label">Amount converted</span>
+            <span class="ct-review-value">{{ sendCurrency }} {{ ((quote?.sendAmount || 0) - (quote?.fee || 0)) | number:'1.2-2' }}</span>
           </div>
           <div class="ct-review-row">
             <span class="ct-review-label">Total to Collect</span>

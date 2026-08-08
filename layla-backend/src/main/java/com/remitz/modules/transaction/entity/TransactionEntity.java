@@ -91,6 +91,14 @@ public class TransactionEntity {
     @Column(name = "fx_margin_amount", nullable = false, precision = 18, scale = 4)
     private BigDecimal fxMarginAmount;
 
+    /**
+     * Portion of {@link #feeAmount} that is the USI per-transaction commission passed on to the
+     * customer. It is a pass-through COST (Layla pays it to USI), booked as a distinct cost entry
+     * at funds-received so platform P&L nets it out of fee revenue. Zero for non-USI corridors.
+     */
+    @Column(name = "usi_commission_amount", precision = 18, scale = 4)
+    private BigDecimal usiCommissionAmount;
+
     @Column(name = "total_debit_amount", nullable = false, precision = 18, scale = 4)
     private BigDecimal totalDebitAmount;
 

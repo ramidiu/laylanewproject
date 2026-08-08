@@ -66,6 +66,7 @@ services:
       - BRAND_SUPPORT_EMAIL=info@laylamoneytransfer.co.uk
       - KUBER_ENABLED=${KUBER_ENABLED:-false}
       - USI_ENABLED=${USI_ENABLED:-true}
+      - USI_RATE_DRIVEN_QUOTES=${USI_RATE_DRIVEN_QUOTES:-true}
       - USI_URL=${USI_URL:-https://test4.remit.by/universalsecuritiestest/ws}
       - USI_USERNAME=${USI_USERNAME:-layla_ws}
       - USI_PASSWORD=${USI_PASSWORD:-Layla@361!}

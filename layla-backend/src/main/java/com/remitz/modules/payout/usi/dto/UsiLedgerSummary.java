@@ -21,9 +21,11 @@ public class UsiLedgerSummary {
 
     private long       transactionCount;
     private BigDecimal totalVolume;          // sum of send_amount
-    private BigDecimal totalFee;             // sum of fee_amount (= profit)
-    private BigDecimal totalProfit;          // == totalFee
-    private BigDecimal totalUsiCommission;   // sum of USI commission (reference only)
+    private BigDecimal totalFee;             // sum of fee_amount (= gross fee income)
+    private BigDecimal totalProfit;          // == totalFee (legacy "fee = profit" figure)
+    private BigDecimal totalUsiCommission;   // sum of USI commission (cost Layla pays USI)
+    private BigDecimal totalFxMargin;        // sum(send_amount - usi source_transfer_amount)
+    private BigDecimal totalRealProfit;      // TRUE P&L = sum(send + fee - agent_to_pay_hq)
 
     private List<Bucket> byCorridor;
     private List<Bucket> byDay;
@@ -39,10 +41,17 @@ public class UsiLedgerSummary {
         private String     sendCurrency;
         private BigDecimal receiveAmount;
         private String     receiveCurrency;
-        private BigDecimal fee;              // = profit
-        private BigDecimal usiCommission;    // reference only
+        private BigDecimal fee;              // Layla fee income
+        private BigDecimal usiCommission;    // USI commission (cost)
         private String     usiReference;     // USI RM... ref
         private String     createdAt;
+        // --- true profit/loss breakdown (per transaction) ---
+        private BigDecimal usiRate;          // USI conversion rate
+        private BigDecimal usiSource;        // source_transfer_amount — GBP USI actually converted
+        private BigDecimal usiTotalPaid;     // agent_to_pay_hq — what Layla pays USI (source + commission)
+        private BigDecimal custPaid;         // send + fee — what the customer paid Layla
+        private BigDecimal fxMargin;         // send - usiSource — FX spread Layla keeps
+        private BigDecimal realProfit;       // custPaid - usiTotalPaid — TRUE profit (negative = loss)
     }
 
     @Data

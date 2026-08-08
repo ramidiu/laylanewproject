@@ -58,7 +58,7 @@ app:
   mfa:
     enforce-staff: ${MFA_ENFORCE_STAFF:false}
   jwt:
-    secret: ${JWT_SECRET:forexbridge-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
+    secret: ${JWT_SECRET:layla-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
     access-token-expiration-ms: 3600000
     refresh-token-expiration-ms: 604800000
     mfa-token-expiration-ms: 300000
@@ -72,6 +72,18 @@ app:
     max-file-size: 10485760
     max-file-size-mb: 10
     allowed-extensions: jpg,jpeg,png,pdf
+  trust:
+    # SEC-04: Trust Payments URL-notification (webhook) signature verification.
+    # site-security-password = the Site Security value from the Trust MyST portal
+    # (Settings > Security > Site security). Leave blank to skip verification entirely.
+    site-security-password: ${TRUST_SITE_SECURITY_PASSWORD:}
+    # false => LOG-ONLY: hash is checked and logged but a mismatch NEVER rejects the callback.
+    # Only set true once the logs confirm real Trust callbacks hash correctly (and fields are set).
+    verify-signature: ${TRUST_VERIFY_SIGNATURE:false}
+    # Comma-separated response field names, in the EXACT order configured in MyST, whose values
+    # Trust concatenates (then appends the password) to produce responsesitesecurity (SHA-256 hex).
+    # Leave blank until the correct order is known — verification stays informational until then.
+    signature-fields: ${TRUST_SIGNATURE_FIELDS:}
   # Code added by Naresh: Veriff / Amal / Volume modules removed — related config blocks deleted
   fx:
     exchange-rates-api:
@@ -148,6 +160,10 @@ remit-one:
 usi:
   enabled: ${USI_ENABLED:false}
   auto-payin: ${USI_AUTO_PAYIN:true}
+  # Phase 3: when true, live USI getCharges rates drive customer quotes (rate = USI rate x (1 - margin%)).
+  # Default OFF — quoting is unchanged until this is switched on. Falls back to the normal rate if no USI rate.
+  rate-driven-quotes: ${USI_RATE_DRIVEN_QUOTES:false}
+  rate-refresh-ms: ${USI_RATE_REFRESH_MS:600000}
   url: ${USI_URL:}
   username: ${USI_USERNAME:}
   password: ${USI_PASSWORD:}

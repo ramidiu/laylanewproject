@@ -1,7 +1,7 @@
 # Layla Money Transfer — Backend
 
 Spring Boot monolith for Layla Money Transfer.
-Rebranded from RemitzGlobal / ForexBridge backend.
+Rebranded to Layla Money Transfer (legacy internal package names kept).
 
 ## Important Note
 Java package namespace is `com.remitz.*` — intentionally preserved for functional stability.

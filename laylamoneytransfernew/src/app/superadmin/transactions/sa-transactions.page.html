@@ -85,7 +85,7 @@
               <td>{{ payinPaymentLabel(txn.paymentMode) }}</td>
               <td>{{ payinDeliveryLabel(txn.deliveryMethod) }}</td>
               <td>
-                <span class="payin-status-chip" [ngClass]="'payin-status-chip--' + txn.status?.toLowerCase()">{{ txn.status }}</span>
+                <app-status-chip [status]="txn.status"></app-status-chip>
               </td>
               <td style="font-family:monospace;font-size:0.8rem">{{ txn.externalReferenceId || '—' }}</td>
               <td style="font-size:0.8rem">{{ txn.createdAt | date:'MMM d, y HH:mm' }}</td>
@@ -175,7 +175,7 @@
             <td class="fb-currency">{{ txn.sendAmount | number:'1.2-2' }} {{ txn.sendCurrency }}</td>
             <td class="fb-currency">{{ txn.receiveAmount | number:'1.2-2' }} {{ txn.receiveCurrency }}</td>
             <td class="fb-currency">{{ txn.feeAmount | number:'1.2-2' }}</td>
-            <td><ion-badge [color]="getStatusColor(txn.status)">{{ getStatusLabel(txn.status) }}</ion-badge></td>
+            <td><app-status-chip [status]="txn.status"></app-status-chip></td>
             <td>{{ txn.createdAt | date:'MMM d, y HH:mm' }}</td>
             <td>
               <div class="action-buttons">

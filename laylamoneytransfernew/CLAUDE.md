@@ -1,7 +1,7 @@
 # Layla Money Transfer — Frontend
 
 Angular 14 / Ionic 6 frontend for Layla Money Transfer.
-Rebranded from the RemitzGlobal / ForexBridge project.
+Rebranded to Layla Money Transfer (legacy internal package names kept).
 
 ## Brand
 - Primary: `#1B3A6B` (deep navy)

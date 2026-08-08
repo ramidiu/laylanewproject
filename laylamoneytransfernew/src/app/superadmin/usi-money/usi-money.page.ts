@@ -35,13 +35,24 @@ export class SAUsiMoneyPage implements OnInit {
 
   applyFilter(): void {
     const q = this.searchQuery.trim().toLowerCase();
-    this.filtered = !q ? [...this.rows] : this.rows.filter(r =>
+    const list = !q ? [...this.rows] : this.rows.filter(r =>
       r.referenceNumber?.toLowerCase().includes(q) ||
       (r.senderName  || '').toLowerCase().includes(q) ||
       (r.senderEmail || '').toLowerCase().includes(q) ||
       (r.beneficiaryName || '').toLowerCase().includes(q) ||
       (r.destinationCountry || '').toLowerCase().includes(q));
+    // Float transactions that need admin action to the top: "Create on USI" first, then "Confirm",
+    // then everything else. Order within each group is preserved (backend returns newest first).
+    const rank = (r: UsiAdminTransaction) => r.nextAction === 'CREATE' ? 0 : r.nextAction === 'CONFIRM' ? 1 : 2;
+    list.sort((a, b) => rank(a) - rank(b));
+    this.filtered = list;
   }
+
+  /** Funded transaction not yet sent to USI (the "Create on USI" rows) — what needs the admin's attention. */
+  needsAction(r: UsiAdminTransaction): boolean { return r?.nextAction === 'CREATE'; }
+
+  /** Count of funded transactions awaiting "Create on USI" (drives the attention chip). */
+  get pendingCount(): number { return this.rows.filter(r => r.nextAction === 'CREATE').length; }
 
   // ── Per-row actions ──────────────────────────────────────────────────
 

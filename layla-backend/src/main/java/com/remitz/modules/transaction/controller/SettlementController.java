@@ -74,6 +74,7 @@ public class SettlementController {
     }
 
     @PostMapping("/payin-to-admin")
+    @PreAuthorize("hasRole('PAYIN_PARTNER') or hasPermission(null, 'settlement:manage')")
     @Operation(summary = "Initiate pay-in-to-admin settlement")
     public ResponseEntity<ApiResponse<Settlement>> initiatePayinToAdmin(
             @RequestBody Map<String, Object> body,
@@ -127,7 +128,9 @@ public class SettlementController {
     }
 
     @PutMapping("/{id}/approve")
-    
+    // SECURITY (SEC-05): was open to any authenticated user. Partners approve their own settlements
+    // via the portal; admins approve with settlement:manage. (Per-partner ownership = Phase 2.)
+    @PreAuthorize("hasAnyRole('PAYIN_PARTNER','PAYOUT_PARTNER') or hasPermission(null, 'settlement:manage')")
     @Operation(summary = "Approve settlement and reflect in ledgers")
     public ResponseEntity<ApiResponse<Settlement>> approveSettlement(@PathVariable Long id,
                                                                       Authentication authentication) {
@@ -177,7 +180,7 @@ public class SettlementController {
     }
 
     @PutMapping("/{id}/reject")
-    
+    @PreAuthorize("hasAnyRole('PAYIN_PARTNER','PAYOUT_PARTNER') or hasPermission(null, 'settlement:manage')")
     @Operation(summary = "Reject settlement")
     public ResponseEntity<ApiResponse<Settlement>> rejectSettlement(@PathVariable Long id,
                                                                      @RequestBody Map<String, String> body) {
@@ -211,6 +214,7 @@ public class SettlementController {
     }
 
     @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('PAYIN_PARTNER','PAYOUT_PARTNER') or hasPermission(null, 'settlement:manage')")
     @Operation(summary = "Get pending settlements")
     public ResponseEntity<ApiResponse<List<Settlement>>> getPendingSettlements() {
         List<Settlement> settlements = settlementRepository.findByStatusOrderByCreatedAtDesc("PENDING");

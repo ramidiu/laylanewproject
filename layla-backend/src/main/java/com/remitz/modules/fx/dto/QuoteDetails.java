@@ -23,6 +23,7 @@ public class QuoteDetails {
     private BigDecimal appliedRate;
     private BigDecimal marginApplied;
     private BigDecimal fee;
+    private BigDecimal usiCommission;   // portion of fee that is the pass-through USI commission (cost)
     private BigDecimal totalCost;
     private Long corridorId;
     private String deliveryMethod;

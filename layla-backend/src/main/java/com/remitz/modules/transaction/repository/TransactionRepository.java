@@ -35,16 +35,22 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
     // USI-eligible transactions: either already linked to USI (have a usi_transactions row)
     // OR destination country in the USI Money corridor set (UG/TR/EG/QA/SA/AE).
     // Ordered newest first; cap the result via Pageable to keep the admin page snappy.
+    // Transactions already pushed to USI always show (for tracking their USI state). Un-pushed
+    // USI-corridor transactions only show when they're still actionable — not in a dead state
+    // (ARCHIVED / FAILED / CANCELLED) and created within the last 60 days — so the admin list
+    // isn't cluttered with stale rows.
     @Query(value =
             "SELECT t.* FROM transactions t " +
             " LEFT JOIN beneficiaries b ON b.id = t.beneficiary_id " +
             " WHERE t.reference_number IN (SELECT transaction_id FROM usi_transactions) " +
-            "    OR UPPER(b.country) IN ('UG','UGA','UGANDA',"
+            "    OR ( UPPER(b.country) IN ('UG','UGA','UGANDA',"
             +                            "'TR','TUR','TURKEY',"
             +                            "'EG','EGY','EGYPT',"
             +                            "'QA','QAT','QATAR',"
             +                            "'SA','SAU','SAUDI ARABIA',"
             +                            "'AE','ARE','UNITED ARAB EMIRATES','UAE') " +
+            "         AND t.status NOT IN ('ARCHIVED','FAILED','CANCELLED') " +
+            "         AND t.created_at >= (NOW() - INTERVAL 60 DAY) ) " +
             " ORDER BY t.created_at DESC",
             nativeQuery = true)
     java.util.List<TransactionEntity> findUsiEligibleTransactions(org.springframework.data.domain.Pageable pageable);

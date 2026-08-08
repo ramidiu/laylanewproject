@@ -15,8 +15,8 @@ import { SettlementService } from '../../core/services/settlement.service';
         <div class="owe-card__content">
           <div class="owe-card__left">
             <span class="owe-card__label">You Owe Admin</span>
-            <span class="owe-card__amount">{{ currentBalance | number:'1.2-2' }} USD</span>
-            <span class="owe-card__sub">Collected: {{ totalCredits | number:'1.2-2' }} USD &nbsp;|&nbsp; Settled: {{ totalDebits | number:'1.2-2' }} USD</span>
+            <span class="owe-card__amount">{{ currentBalance | number:'1.2-2' }} GBP</span>
+            <span class="owe-card__sub">Collected: {{ totalCredits | number:'1.2-2' }} GBP &nbsp;|&nbsp; Settled: {{ totalDebits | number:'1.2-2' }} GBP</span>
           </div>
           <div class="owe-card__right">
             <button class="btn btn--warning" (click)="showPayAdminForm = true" *ngIf="!showPayAdminForm && currentBalance > 0">Pay Admin</button>
@@ -28,7 +28,7 @@ import { SettlementService } from '../../core/services/settlement.service';
       <div class="pay-admin-form-card" *ngIf="showPayAdminForm">
         <div class="pay-admin-form-card__header">
           <h3>Pay Admin</h3>
-          <span class="outstanding-label">Outstanding: <strong>{{ currentBalance | number:'1.2-2' }} USD</strong></span>
+          <span class="outstanding-label">Outstanding: <strong>{{ currentBalance | number:'1.2-2' }} GBP</strong></span>
         </div>
         <div class="pay-admin-form-card__body">
           <div class="form-group">
@@ -46,21 +46,21 @@ import { SettlementService } from '../../core/services/settlement.service';
           <div class="form-summary" *ngIf="payAmount">
             <div class="form-summary__row">
               <span>Outstanding Before</span>
-              <span class="mono-value">{{ currentBalance | number:'1.2-2' }} USD</span>
+              <span class="mono-value">{{ currentBalance | number:'1.2-2' }} GBP</span>
             </div>
             <div class="form-summary__row">
               <span>Amount</span>
-              <span class="mono-value">{{ payAmount | number:'1.2-2' }} USD</span>
+              <span class="mono-value">{{ payAmount | number:'1.2-2' }} GBP</span>
             </div>
             <div class="form-summary__row">
               <span>Outstanding After</span>
-              <span class="mono-value">{{ (currentBalance - payAmount) | number:'1.2-2' }} USD</span>
+              <span class="mono-value">{{ (currentBalance - payAmount) | number:'1.2-2' }} GBP</span>
             </div>
           </div>
           <div class="form-actions">
             <button class="btn btn--outline" (click)="closePayForm()">Cancel</button>
             <button class="btn btn--warning" (click)="submitPayAdmin()" [disabled]="paySubmitting || !payAmount || !payReference">
-              {{ paySubmitting ? 'Processing...' : 'Pay ' + (payAmount | number:'1.2-2') + ' USD' }}
+              {{ paySubmitting ? 'Processing...' : 'Pay ' + (payAmount | number:'1.2-2') + ' GBP' }}
             </button>
           </div>
         </div>

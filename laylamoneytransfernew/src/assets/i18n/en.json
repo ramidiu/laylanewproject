@@ -21,7 +21,8 @@
     "COLLAPSE": "Collapse",
     "LOGOUT": "Logout",
     "SEND": "Send",
-    "TRANSFERS": "Transfers"
+    "TRANSFERS": "Transfers",
+    "MORE": "More"
   },
   "AUTH": {
     "SIGN_IN": "Sign In",
@@ -100,6 +101,7 @@
     "GREETING_MORNING": "Good morning",
     "GREETING_AFTERNOON": "Good afternoon",
     "GREETING_EVENING": "Good evening",
+    "WELCOME_BACK": "Welcome back",
     "WALLET_BALANCE": "Wallet Balance",
     "SEND_MONEY": "Send Money",
     "INVITE_FRIENDS": "Invite Friends",
@@ -154,6 +156,7 @@
     "SELECT_DELIVERY": "Select delivery method",
     "EXCHANGE_RATE": "Exchange Rate",
     "TRANSFER_FEE": "Transfer fee",
+    "AMOUNT_CONVERTED": "Amount converted",
     "SUBTOTAL": "Subtotal",
     "WALLET_CREDIT": "Wallet credit",
     "TOTAL_PAY": "Total you pay",
@@ -252,11 +255,14 @@
     "STATUS_ALL": "All",
     "STATUS_PENDING": "Pending",
     "STATUS_PROCESSING": "Processing",
+    "STATUS_FUNDS_RECEIVED": "Funds Received",
+    "STATUS_SENDING": "Sending",
     "STATUS_COMPLETED": "Paid",
     "STATUS_PAID": "Paid",
     "STATUS_FAILED": "Failed",
     "STATUS_CANCELLED": "Cancelled",
     "STATUS_REFUNDED": "Refunded",
+    "STATUS_ARCHIVED": "Archived",
     "STATUS_ON_HOLD": "On Hold"
   },
   "TRANSACTION_DETAIL": {

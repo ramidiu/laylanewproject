@@ -52,8 +52,11 @@ public class KycController {
                 .anyMatch(a -> "user:approve_kyc".equals(a.getAuthority()));
     }
 
+    // SECURITY (SEC-03): KYC endpoints act on {userId}; enforce owner-or-staff so a logged-in user
+    // cannot read/modify another user's KYC. Staff = user:approve_kyc (compliance) or user:view.
     @Operation(summary = "Upload KYC document", description = "Upload a KYC document for verification")
     @PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc') or hasPermission(null, 'user:view')")
     public ResponseEntity<ApiResponse<KycDocumentResponse>> uploadDocument(
             @Parameter(description = "User ID") @PathVariable String userId,
             @Parameter(description = "Document type") @RequestParam KycDocumentType type,
@@ -91,6 +94,7 @@ public class KycController {
 
     @Operation(summary = "Get KYC documents", description = "Get all KYC documents for a user")
     @GetMapping("/documents")
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc') or hasPermission(null, 'user:view')")
     public ResponseEntity<ApiResponse<List<KycDocumentResponse>>> getDocuments(
             @Parameter(description = "User ID") @PathVariable String userId) {
         List<KycDocumentResponse> documents = kycService.getDocuments(resolveUserId(userId));
@@ -104,6 +108,7 @@ public class KycController {
     @Operation(summary = "Delete a pending KYC document",
             description = "Delete the user's own PENDING document. Used to roll back a partial submission.")
     @DeleteMapping("/documents/{documentId}")
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc')")
     public ResponseEntity<ApiResponse<Void>> deleteDocument(
             @Parameter(description = "User ID") @PathVariable String userId,
             @Parameter(description = "Document ID") @PathVariable Long documentId) {
@@ -139,6 +144,7 @@ public class KycController {
 
     @Operation(summary = "Trigger verification", description = "Trigger a KYC verification check for a user")
     @PostMapping("/verify")
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc')")
     public ResponseEntity<ApiResponse<Void>> triggerVerification(
             @Parameter(description = "User ID") @PathVariable String userId,
             @Parameter(description = "Verification type") @RequestParam VerificationType type) {
@@ -151,6 +157,7 @@ public class KycController {
 
     @Operation(summary = "Get KYC status", description = "Get the current KYC status and tier information for a user")
     @GetMapping("/status")
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc') or hasPermission(null, 'user:view')")
     public ResponseEntity<ApiResponse<KycStatusResponse>> getKycStatus(
             @Parameter(description = "User ID") @PathVariable String userId) {
         KycStatusResponse status = kycService.getKycStatus(resolveUserId(userId));
@@ -163,6 +170,7 @@ public class KycController {
 
     @Operation(summary = "Screen PEP/Sanctions", description = "Run PEP and sanctions screening for a user")
     @PostMapping("/screening")
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc')")
     public ResponseEntity<ApiResponse<List<ScreeningResponse>>> screenPepSanctions(
             @Parameter(description = "User ID") @PathVariable String userId,
             HttpServletRequest request) {

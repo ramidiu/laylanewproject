@@ -59,6 +59,9 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
     private final UserRepository userRepository;
     private final TransactionRepository regularTransactionRepository;
     private final CorridorRepository corridorRepository;
+    private final com.remitz.modules.fx.service.CorridorFeeService corridorFeeService;
+    private final com.remitz.modules.fx.service.FxMarginService fxMarginService;
+    private final com.remitz.modules.payout.usi.service.UsiRateService usiRateService;
     private final PayoutPartnerRepository payoutPartnerRepository;
     private final PayoutPartnerCountryRepository payoutPartnerCountryRepository;
     private final PayinPartnerRepository payinPartnerRepository;
@@ -259,8 +262,45 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
 
             java.math.BigDecimal sendAmt = payinTxn.getAmount();
             java.math.BigDecimal receiveAmt = payinTxn.getReceiveAmount() != null ? payinTxn.getReceiveAmount() : java.math.BigDecimal.ZERO;
-            java.math.BigDecimal rate = (sendAmt != null && sendAmt.compareTo(java.math.BigDecimal.ZERO) > 0 && receiveAmt.compareTo(java.math.BigDecimal.ZERO) > 0)
-                    ? receiveAmt.divide(sendAmt, 8, java.math.RoundingMode.HALF_UP)
+
+            // Capture the corridor fee and FX margin % that apply to this corridor/amount/method,
+            // from the same sources a live quote uses, so PayIn transactions feed fee/P&L reporting
+            // like regular transactions do (these were previously hard-coded to zero). Best-effort:
+            // a lookup failure must never block creating the linked transaction.
+            DeliveryMethod dm = resolveDeliveryMethod(payinTxn.getDeliveryMethod());
+            java.math.BigDecimal feeAmount;
+            java.math.BigDecimal usiCommissionAmount = java.math.BigDecimal.ZERO;
+            try {
+                feeAmount = corridorFeeService.getFee(corridor.getId(), dm, sendAmt);
+                if (feeAmount == null) feeAmount = java.math.BigDecimal.ZERO;
+                // Add the USI per-transaction commission passed on to the customer, so the recorded
+                // fee matches what the customer was quoted (QuoteService adds the same commission).
+                // Keep the commission portion separately so funds-received can book it as a COST.
+                java.math.BigDecimal usiComm = usiRateService.getCachedUsiCommission(sendCurrency, receiveCurrency, dm);
+                if (usiComm != null && usiComm.signum() > 0) {
+                    usiCommissionAmount = usiComm;
+                    feeAmount = feeAmount.add(usiComm);
+                }
+            } catch (Exception e) {
+                log.warn("Fee lookup failed for PayIn linked txn ({}->{}): {}", sendCurrency, receiveCurrency, e.getMessage());
+                feeAmount = java.math.BigDecimal.ZERO;
+            }
+            java.math.BigDecimal fxMarginPct;
+            try {
+                com.remitz.modules.fx.entity.FxMarginEntity applicableMargin =
+                        fxMarginService.getApplicableMargin(sendCurrency, receiveCurrency, dm, null);
+                fxMarginPct = (applicableMargin != null && applicableMargin.getMarginPercentage() != null)
+                        ? applicableMargin.getMarginPercentage() : java.math.BigDecimal.ZERO;
+            } catch (Exception e) {
+                log.warn("Margin lookup failed for PayIn linked txn ({}->{}): {}", sendCurrency, receiveCurrency, e.getMessage());
+                fxMarginPct = java.math.BigDecimal.ZERO;
+            }
+
+            // The fee is deducted from the send amount before conversion, so the true FX rate is the
+            // receive amount over the CONVERTED portion (send - fee), not over the gross send amount.
+            java.math.BigDecimal amountConverted = sendAmt != null ? sendAmt.subtract(feeAmount) : java.math.BigDecimal.ZERO;
+            java.math.BigDecimal rate = (amountConverted.compareTo(java.math.BigDecimal.ZERO) > 0 && receiveAmt.compareTo(java.math.BigDecimal.ZERO) > 0)
+                    ? receiveAmt.divide(amountConverted, 8, java.math.RoundingMode.HALF_UP)
                     : java.math.BigDecimal.ONE;
 
             TransactionStatus linkedStatus = (paymentMode == PaymentMode.CASH_COLLECTION)
@@ -288,15 +328,17 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                     .beneficiaryId(savedBen.getId())
                     .corridorId(corridor.getId())
                     .status(linkedStatus)
-                    .deliveryMethod(resolveDeliveryMethod(payinTxn.getDeliveryMethod()))
+                    .deliveryMethod(dm)
                     .sendAmount(sendAmt)
                     .sendCurrency(sendCurrency)
                     .receiveAmount(receiveAmt)
                     .receiveCurrency(receiveCurrency)
                     .exchangeRate(rate)
                     .appliedRate(rate)
-                    .feeAmount(java.math.BigDecimal.ZERO)
-                    .fxMarginAmount(java.math.BigDecimal.ZERO)
+                    .feeAmount(feeAmount)
+                    .feeCurrency(sendCurrency)
+                    .fxMarginAmount(fxMarginPct)
+                    .usiCommissionAmount(usiCommissionAmount)
                     .totalDebitAmount(sendAmt)
                     .paymentMethodType(resolvePaymentMethodType(paymentMode))
                     .payinPartnerId(null)

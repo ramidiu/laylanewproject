@@ -43,12 +43,7 @@
             <td class="mono">{{ t.referenceNumber }}</td>
             <td>{{ t.beneficiaryName || '—' }}</td>
             <td class="num num--bold">{{ t.sendAmount | number:'1.2-2' }} {{ t.sendCurrency }}</td>
-            <td>
-              <span class="dashboard__badge" [ngClass]="{
-                'dashboard__badge--danger': t.status === 'FAILED' || t.status === 'CANCELLED',
-                'dashboard__badge--warning': t.status === 'COMPLIANCE_HOLD'
-              }">{{ t.status }}</span>
-            </td>
+            <td><app-status-chip [status]="t.status"></app-status-chip></td>
             <td>{{ t.createdAt | date:'short' }}</td>
           </tr>
         </tbody>

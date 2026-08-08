@@ -57,7 +57,8 @@ export class ExecutiveDashboardPage implements OnInit {
                 data: [
                   (byStatus.PAID || 0) + (byStatus.COMPLETED || 0),
                   byStatus.PENDING || 0,
-                  byStatus.PROCESSING || 0,
+                  // FUNDS_RECEIVED is an internal state shown to users as "Processing"
+                  (byStatus.PROCESSING || 0) + (byStatus.FUNDS_RECEIVED || 0),
                   byStatus.COMPLIANCE_HOLD || 0,
                   (byStatus.FAILED || 0) + (byStatus.CANCELLED || 0)
                 ],

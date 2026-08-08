@@ -15,4 +15,6 @@ public interface PlatformLedgerRepository extends JpaRepository<PlatformLedger, 
     Optional<PlatformLedger> findTopByOrderByIdDesc();
 
     List<PlatformLedger> findByAccountTypeOrderByIdAsc(String accountType);
+
+    boolean existsByTransactionIdAndAccountType(Long transactionId, String accountType);
 }

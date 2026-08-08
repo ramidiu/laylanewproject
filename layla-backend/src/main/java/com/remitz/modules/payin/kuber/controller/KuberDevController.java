@@ -7,6 +7,7 @@ import com.remitz.modules.payin.kuber.service.KuberCheckoutService;
 import com.remitz.modules.payin.kuber.service.KuberTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,10 +24,14 @@ import java.util.Map;
  * full — only a curated beginner-friendly summary. Remove (or gate behind a profile)
  * before production.
  */
+// SECURITY (SEC-08): DEV-only smoke-test controller. Gated off by default — the bean (and its
+// public /api/dev/kuber/** endpoints) only exists when app.dev-endpoints.enabled=true, so it is
+// absent in production regardless of the SecurityConfig permitAll rule.
 @RestController
 @RequestMapping("/api/dev/kuber")
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "app.dev-endpoints.enabled", havingValue = "true", matchIfMissing = false)
 public class KuberDevController {
 
     private final KuberProperties properties;

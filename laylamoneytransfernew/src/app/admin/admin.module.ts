@@ -36,12 +36,12 @@ import { AdminUsiPnlPage } from './usi-pnl/admin-usi-pnl.page';
     AdminNotificationsPage,
     AdminPayinPartnersPage,
     AdminPayinCustomersPage,
-    AdminTransferConfigPage,
-    AdminUsiPnlPage
+    AdminTransferConfigPage
   ],
   imports: [
     SharedModule,
-    AdminRoutingModule
+    AdminRoutingModule,
+    AdminUsiPnlPage
   ]
 })
 export class AdminModule {}

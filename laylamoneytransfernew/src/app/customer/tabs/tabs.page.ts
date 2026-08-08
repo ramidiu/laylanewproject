@@ -41,12 +41,14 @@ export class TabsPage implements OnInit, OnDestroy {
   ];
 
   // Bottom tabs (mobile only) - subset of main nav
-  bottomTabs = [
+  bottomTabs: { label: string; icon: string; route?: string; action?: string }[] = [
     { label: 'NAV.HOME', icon: 'home-outline', route: '/home/dashboard' },
     { label: 'NAV.SEND', icon: 'send-outline', route: '/home/send' },
-    { label: 'NAV.TRANSFERS', icon: 'receipt-outline', route: '/home/transactions' },
+    { label: 'NAV.WALLET', icon: 'wallet-outline', route: '/home/wallet' },
     { label: 'NAV.RECIPIENTS', icon: 'people-outline', route: '/home/beneficiaries' },
-    { label: 'NAV.MY_PROFILE', icon: 'person-outline', route: '/home/profile' },
+    // "More" opens the slide-out drawer — the only mobile entry point to Transactions,
+    // Profile, Documents, Referral & Support (matches the ForexBridge design).
+    { label: 'NAV.MORE', icon: 'menu-outline', action: 'menu' },
   ];
 
   constructor(

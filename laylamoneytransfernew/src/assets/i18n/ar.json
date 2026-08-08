@@ -21,7 +21,8 @@
     "COLLAPSE": "طي القائمة",
     "LOGOUT": "تسجيل الخروج",
     "SEND": "إرسال",
-    "TRANSFERS": "التحويلات"
+    "TRANSFERS": "التحويلات",
+    "MORE": "المزيد"
   },
   "AUTH": {
     "SIGN_IN": "تسجيل الدخول",
@@ -100,6 +101,7 @@
     "GREETING_MORNING": "صباح الخير",
     "GREETING_AFTERNOON": "مساء الخير",
     "GREETING_EVENING": "مساء النور",
+    "WELCOME_BACK": "مرحبًا بعودتك",
     "WALLET_BALANCE": "رصيد المحفظة",
     "SEND_MONEY": "إرسال الأموال",
     "INVITE_FRIENDS": "دعوة الأصدقاء",
@@ -154,6 +156,7 @@
     "SELECT_DELIVERY": "اختر طريقة التسليم",
     "EXCHANGE_RATE": "سعر الصرف",
     "TRANSFER_FEE": "رسوم التحويل",
+    "AMOUNT_CONVERTED": "المبلغ المحوَّل",
     "SUBTOTAL": "المجموع الفرعي",
     "WALLET_CREDIT": "رصيد المحفظة",
     "TOTAL_PAY": "الإجمالي الذي تدفعه",
@@ -252,11 +255,14 @@
     "STATUS_ALL": "الكل",
     "STATUS_PENDING": "قيد الانتظار",
     "STATUS_PROCESSING": "قيد المعالجة",
+    "STATUS_FUNDS_RECEIVED": "تم استلام الأموال",
+    "STATUS_SENDING": "جارٍ الإرسال",
     "STATUS_COMPLETED": "مدفوع",
     "STATUS_PAID": "مدفوع",
     "STATUS_FAILED": "فشل",
     "STATUS_CANCELLED": "ملغي",
     "STATUS_REFUNDED": "مسترد",
+    "STATUS_ARCHIVED": "مؤرشف",
     "STATUS_ON_HOLD": "معلّق"
   },
   "TRANSACTION_DETAIL": {

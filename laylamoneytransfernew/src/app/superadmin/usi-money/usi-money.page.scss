@@ -166,3 +166,40 @@
   border: 1px solid transparent;
   &:hover { background: #f3f4f6; }
 }
+
+/* ── "Float pending USI" attention styling ─────────────────────────── */
+.usi-pending-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #F59E0B;
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+  ion-icon { font-size: 14px; }
+}
+
+/* Rows that are funded and awaiting "Create on USI" — floated to top and highlighted */
+tr.usi-row--action {
+  background: #FFFBEB;
+  box-shadow: inset 3px 0 0 #F59E0B;
+}
+tr.usi-row--action:hover { background: #FEF3C7; }
+
+.usi-needs-pill {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: #F59E0B;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  vertical-align: middle;
+}

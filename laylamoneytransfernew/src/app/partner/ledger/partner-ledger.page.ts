@@ -14,8 +14,8 @@ import { SettlementService } from '../../core/services/settlement.service';
       <div class="owes-card" *ngIf="!loading">
         <div class="owes-card__left">
           <span class="owes-card__label">Admin Owes You</span>
-          <span class="owes-card__amount">{{ currentBalance | number:'1.2-2' }} USD</span>
-          <span class="owes-card__sub">Paid out: {{ totalDebits | number:'1.2-2' }} USD &nbsp;|&nbsp; Settled: {{ totalCredits | number:'1.2-2' }} USD</span>
+          <span class="owes-card__amount">{{ currentBalance | number:'1.2-2' }} GBP</span>
+          <span class="owes-card__sub">Paid out: {{ totalDebits | number:'1.2-2' }} GBP &nbsp;|&nbsp; Settled: {{ totalCredits | number:'1.2-2' }} GBP</span>
         </div>
       </div>
 
@@ -23,15 +23,15 @@ import { SettlementService } from '../../core/services/settlement.service';
       <div class="ledger-summary" *ngIf="!loading">
         <div class="summary-item summary-item--credit">
           <span class="summary-label">Total Credits</span>
-          <span class="summary-value">{{ totalCredits | number:'1.2-2' }} USD</span>
+          <span class="summary-value">{{ totalCredits | number:'1.2-2' }} GBP</span>
         </div>
         <div class="summary-item summary-item--debit">
           <span class="summary-label">Total Debits</span>
-          <span class="summary-value">{{ totalDebits | number:'1.2-2' }} USD</span>
+          <span class="summary-value">{{ totalDebits | number:'1.2-2' }} GBP</span>
         </div>
         <div class="summary-item summary-item--balance">
           <span class="summary-label">Current Balance</span>
-          <span class="summary-value">{{ currentBalance | number:'1.2-2' }} USD</span>
+          <span class="summary-value">{{ currentBalance | number:'1.2-2' }} GBP</span>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ import { SettlementService } from '../../core/services/settlement.service';
         <div class="pending-list">
           <div class="pending-item" *ngFor="let s of pendingSettlements">
             <div class="pending-item__info">
-              <span class="pending-item__amount">{{ s.amount | number:'1.2-2' }} {{ s.currency || 'USD' }}</span>
+              <span class="pending-item__amount">{{ s.amount | number:'1.2-2' }} {{ s.currency || 'GBP' }}</span>
               <span class="pending-item__ref" *ngIf="s.reference">Ref: {{ s.reference }}</span>
               <span class="pending-item__date">{{ s.createdAt | date:'MMM d, y HH:mm' }}</span>
             </div>
@@ -80,8 +80,8 @@ import { SettlementService } from '../../core/services/settlement.service';
                 <th>Type</th>
                 <th>Description</th>
                 <th>Local Amount</th>
-                <th>USD Amount</th>
-                <th>Balance (USD)</th>
+                <th>GBP Amount</th>
+                <th>Balance (GBP)</th>
               </tr>
             </thead>
             <tbody>
@@ -102,8 +102,8 @@ import { SettlementService } from '../../core/services/settlement.service';
                 }">
                   {{ entry.entryType === 'CREDIT' ? '+' : '-' }}{{ entry.localAmount | number:'1.2-2' }} {{ entry.localCurrency }}
                 </td>
-                <td class="fb-currency">{{ entry.usdAmount | number:'1.2-2' }} USD</td>
-                <td class="fb-currency">{{ entry.balanceUsd | number:'1.2-2' }} USD</td>
+                <td class="fb-currency">{{ entry.usdAmount | number:'1.2-2' }} GBP</td>
+                <td class="fb-currency">{{ entry.balanceUsd | number:'1.2-2' }} GBP</td>
               </tr>
               <tr *ngIf="ledgerEntries.length === 0">
                 <td colspan="6" class="empty-state">No ledger entries found</td>

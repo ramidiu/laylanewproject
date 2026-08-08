@@ -69,8 +69,24 @@ export class FxService {
     return this.http.put<any>(`${environment.apiUrl}/fx/margins/${marginId}`, { marginPercentage });
   }
 
+  /** Create a margin for a corridor + payout method (used when none exists yet for inline USI-table editing). */
+  createMargin(payload: {
+    sendCurrency: string; receiveCurrency: string; deliveryMethod?: string | null;
+    marginPercentage: number; marginFixed?: number; isActive?: boolean;
+  }): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/fx/margins`, payload);
+  }
+
   getMargins(): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/fx/margins`).pipe(map(res => res.data || res));
+  }
+
+  /**
+   * Live USI getCharges rate per active corridor x payout method (read-only, Phase 1/2).
+   * Diagnostic only — does NOT affect customer quotes yet.
+   */
+  getUsiRates(amount = 100): Observable<any[]> {
+    return this.http.get<any>(`${environment.apiUrl}/admin/usi/rates?amount=${amount}`).pipe(map(res => res?.data || res || []));
   }
 
   // ── Corridor Fees ───────────────────────────────────────────

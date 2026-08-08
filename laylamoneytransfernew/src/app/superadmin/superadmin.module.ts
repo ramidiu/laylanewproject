@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { SharedModule } from '../shared/shared.module';
+import { AdminUsiPnlPage } from '../admin/usi-pnl/admin-usi-pnl.page';
 import { SuperAdminRoutingModule } from './superadmin-routing.module';
 
 // Layout
@@ -95,7 +96,8 @@ import { SAUsiMoneyPage } from './usi-money/usi-money.page';
   ],
   imports: [
     SharedModule,
-    SuperAdminRoutingModule
+    SuperAdminRoutingModule,
+    AdminUsiPnlPage
   ]
 })
 export class SuperAdminModule {}

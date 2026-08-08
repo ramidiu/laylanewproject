@@ -43,7 +43,7 @@
             <td class="mono">{{ t.referenceNumber }}</td>
             <td>{{ t.beneficiaryName || '—' }}</td>
             <td class="num num--bold">{{ t.sendAmount | number:'1.2-2' }} {{ t.sendCurrency }}</td>
-            <td><span class="dashboard__badge dashboard__badge--primary">{{ t.status }}</span></td>
+            <td><app-status-chip [status]="t.status"></app-status-chip></td>
             <td>{{ t.createdAt | date:'short' }}</td>
           </tr>
         </tbody>

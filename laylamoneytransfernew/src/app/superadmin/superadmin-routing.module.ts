@@ -15,6 +15,7 @@ import { SettlementsPage } from './settlements/settlements.page';
 import { SettlementRatesPage } from './settlement-rates/settlement-rates.page';
 import { TransferConfigPage } from './transfer-config/transfer-config.page';
 import { SAUsiMoneyPage } from './usi-money/usi-money.page';
+import { AdminUsiPnlPage } from '../admin/usi-pnl/admin-usi-pnl.page';
 import { EmailTemplatesPage } from './email-templates/email-templates.page';
 import { AuditLogsPage } from './audit-logs/audit-logs.page';
 import { SAKycReviewPage } from './kyc-review/sa-kyc-review.page';
@@ -59,7 +60,7 @@ const routes: Routes = [
       { path: 'dash-compliance',    redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dash-finance',       redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dash-engagement',    redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'ledger',             redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'ledger',             component: LedgerPage },
       { path: 'settlements',        redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'settlement-rates',   redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'wallet-management',  redirectTo: 'dashboard', pathMatch: 'full' },
@@ -72,6 +73,7 @@ const routes: Routes = [
       { path: 'corridor-management', component: CorridorManagementPage },
       { path: 'transfer-config',   component: TransferConfigPage },
       { path: 'usi-money',         component: SAUsiMoneyPage },
+      { path: 'usi-pnl',           component: AdminUsiPnlPage },
       { path: 'email-templates', component: EmailTemplatesPage },
       { path: 'audit-logs', component: AuditLogsPage },
       { path: 'kyc-review', component: SAKycReviewPage },

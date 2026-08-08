@@ -1,7 +1,12 @@
 <div class="usi-page">
   <div class="usi-header">
     <div>
-      <h2 class="usi-title">USI Money — Payout Console</h2>
+      <h2 class="usi-title">
+        USI Money — Payout Console
+        <span class="usi-pending-chip" *ngIf="pendingCount > 0" title="Funded transactions waiting to be sent to USI">
+          <ion-icon name="alert-circle"></ion-icon> {{ pendingCount }} awaiting USI
+        </span>
+      </h2>
       <p class="usi-sub">Send Layla transactions to USI Money. Lifecycle: <strong>Create → Confirm → Status</strong>. Status auto-polls every 5 min.</p>
     </div>
     <div class="usi-header-actions">
@@ -87,9 +92,9 @@
           <td>{{ r.destinationCountry || '—' }}</td>
           <td class="usi-mono">{{ r.sendAmount | number:'1.2-2' }} {{ r.sendCurrency }}</td>
           <td class="usi-mono">{{ r.receiveAmount | number:'1.2-2' }} {{ r.receiveCurrency }}</td>
-          <td><span class="status-badge">{{ r.laylaStatus }}</span></td>
+          <td><app-status-chip [status]="r.laylaStatus"></app-status-chip></td>
           <td>
-            <span [class]="badgeClass(r.usiStatus)">{{ r.usiStatus || 'NEW' }}</span>
+            <app-status-chip [status]="r.usiStatus || 'pending'"></app-status-chip>
             <div class="usi-error" *ngIf="r.usiErrorMessage">{{ r.usiErrorMessage }}</div>
           </td>
           <td class="usi-mono">

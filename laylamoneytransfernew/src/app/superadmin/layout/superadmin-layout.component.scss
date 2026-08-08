@@ -347,3 +347,30 @@
     padding: $fb-space-2;
   }
 }
+
+/* "Awaiting USI" count badge on the USI Money sidebar item */
+.admin-sidenav__item { position: relative; }
+.admin-sidenav__count {
+  margin-left: auto;
+  background: #DC2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-sidenav__count-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #DC2626;
+}

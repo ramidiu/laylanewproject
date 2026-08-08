@@ -1,6 +1,17 @@
 <ion-header>
   <ion-toolbar class="home-toolbar">
-    <ion-title></ion-title>
+    <ion-title>
+      <div class="home-toolbar__brand">Layla</div>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/home/notifications" class="home-toolbar__bell">
+        <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
+        <span class="home-toolbar__badge" *ngIf="notificationCount > 0">
+          {{ notificationCount > 99 ? '99+' : notificationCount }}
+        </span>
+      </ion-button>
+      <div class="toolbar-avatar" [routerLink]="['/home/profile']">{{ getInitials(fullName) }}</div>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -17,7 +28,7 @@
       <div class="home-hero__greeting">
         <p class="home-hero__welcome">{{ greeting | translate }},</p>
         <h1 class="home-hero__name">
-          <ng-container *ngIf="!loading">{{ greeting | translate }}, {{ fullName }}!</ng-container>
+          <ng-container *ngIf="!loading">{{ 'HOME.WELCOME_BACK' | translate }}, {{ fullName }}! 👋</ng-container>
           <span class="fb-skeleton fb-skeleton--title" *ngIf="loading"></span>
         </h1>
       </div>

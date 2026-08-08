@@ -44,12 +44,20 @@ body {
     background: $fb-success-bg;
     color: #065F46;
   }
-  &--pending, &--processing, &--queued {
+  &--pending, &--queued {
     background: $fb-warning-bg;
     color: #92400E;
   }
+  &--processing, &--initiated, &--funds-received {
+    background: #DBEAFE;
+    color: #1E40AF;
+  }
   &--failed, &--cancelled, &--rejected, &--closed {
     background: $fb-danger-bg;
+    color: #991B1B;
+  }
+  &--validation-failed, &--action-required {
+    background: #FEE2E2;
     color: #991B1B;
   }
   &--compliance-hold, &--under-review {
@@ -60,9 +68,13 @@ body {
     background: $fb-sky-pale;
     color: $fb-navy;
   }
-  &--sent-to-payout {
+  &--sent-to-payout, &--sending {
     background: #EDE9FE;
     color: #5B21B6;
+  }
+  &--refunded, &--archived {
+    background: #E5E7EB;
+    color: #374151;
   }
 
   &::before {

@@ -171,4 +171,56 @@
       </table>
     </div>
   </div>
+
+  <!-- USI Live Rate -> Customer Rate (preview, READ-ONLY - does not affect quotes yet) -->
+  <div class="fb-card table-card" *ngIf="!loading" style="margin-top:24px;">
+    <div class="section-header-row">
+      <h3 class="section-title">
+        <ion-icon name="cash-outline" style="margin-right:6px;vertical-align:middle;"></ion-icon>
+        USI Live Rate &#8594; Customer Rate
+      </h3>
+    </div>
+    <p style="font-size:.8rem;color:#6b7280;margin:6px 0 10px;">
+      Customer rate = USI rate &times; (1 &minus; margin%). Edit the margin in the Margin % column.
+    </p>
+
+    <div *ngIf="usiLoading" style="font-size:.85rem;color:#6b7280;padding:8px 0;">Fetching live USI rates&hellip;</div>
+    <div *ngIf="usiError" style="font-size:.85rem;color:#dc2626;padding:8px 0;">{{ usiError }}</div>
+
+    <div class="table-wrapper" *ngIf="!usiLoading">
+      <table class="fb-table">
+        <thead>
+          <tr><th>Corridor</th><th>Payout method</th><th>USI rate</th><th>Margin %</th><th>Customer rate</th><th>USI comm.</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of usiRates">
+            <td><span class="pair-badge">{{ row.sendCurrency }}/{{ row.receiveCurrency }}</span></td>
+            <td>{{ row.deliveryMethod || '&mdash;' }}</td>
+            <td class="fb-currency">{{ row.ok ? (row.usiRate | number:'1.4-4') : '&mdash;' }}</td>
+            <td>
+              <span *ngIf="editingUsiKey !== usiRowKey(row)">
+                {{ marginPctFor(row) | number:'1.2-2' }}%
+                <button *ngIf="row.ok" class="tbl-btn tbl-btn--primary" (click)="startEditUsiMargin(row)" title="Edit margin">
+                  <ion-icon name="create-outline"></ion-icon>
+                </button>
+              </span>
+              <span *ngIf="editingUsiKey === usiRowKey(row)" class="margin-edit">
+                <input type="number" class="fb-input margin-input" [(ngModel)]="editUsiMarginValue" step="0.01" min="0" max="100" />
+                <div class="margin-edit-actions">
+                  <button class="tbl-btn tbl-btn--success" (click)="saveUsiMargin(row)"><ion-icon name="checkmark"></ion-icon></button>
+                  <button class="tbl-btn tbl-btn--medium" (click)="cancelUsiMargin()"><ion-icon name="close"></ion-icon></button>
+                </div>
+              </span>
+            </td>
+            <td class="fb-currency" style="font-weight:700;">{{ row.ok ? (previewCustomerRate(row) | number:'1.4-4') : '&mdash;' }}</td>
+            <td>{{ row.ok ? (row.commission | number:'1.2-2') : '&mdash;' }}</td>
+            <td><ion-badge [color]="row.ok ? 'success' : 'danger'" style="font-size:11px;">{{ row.ok ? 'OK' : 'ERROR' }}</ion-badge></td>
+          </tr>
+          <tr *ngIf="!usiRates.length">
+            <td colspan="7" style="text-align:center;color:#9ca3af;padding:14px;">No USI rates (USI disabled or no active corridors)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>

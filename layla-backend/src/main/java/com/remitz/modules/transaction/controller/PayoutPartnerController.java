@@ -458,12 +458,11 @@ public class PayoutPartnerController {
                 usdAmount, fxRate,
                 "Payout completed for " + tx.getReferenceNumber());
 
-        // Platform ledger DEBIT (cash outflow for payout)
-        platformLedgerService.addEntry(
+        // Platform ledger — GBP payout principal (send - fee); the fee is retained as profit.
+        // (Foreign receive amounts are not reconverted via stale settlement_rates.)
+        platformLedgerService.recordPayout(
                 tx.getId(), tx.getReferenceNumber(),
-                "DEBIT", receiveAmount, receiveCurrency,
-                usdAmount, fxRate,
-                "Payout to partner for " + tx.getReferenceNumber(), "PAYOUT");
+                tx.getSendAmount(), tx.getFeeAmount());
 
         // Final settlement step: PAID → COMPLETED + admin notification
         transactionService.completeTransaction(txnId, userId, com.remitz.common.enums.ActorType.PAYOUT_PARTNER);

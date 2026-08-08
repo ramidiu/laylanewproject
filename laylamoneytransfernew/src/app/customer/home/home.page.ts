@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { TransactionService } from '../../core/services/transaction.service';
 import { PdfService } from '../../core/services/pdf.service';
 import { BeneficiaryService } from '../../core/services/beneficiary.service';
@@ -29,10 +30,14 @@ export interface MonthlyData {
   styleUrls: ['./home.page.scss'],
   providers: [DatePipe, DecimalPipe, TitleCasePipe]
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
   greeting = '';
   fullName = '';
   userProfile: UserResponse | null = null;
+
+  // Unread notification count for the header bell badge (shared with the desktop topbar).
+  notificationCount = 0;
+  private notifSub?: Subscription;
 
   recentTransactions: TransactionResponse[] = [];
   allTransactions: TransactionResponse[] = [];
@@ -70,7 +75,8 @@ export class HomePage implements OnInit {
     private datePipe: DatePipe,
     private decimalPipe: DecimalPipe,
     private titleCasePipe: TitleCasePipe,
-    private pdfService: PdfService
+    private pdfService: PdfService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -78,6 +84,14 @@ export class HomePage implements OnInit {
     const jwt = this.authService.getCurrentUser();
     this.fullName = jwt?.email?.split('@')[0] || 'User';
     this.loadDashboard();
+
+    // Live unread count for the header bell badge (service is polled by the tabs shell).
+    this.notificationService.startPolling();
+    this.notifSub = this.notificationService.unreadCount$.subscribe(c => this.notificationCount = c);
+  }
+
+  ngOnDestroy(): void {
+    this.notifSub?.unsubscribe();
   }
 
   loadDashboard(): void {

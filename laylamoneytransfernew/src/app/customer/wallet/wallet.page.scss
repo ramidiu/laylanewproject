@@ -67,6 +67,9 @@
   grid-template-columns: 1fr 1fr;
   gap: $fb-space-3;
   margin-top: $fb-space-4;
+
+  // Stack the Credit/Debit summary cards on narrow phones so long amounts aren't cramped.
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
 }
 
 .wallet-summary-card {

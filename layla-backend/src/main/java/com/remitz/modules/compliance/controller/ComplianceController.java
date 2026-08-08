@@ -159,6 +159,8 @@ public class ComplianceController {
     // --- Cases ---
 
     @GetMapping("/cases")
+    // SECURITY (SEC-10): was missing method security (any authenticated user could list case metadata).
+    @PreAuthorize("hasAuthority('compliance:view_alerts')")
     @Operation(summary = "List compliance cases", description = "List all compliance cases with pagination")
     public ResponseEntity<org.springframework.data.domain.Page<ComplianceCaseResponse>> listCases(
             @RequestParam(defaultValue = "0") int page,

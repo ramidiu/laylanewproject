@@ -31,6 +31,11 @@ export class SAFxPage implements OnInit {
 
   private activeReceiveCurrencies: Set<string> = new Set();
 
+  // USI live rate -> customer rate preview (Phase 2, read-only)
+  usiRates: any[] = [];
+  usiLoading = false;
+  usiError = '';
+
   constructor(private fxService: FxService, private configService: ConfigService, private toastCtrl: ToastController) {}
 
   ngOnInit(): void { this.loadData(); }
@@ -82,9 +87,83 @@ export class SAFxPage implements OnInit {
           this.activeReceiveCurrencies.size === 0 || this.activeReceiveCurrencies.has(m.receiveCurrency)
         );
         this.loading = false;
+        this.loadUsiRates();
       },
-      error: () => { this.margins = []; this.loading = false; }
+      error: () => { this.margins = []; this.loading = false; this.loadUsiRates(); }
     });
+  }
+
+  /** Load live USI getCharges rates (read-only). Runs after margins so the preview can apply them. */
+  loadUsiRates(): void {
+    this.usiLoading = true; this.usiError = '';
+    this.fxService.getUsiRates(100).subscribe({
+      next: (rows) => {
+        // Only show corridors whose receive currency is an active receive country
+        // (mirrors the manual-rate table above). Keeps orphaned/inactive corridors
+        // (e.g. a country that was never really added) out of the customer-rate view.
+        const all = (rows || []) as any[];
+        this.usiRates = this.activeReceiveCurrencies.size === 0
+          ? all
+          : all.filter((r: any) => this.activeReceiveCurrencies.has(r.receiveCurrency));
+        this.usiLoading = false;
+      },
+      error: () => { this.usiRates = []; this.usiLoading = false; this.usiError = 'Could not load USI rates (USI may be disabled).'; }
+    });
+  }
+
+  /** Margin % applying to a USI row: exact corridor+method match, else corridor-any-method, else 0. */
+  marginPctFor(row: any): number {
+    const exact = this.margins.find((m: any) =>
+      m.sendCurrency === row.sendCurrency && m.receiveCurrency === row.receiveCurrency && m.deliveryMethod === row.deliveryMethod);
+    const anyMethod = this.margins.find((m: any) =>
+      m.sendCurrency === row.sendCurrency && m.receiveCurrency === row.receiveCurrency && !m.deliveryMethod);
+    const m = exact || anyMethod;
+    return m ? (Number(m.marginPercentage) || 0) : 0;
+  }
+
+  /** Customer rate = USI rate x (1 - margin%/100). Null when USI had no rate. */
+  customerRate(row: any): number | null {
+    if (row?.usiRate == null) return null;
+    return Number(row.usiRate) * (1 - this.marginPctFor(row) / 100);
+  }
+
+  // ── Inline margin editing in the USI table (this is the customer rate) ──────
+  editingUsiKey: string | null = null;
+  editUsiMarginValue = 0;
+
+  usiRowKey(row: any): string {
+    return `${row.sendCurrency}_${row.receiveCurrency}_${row.deliveryMethod}`;
+  }
+
+  startEditUsiMargin(row: any): void {
+    this.editingUsiKey = this.usiRowKey(row);
+    this.editUsiMarginValue = this.marginPctFor(row);
+  }
+
+  cancelUsiMargin(): void { this.editingUsiKey = null; }
+
+  /** Live customer-rate preview while editing (uses the in-progress margin value). */
+  previewCustomerRate(row: any): number | null {
+    if (row?.usiRate == null) return null;
+    const pct = this.editingUsiKey === this.usiRowKey(row) ? Number(this.editUsiMarginValue) : this.marginPctFor(row);
+    return Number(row.usiRate) * (1 - (isNaN(pct) ? 0 : pct) / 100);
+  }
+
+  /** Save the margin for this corridor + payout method: update the existing row, or create one. */
+  saveUsiMargin(row: any): void {
+    const pct = Number(this.editUsiMarginValue);
+    if (isNaN(pct) || pct < 0 || pct > 100) { this.showToast('Margin must be between 0 and 100%', 'warning'); return; }
+    const existing = this.margins.find((m: any) =>
+      m.sendCurrency === row.sendCurrency && m.receiveCurrency === row.receiveCurrency && m.deliveryMethod === row.deliveryMethod);
+    const done = () => { this.editingUsiKey = null; this.showToast(`Margin saved: ${row.sendCurrency}/${row.receiveCurrency} ${row.deliveryMethod} = ${pct}%`, 'success'); this.loadData(); };
+    if (existing && existing.id) {
+      this.fxService.updateMargin(existing.id, pct).subscribe({ next: done, error: () => this.showToast('Failed to update margin', 'danger') });
+    } else {
+      this.fxService.createMargin({
+        sendCurrency: row.sendCurrency, receiveCurrency: row.receiveCurrency,
+        deliveryMethod: row.deliveryMethod, marginPercentage: pct, isActive: true
+      }).subscribe({ next: done, error: () => this.showToast('Failed to create margin', 'danger') });
+    }
   }
 
   toggleRateMode(): void {

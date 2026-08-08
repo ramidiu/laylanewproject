@@ -658,3 +658,72 @@
     }
   }
 }
+
+// ============================================================
+// Mobile refinements (<= sm) — fit header, compact hero, no horizontal overflow
+// ============================================================
+@media (max-width: $fb-breakpoint-sm) {
+  // Hard containment: :host is a flex COLUMN, so any section whose content is wider than the
+  // screen (a nowrap label, the calculator's intrinsic width) forces the whole host wider and
+  // clips EVERYTHING on the right. Cap the host and let each section shrink instead of push.
+  :host {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  :host > * {
+    min-width: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  // Header: shrink so logo + Login + Create account fit within small viewports
+  .landing-header__inner {
+    padding: $fb-space-2 $fb-space-4;
+    box-sizing: border-box;
+  }
+  .landing-header__logo-img { height: 32px; }
+  .landing-header__actions { gap: $fb-space-2; }
+  .landing-header__btn {
+    padding: $fb-space-2 $fb-space-3;
+    font-size: $fb-text-xs;
+    white-space: nowrap;
+  }
+
+  // Hero: prevent horizontal overflow. In the flex COLUMN, the default `min-width: auto`
+  // lets a child's intrinsic width (the calculator) force the whole column wider than the
+  // screen, clipping the header/title/card on the right. Fix = stretch children to the
+  // container width AND allow them to shrink (`min-width: 0`) so everything wraps to fit.
+  .landing-hero {
+    overflow-x: hidden;
+  }
+  .landing-hero__inner {
+    width: 100%;
+    max-width: 100%;
+    padding: $fb-space-8 $fb-space-4;
+    gap: $fb-space-8;
+    align-items: stretch;
+    box-sizing: border-box;
+  }
+  .landing-hero__content,
+  .landing-hero__calculator {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .landing-hero__title {
+    font-size: $fb-text-2xl;
+    overflow-wrap: break-word;
+  }
+  .landing-hero__subtitle { font-size: $fb-text-sm; }
+  .landing-hero__cta-group {
+    width: 100%;
+    flex-direction: column;
+    gap: $fb-space-3;
+  }
+  .landing-hero__cta {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+}

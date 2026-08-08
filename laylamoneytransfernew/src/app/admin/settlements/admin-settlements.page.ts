@@ -17,7 +17,7 @@ export class AdminSettlementsPage implements OnInit {
   newSettlement = {
     partnerId: null as number | null,
     amount: 0,
-    currency: 'USD',
+    currency: 'GBP',
     notes: '',
     direction: 'ADMIN_TO_PAYOUT'
   };
@@ -99,7 +99,7 @@ export class AdminSettlementsPage implements OnInit {
       next: () => {
         this.showToast('Settlement initiated', 'success');
         this.showInitiateForm = false;
-        this.newSettlement = { partnerId: null, amount: 0, currency: 'USD', notes: '', direction: 'ADMIN_TO_PAYOUT' };
+        this.newSettlement = { partnerId: null, amount: 0, currency: 'GBP', notes: '', direction: 'ADMIN_TO_PAYOUT' };
         this.loadSettlements();
       },
       error: () => this.showToast('Failed to initiate settlement', 'danger')

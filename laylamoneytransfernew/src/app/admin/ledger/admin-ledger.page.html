@@ -11,16 +11,16 @@
   <div *ngIf="activeSegment === 'platform'" class="tab-content">
     <div class="ledger-totals" *ngIf="!platformLoading && platformEntries.length > 0">
       <div class="total-card total-card--credit">
-        <span class="total-label">Total Credits</span>
-        <span class="total-value">{{ getTotalCredits() | number:'1.2-2' }} USD</span>
+        <span class="total-label">Total Received</span>
+        <span class="total-value">{{ getTotalCredits() | number:'1.2-2' }} GBP</span>
       </div>
       <div class="total-card total-card--debit">
-        <span class="total-label">Total Debits</span>
-        <span class="total-value">{{ getTotalDebits() | number:'1.2-2' }} USD</span>
+        <span class="total-label">Total Paid Out</span>
+        <span class="total-value">{{ getTotalDebits() | number:'1.2-2' }} GBP</span>
       </div>
       <div class="total-card total-card--balance">
-        <span class="total-label">Net Balance</span>
-        <span class="total-value">{{ getNetBalance() | number:'1.2-2' }} USD</span>
+        <span class="total-label">Net Profit (Fees)</span>
+        <span class="total-value">{{ getNetBalance() | number:'1.2-2' }} GBP</span>
       </div>
     </div>
 
@@ -38,8 +38,8 @@
               <th>Account</th>
               <th>Type</th>
               <th>Local Amount</th>
-              <th>USD Amount</th>
-              <th>Balance (USD)</th>
+              <th>GBP Amount</th>
+              <th>Balance (GBP)</th>
               <th>Reference</th>
             </tr>
           </thead>
@@ -54,8 +54,8 @@
               <td class="fb-currency" [class.credit]="entry.entryType === 'CREDIT'" [class.debit]="entry.entryType === 'DEBIT'">
                 {{ entry.entryType === 'CREDIT' ? '+' : '-' }}{{ entry.localAmount | number:'1.2-2' }} {{ entry.localCurrency }}
               </td>
-              <td class="fb-currency">{{ entry.usdAmount | number:'1.4-4' }} USD</td>
-              <td class="fb-currency">{{ entry.balanceUsd | number:'1.4-4' }}</td>
+              <td class="fb-currency">{{ entry.usdAmount | number:'1.2-2' }} GBP</td>
+              <td class="fb-currency">{{ entry.balanceUsd | number:'1.2-2' }} GBP</td>
               <td class="ref-cell">{{ entry.txnDisplayId || '-' }}</td>
             </tr>
           </tbody>
@@ -84,7 +84,7 @@
           </ion-badge>
         </div>
         <div class="balance-card__amount" [class.positive]="partner.balance > 0" [class.negative]="partner.balance < 0">
-          {{ partner.currency || 'USD' }} {{ partner.balance | number:'1.2-2' }}
+          {{ partner.currency || 'GBP' }} {{ partner.balance | number:'1.2-2' }}
         </div>
         <div class="balance-card__details">
           <div class="detail-row">

@@ -115,12 +115,23 @@
 
   <!-- Bottom Tabs (mobile only) -->
   <div class="tabs-bar" *ngIf="!isFullscreenPage">
-    <a *ngFor="let tab of bottomTabs"
-       class="tab-item"
-       [routerLink]="tab.route"
-       routerLinkActive="active">
-      <ion-icon [name]="tab.icon"></ion-icon>
-      <span>{{ tab.label | translate }}</span>
-    </a>
+    <ng-container *ngFor="let tab of bottomTabs">
+      <!-- Route tabs -->
+      <a *ngIf="!tab.action"
+         class="tab-item"
+         [routerLink]="tab.route"
+         routerLinkActive="active">
+        <ion-icon [name]="tab.icon"></ion-icon>
+        <span>{{ tab.label | translate }}</span>
+      </a>
+      <!-- "More" opens the drawer -->
+      <a *ngIf="tab.action === 'menu'"
+         class="tab-item"
+         [class.active]="mobileMenuOpen"
+         (click)="toggleMobileMenu()">
+        <ion-icon [name]="tab.icon"></ion-icon>
+        <span>{{ tab.label | translate }}</span>
+      </a>
+    </ng-container>
   </div>
 </div>

@@ -12,16 +12,16 @@
     <!-- Totals Summary -->
     <div class="ledger-totals" *ngIf="!platformLoading && platformEntries.length > 0">
       <div class="total-card total-card--credit">
-        <span class="total-label">Total Credits</span>
-        <span class="total-value">{{ getTotalCredits() | number:'1.2-2' }} USD</span>
+        <span class="total-label">Total Received</span>
+        <span class="total-value">{{ getTotalCredits() | number:'1.2-2' }} GBP</span>
       </div>
       <div class="total-card total-card--debit">
-        <span class="total-label">Total Debits</span>
-        <span class="total-value">{{ getTotalDebits() | number:'1.2-2' }} USD</span>
+        <span class="total-label">Total Paid Out</span>
+        <span class="total-value">{{ getTotalDebits() | number:'1.2-2' }} GBP</span>
       </div>
       <div class="total-card total-card--balance">
-        <span class="total-label">Net Balance</span>
-        <span class="total-value">{{ getNetBalance() | number:'1.2-2' }} USD</span>
+        <span class="total-label">Net Profit (Fees)</span>
+        <span class="total-value">{{ getNetBalance() | number:'1.2-2' }} GBP</span>
       </div>
     </div>
 
@@ -50,9 +50,9 @@
                   [class.balance-owes]="partner.balance > 0"
                   [class.balance-settled]="partner.balance === 0"
                   [class.balance-prefunded]="partner.balance < 0">
-                  <ng-container *ngIf="partner.balance > 0">{{ partner.balance | number:'1.2-2' }} USD</ng-container>
+                  <ng-container *ngIf="partner.balance > 0">{{ partner.balance | number:'1.2-2' }} GBP</ng-container>
                   <ng-container *ngIf="partner.balance === 0">Settled</ng-container>
-                  <ng-container *ngIf="partner.balance < 0">Prefunded {{ (partner.balance * -1) | number:'1.2-2' }} USD</ng-container>
+                  <ng-container *ngIf="partner.balance < 0">Prefunded {{ (partner.balance * -1) | number:'1.2-2' }} GBP</ng-container>
                 </span>
               </td>
               <td>
@@ -67,7 +67,7 @@
             <tr class="total-row">
               <td colspan="2"><strong>Total Outstanding</strong></td>
               <td>
-                <strong class="balance-amount balance-owes">{{ getTotalOutstandingPayables() | number:'1.2-2' }} USD</strong>
+                <strong class="balance-amount balance-owes">{{ getTotalOutstandingPayables() | number:'1.2-2' }} GBP</strong>
               </td>
               <td></td>
             </tr>
@@ -100,9 +100,9 @@
                 <span class="balance-amount"
                   [class.balance-receivable]="partner.balance > 0"
                   [class.balance-settled-grey]="partner.balance === 0">
-                  <ng-container *ngIf="partner.balance > 0">{{ partner.balance | number:'1.2-2' }} USD</ng-container>
+                  <ng-container *ngIf="partner.balance > 0">{{ partner.balance | number:'1.2-2' }} GBP</ng-container>
                   <ng-container *ngIf="partner.balance === 0">Settled</ng-container>
-                  <ng-container *ngIf="partner.balance < 0">Overpaid {{ (partner.balance * -1) | number:'1.2-2' }} USD</ng-container>
+                  <ng-container *ngIf="partner.balance < 0">Overpaid {{ (partner.balance * -1) | number:'1.2-2' }} GBP</ng-container>
                 </span>
               </td>
               <td>
@@ -117,7 +117,7 @@
             <tr class="total-row">
               <td colspan="2"><strong>Total Receivable</strong></td>
               <td>
-                <strong class="balance-amount balance-receivable">{{ getTotalOutstandingReceivables() | number:'1.2-2' }} USD</strong>
+                <strong class="balance-amount balance-receivable">{{ getTotalOutstandingReceivables() | number:'1.2-2' }} GBP</strong>
               </td>
               <td></td>
             </tr>
@@ -130,7 +130,7 @@
     <div class="settlement-form-card" *ngIf="showPayForm && payFormPartner">
       <div class="settlement-form-card__header settlement-form-card__header--navy">
         <h3>Pay {{ payFormPartner.partnerName || 'Partner #' + payFormPartner.partnerId }}</h3>
-        <span class="outstanding-label">Outstanding: <strong class="balance-owes">{{ payFormPartner.balance | number:'1.2-2' }} USD</strong></span>
+        <span class="outstanding-label">Outstanding: <strong class="balance-owes">{{ payFormPartner.balance | number:'1.2-2' }} GBP</strong></span>
       </div>
       <div class="settlement-form-card__body">
         <div class="form-group">
@@ -148,15 +148,15 @@
         <div class="form-summary" *ngIf="payFormAmount">
           <div class="form-summary__row">
             <span>Amount</span>
-            <span class="mono-value">{{ payFormAmount | number:'1.2-2' }} USD</span>
+            <span class="mono-value">{{ payFormAmount | number:'1.2-2' }} GBP</span>
           </div>
           <div class="form-summary__row">
             <span>Outstanding Before</span>
-            <span class="mono-value">{{ payFormPartner.balance | number:'1.2-2' }} USD</span>
+            <span class="mono-value">{{ payFormPartner.balance | number:'1.2-2' }} GBP</span>
           </div>
           <div class="form-summary__row">
             <span>Outstanding After</span>
-            <span class="mono-value">{{ getPayOutstandingAfter() | number:'1.2-2' }} USD</span>
+            <span class="mono-value">{{ getPayOutstandingAfter() | number:'1.2-2' }} GBP</span>
           </div>
         </div>
         <div class="form-actions">
@@ -172,7 +172,7 @@
     <div class="settlement-form-card" *ngIf="showReceiveForm && receiveFormPartner">
       <div class="settlement-form-card__header settlement-form-card__header--success">
         <h3>Receive from {{ receiveFormPartner.partnerName || 'Partner #' + receiveFormPartner.partnerId }}</h3>
-        <span class="outstanding-label">Owes: <strong class="balance-receivable">{{ receiveFormPartner.balance | number:'1.2-2' }} USD</strong></span>
+        <span class="outstanding-label">Owes: <strong class="balance-receivable">{{ receiveFormPartner.balance | number:'1.2-2' }} GBP</strong></span>
       </div>
       <div class="settlement-form-card__body">
         <div class="form-group">
@@ -190,15 +190,15 @@
         <div class="form-summary" *ngIf="receiveFormAmount">
           <div class="form-summary__row">
             <span>Amount</span>
-            <span class="mono-value">{{ receiveFormAmount | number:'1.2-2' }} USD</span>
+            <span class="mono-value">{{ receiveFormAmount | number:'1.2-2' }} GBP</span>
           </div>
           <div class="form-summary__row">
             <span>Outstanding Before</span>
-            <span class="mono-value">{{ receiveFormPartner.balance | number:'1.2-2' }} USD</span>
+            <span class="mono-value">{{ receiveFormPartner.balance | number:'1.2-2' }} GBP</span>
           </div>
           <div class="form-summary__row">
             <span>Outstanding After</span>
-            <span class="mono-value">{{ getReceiveOutstandingAfter() | number:'1.2-2' }} USD</span>
+            <span class="mono-value">{{ getReceiveOutstandingAfter() | number:'1.2-2' }} GBP</span>
           </div>
         </div>
         <div class="form-actions">
@@ -237,7 +237,7 @@
                   {{ s.type === 'PAYIN_TO_ADMIN' ? 'Pay-In to Admin' : 'Admin to Payout' }}
                 </span>
               </td>
-              <td class="mono-value">{{ s.amount | number:'1.2-2' }} {{ s.currency || 'USD' }}</td>
+              <td class="mono-value">{{ s.amount | number:'1.2-2' }} {{ s.currency || 'GBP' }}</td>
               <td>{{ s.reference || '-' }}</td>
               <td>{{ s.initiatorName || s.initiator || '-' }}</td>
               <td>{{ s.createdAt | date:'MMM d, y HH:mm' }}</td>
@@ -268,8 +268,8 @@
               <th>Account</th>
               <th>Type</th>
               <th>Local Amount</th>
-              <th>USD Amount</th>
-              <th>Balance (USD)</th>
+              <th>GBP Amount</th>
+              <th>Balance (GBP)</th>
               <th>Reference</th>
             </tr>
           </thead>
@@ -284,8 +284,8 @@
               <td class="fb-currency" [class.credit]="entry.entryType === 'CREDIT'" [class.debit]="entry.entryType === 'DEBIT'">
                 {{ entry.entryType === 'CREDIT' ? '+' : '-' }}{{ entry.localAmount | number:'1.2-2' }} {{ entry.localCurrency }}
               </td>
-              <td class="fb-currency">{{ entry.usdAmount | number:'1.4-4' }} USD</td>
-              <td class="fb-currency">{{ entry.balanceUsd | number:'1.4-4' }}</td>
+              <td class="fb-currency">{{ entry.usdAmount | number:'1.2-2' }} GBP</td>
+              <td class="fb-currency">{{ entry.balanceUsd | number:'1.2-2' }} GBP</td>
               <td class="ref-cell">{{ entry.txnDisplayId || '-' }}</td>
             </tr>
           </tbody>
@@ -314,7 +314,7 @@
           </ion-badge>
         </div>
         <div class="balance-card__amount" [class.positive]="partner.balance > 0" [class.negative]="partner.balance < 0">
-          {{ partner.currency || 'USD' }} {{ partner.balance | number:'1.2-2' }}
+          {{ partner.currency || 'GBP' }} {{ partner.balance | number:'1.2-2' }}
         </div>
         <div class="balance-card__details">
           <div class="detail-row">

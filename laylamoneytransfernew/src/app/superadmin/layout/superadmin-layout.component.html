@@ -26,6 +26,10 @@
         >
           <ion-icon [name]="item.icon"></ion-icon>
           <span *ngIf="!sidenavCollapsed">{{ item.label }}</span>
+          <span class="admin-sidenav__count" *ngIf="item.route === '/superadmin/usi-money' && usiPendingCount > 0 && !sidenavCollapsed">
+            {{ usiPendingCount > 99 ? '99+' : usiPendingCount }}
+          </span>
+          <span class="admin-sidenav__count-dot" *ngIf="item.route === '/superadmin/usi-money' && usiPendingCount > 0 && sidenavCollapsed"></span>
         </a>
       </div>
     </nav>

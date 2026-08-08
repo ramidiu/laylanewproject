@@ -22,8 +22,11 @@ public class UserController {
 
     private final UserService userService;
 
+    // SECURITY (SEC-03): was public via the /api/users/* permitAll rule. Now the caller may only
+    // read their OWN profile (JWT subject == uuid) unless they hold the staff 'user:view' authority.
     @Operation(summary = "Get user by UUID", description = "Retrieve a user profile by their UUID")
     @GetMapping("/{uuid}")
+    @PreAuthorize("#uuid == authentication.name or hasPermission(null, 'user:view')")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(
             @Parameter(description = "User UUID") @PathVariable String uuid) {
         UserResponse user = userService.getUserByUuid(uuid);
@@ -34,8 +37,10 @@ public class UserController {
                 .build());
     }
 
+    // SECURITY (SEC-03): own profile only, unless staff ('user:view').
     @Operation(summary = "Update user profile", description = "Update a user's profile information")
     @PutMapping("/{uuid}")
+    @PreAuthorize("#uuid == authentication.name or hasPermission(null, 'user:view')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @Parameter(description = "User UUID") @PathVariable String uuid,
             @Valid @RequestBody UserUpdateRequest request) {
