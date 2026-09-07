@@ -289,9 +289,11 @@ public class AuthService {
         // Check concurrent sessions
         long activeSessions = refreshTokenRepository.countByUserIdAndRevokedFalse(user.getId());
         if (activeSessions >= securityProperties.getMaxConcurrentSessions()) {
-            // Revoke oldest sessions to make room
-            log.info("Max concurrent sessions reached for user {}. Revoking oldest sessions.", user.getUuid());
-            revokeAllRefreshTokens(user.getId());
+            // Trim only the OLDEST session(s) so this new login fits within the cap, keeping the
+            // user's other recent devices signed in. (Previously revoked ALL sessions, logging
+            // the user out on every device on each new login.)
+            log.info("Max concurrent sessions reached for user {}. Revoking oldest session(s) to make room.", user.getUuid());
+            revokeOldestRefreshTokens(user.getId(), securityProperties.getMaxConcurrentSessions() - 1);
         }
 
         // Force MFA setup for staff roles that haven't enabled MFA yet.
@@ -658,8 +660,10 @@ public class AuthService {
         // Check concurrent sessions
         long activeSessions = refreshTokenRepository.countByUserIdAndRevokedFalse(user.getId());
         if (activeSessions >= securityProperties.getMaxConcurrentSessions()) {
-            log.info("Max concurrent sessions reached for admin user {}. Revoking oldest sessions.", user.getUuid());
-            revokeAllRefreshTokens(user.getId());
+            // Trim only the OLDEST session(s) so this new login fits within the cap, keeping the
+            // user's other recent devices signed in. (Previously revoked ALL sessions.)
+            log.info("Max concurrent sessions reached for admin user {}. Revoking oldest session(s) to make room.", user.getUuid());
+            revokeOldestRefreshTokens(user.getId(), securityProperties.getMaxConcurrentSessions() - 1);
         }
 
         // Check MFA
@@ -999,6 +1003,27 @@ public class AuthService {
                     t.setRevoked(true);
                     refreshTokenRepository.save(t);
                 });
+    }
+
+    /**
+     * Enforce the concurrent-session cap WITHOUT logging the user out everywhere: keep the
+     * {@code keepNewest} most-recent active sessions and revoke only the older ones. Used on
+     * login so a new device fits within the cap while the user's other recent devices stay
+     * signed in. (Previously the cap called revokeAllRefreshTokens, nuking every session on
+     * each new login — the "logged out on all my devices" complaint.)
+     */
+    private void revokeOldestRefreshTokens(Long userId, int keepNewest) {
+        List<RefreshTokenEntity> active = refreshTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(userId) && !t.getRevoked())
+                .sorted(Comparator.comparing(RefreshTokenEntity::getCreatedAt,
+                        Comparator.nullsFirst(Comparator.naturalOrder())))   // oldest first
+                .collect(Collectors.toList());
+        int toRevoke = active.size() - Math.max(0, keepNewest);
+        for (int i = 0; i < toRevoke; i++) {
+            RefreshTokenEntity t = active.get(i);
+            t.setRevoked(true);
+            refreshTokenRepository.save(t);
+        }
     }
 
     /**
