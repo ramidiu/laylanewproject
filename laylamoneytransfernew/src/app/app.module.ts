@@ -12,6 +12,7 @@ import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 import { ApiResponseUnwrapInterceptor } from './core/interceptors/api-response-unwrap.interceptor';
 import { ErrorInterceptor } from './core/interceptors/error.interceptor';
 import { LanguageService } from './core/services/language.service';
+import { AuthService } from './core/services/auth.service';
 
 export function createTranslateLoader(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -26,6 +27,13 @@ class GlobalErrorHandler implements ErrorHandler {
 
 export function initLanguage(langService: LanguageService) {
   return () => langService.init();
+}
+
+// Rehydrate auth tokens from native storage (Capacitor Preferences) BEFORE the app
+// and route guards run, so an iOS/Android WebView that evicted localStorage doesn't
+// start the user in a logged-out state.
+export function initAuthTokens(authService: AuthService) {
+  return () => authService.restoreFromDurableStore();
 }
 
 @NgModule({
@@ -51,6 +59,12 @@ export function initLanguage(langService: LanguageService) {
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: ApiResponseUnwrapInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initAuthTokens,
+      deps: [AuthService],
+      multi: true
+    },
     {
       provide: APP_INITIALIZER,
       useFactory: initLanguage,
