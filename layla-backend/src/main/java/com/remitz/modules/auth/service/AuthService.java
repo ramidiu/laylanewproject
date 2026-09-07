@@ -393,20 +393,29 @@ public class AuthService {
 
         UserEntity user = storedToken.getUser();
 
-        // Revoke old refresh token
-        storedToken.setRevoked(true);
+        // NON-ROTATING refresh: keep the existing refresh token valid until its natural
+        // expiry and only mint a fresh access token. Rotation (revoke-on-use) was logging
+        // customers out — on flaky mobile networks the refresh response is often lost, so the
+        // server had rotated (revoked the old token) while the client still held it, and the
+        // next call failed. Concurrent refreshes hit the same problem. Security is still
+        // enforced via the refresh-token expiry, concurrent-session caps, and full revocation
+        // on logout / password change / suspicious activity.
+        //
+        // SLIDING EXPIRY: extend the refresh token's expiry on every successful refresh so an
+        // actively-used session never dies mid-use. Without this the token had a HARD absolute
+        // lifetime from login (7d) and every user — active or not — was force-logged-out on the
+        // dot, which is the logout customers kept reporting. Now the window only lapses after a
+        // genuine period of inactivity (no refresh for the full TTL).
+        storedToken.setExpiresAt(LocalDateTime.now()
+                .plusSeconds(jwtProperties.getRefreshTokenExpirationMs() / 1000));
         refreshTokenRepository.save(storedToken);
 
-        // Generate new tokens
         Set<String> permissions = collectPermissions(user);
         String newAccessToken = jwtService.generateAccessToken(user, permissions, false);
-        String newRefreshToken = jwtService.generateRefreshToken(user);
-
-        saveRefreshToken(user, newRefreshToken);
 
         return TokenResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
+                .refreshToken(request.getRefreshToken())   // same token back — no rotation
                 .tokenType("Bearer")
                 .expiresIn(jwtProperties.getAccessTokenExpirationMs() / 1000)
                 .build();

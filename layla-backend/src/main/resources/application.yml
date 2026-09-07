@@ -60,7 +60,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:layla-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
     access-token-expiration-ms: 3600000
-    refresh-token-expiration-ms: 604800000
+    refresh-token-expiration-ms: 2592000000  # 30 days; sliding — extended on each refresh, so active sessions never expire
     mfa-token-expiration-ms: 300000
   security:
     max-login-attempts: 5
@@ -78,12 +78,25 @@ app:
     # (Settings > Security > Site security). Leave blank to skip verification entirely.
     site-security-password: ${TRUST_SITE_SECURITY_PASSWORD:}
     # false => LOG-ONLY: hash is checked and logged but a mismatch NEVER rejects the callback.
-    # Only set true once the logs confirm real Trust callbacks hash correctly (and fields are set).
+    # Only set true once the logs confirm real Trust callbacks hash correctly (password is set).
     verify-signature: ${TRUST_VERIFY_SIGNATURE:false}
-    # Comma-separated response field names, in the EXACT order configured in MyST, whose values
-    # Trust concatenates (then appends the password) to produce responsesitesecurity (SHA-256 hex).
-    # Leave blank until the correct order is known — verification stays informational until then.
-    signature-fields: ${TRUST_SIGNATURE_FIELDS:}
+    # NOTE: the verifier is self-configuring — it hashes ALL notification fields (except
+    # notificationreference & responsesitesecurity, blanks omitted) sorted ASCII by field name,
+    # per Trust's spec. No field list to configure. (Legacy TRUST_SIGNATURE_FIELDS is unused.)
+    #
+    # TRU Connect JWT integration (st.js) — the SECURE, server-signed card flow that replaces the
+    # legacy unsigned form POST. Disabled until the webservices credentials are set, so the current
+    # flow is untouched. Enable only after sandbox testing.
+    jwt:
+      enabled: ${TRUST_JWT_ENABLED:false}
+      # Webservices account username from MyST -> becomes the JWT 'iss'.
+      username: ${TRUST_JWT_USERNAME:}
+      # Shared JWT signing secret (HS256) from MyST. NEVER commit this — env only.
+      secret: ${TRUST_JWT_SECRET:}
+      # Site reference (sandbox: test_laylalondo147950, live: laylalondo147951).
+      site-reference: ${TRUST_JWT_SITEREFERENCE:test_laylalondo147950}
+      # 0 = test/sandbox, 1 = live.
+      live-status: ${TRUST_JWT_LIVESTATUS:0}
   # Code added by Naresh: Veriff / Amal / Volume modules removed — related config blocks deleted
   fx:
     exchange-rates-api:
