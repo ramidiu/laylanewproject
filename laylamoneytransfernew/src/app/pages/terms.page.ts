@@ -42,6 +42,6 @@ import { Component } from '@angular/core';
       <h2>10. Contact</h2>
       <p>Questions about these Terms? Contact us at <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or see our <a href="/contact-us">Contact page</a>.</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class TermsPage {}

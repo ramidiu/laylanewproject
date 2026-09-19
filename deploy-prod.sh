@@ -4,7 +4,7 @@
 # You'll be asked for the server password a few times (rsync / scp / ssh).
 set -e
 
-SRV=root@68.169.55.246
+SRV=root@213.171.210.135
 SRC=/mnt/c/Users/umesh/claude/laylanewproject
 WEB=/var/www/layla/data/www/laylamoneytransfer.co.uk
 

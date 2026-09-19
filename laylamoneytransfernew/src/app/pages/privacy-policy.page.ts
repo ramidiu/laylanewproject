@@ -79,6 +79,6 @@ import { Component } from '@angular/core';
       Email: <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a><br>
       Website: <a href="https://laylamoneytransfer.co.uk">https://laylamoneytransfer.co.uk</a></p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class PrivacyPolicyPage {}

@@ -25,6 +25,10 @@ export class AdminTransactionsPage implements OnInit {
   stats: any = {};
   statsLoading = true;
 
+  // Number of PAID USI transactions available to export — the "USI CSV" button only
+  // shows when this is > 0.
+  usiPaidCount = 0;
+
   statuses = ['CREATED','PENDING','COMPLIANCE_HOLD','PROCESSING','FUNDS_RECEIVED','SENT_TO_PAYOUT','PAID','FAILED','CANCELLED','REFUNDED','ARCHIVED'];
 
   constructor(
@@ -54,6 +58,15 @@ export class AdminTransactionsPage implements OnInit {
   ngOnInit(): void {
     this.loadTransactions();
     this.loadStats();
+    this.loadUsiPaidCount();
+  }
+
+  /** Fetch how many PAID USI transactions exist — gates the USI CSV button. */
+  loadUsiPaidCount(): void {
+    this.transactionService.getUsiCsvCount().subscribe({
+      next: (count) => this.usiPaidCount = count || 0,
+      error: () => this.usiPaidCount = 0
+    });
   }
 
   loadStats(): void {
@@ -257,6 +270,35 @@ export class AdminTransactionsPage implements OnInit {
 
   exportTransactions(): void {
     this.showToast('Export functionality - integrate with CSV export endpoint', 'primary');
+  }
+
+  /**
+   * Download the USI CSV — only PAID transactions that were paid out via USI, in the exact
+   * column format USI requires. Respects the page's From/To date filters when set.
+   */
+  downloadUsiCsv(): void {
+    if (this.usiPaidCount === 0) {
+      this.showToast('No paid transactions to export yet. The file will download with headers only.', 'warning');
+    } else {
+      this.showToast('Preparing CSV…', 'primary');
+    }
+    this.transactionService.downloadUsiCsv({
+      startDate: this.fromDate || undefined,
+      endDate: this.toDate || undefined
+    }).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `paid-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.showToast('Paid transactions CSV downloaded', 'success');
+      },
+      error: () => this.showToast('Failed to download CSV', 'danger')
+    });
   }
 
   private async showToast(message: string, color: string): Promise<void> {

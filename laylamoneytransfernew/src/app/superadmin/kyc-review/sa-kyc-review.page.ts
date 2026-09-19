@@ -32,11 +32,12 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
   filteredEntries: KycUserEntry[] = [];
   loading = true;
   private blobUrls: string[] = [];
-  activeFilter: 'PARTIAL' | 'PENDING' = 'PENDING';
+  activeFilter: 'PARTIAL' | 'PENDING' | 'PROFILE_CHANGE' = 'PENDING';
   searchQuery = '';
 
   stats = { pending: 0, verified: 0, rejected: 0 };
   partialCount = 0;
+  profileChangeCount = 0;
 
   currentPage = 0;
   pageSize = 20;
@@ -79,6 +80,11 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
     });
     this.userService.listUsers({ page: 0, size: 1, kycStatus: 'PARTIAL' }).subscribe({
       next: (res) => { this.partialCount = res.totalElements || 0; }
+    });
+    // Users whose account is PENDING_VERIFICATION — set only on a profile change (or KYC
+    // downgrade), so these are the "profile changed, awaiting re-verification" cases.
+    this.userService.listUsers({ page: 0, size: 1, status: 'PENDING_VERIFICATION' }).subscribe({
+      next: (res) => { this.profileChangeCount = res.totalElements || 0; }
     });
   }
 
@@ -144,12 +150,15 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
 
   loadUsers(): void {
     this.loading = true;
-    this.userService.listUsers({
-      page: this.currentPage,
-      size: this.pageSize,
-      kycStatus: this.activeFilter,
-      sort: 'recent'
-    }).subscribe({
+    // "Profile Changes" filters by ACCOUNT status (PENDING_VERIFICATION), which the other
+    // tabs (KYC status) never match — that's why profile-changed verified users weren't showing.
+    const listParams: any = { page: this.currentPage, size: this.pageSize, sort: 'recent' };
+    if (this.activeFilter === 'PROFILE_CHANGE') {
+      listParams.status = 'PENDING_VERIFICATION';
+    } else {
+      listParams.kycStatus = this.activeFilter;
+    }
+    this.userService.listUsers(listParams).subscribe({
       next: (res) => {
         this.totalPages = res.totalPages || 0;
         this.totalElements = res.totalElements || 0;
@@ -308,6 +317,8 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
   applyFilter(): void {
     const q = this.searchQuery.toLowerCase().trim();
     let result = this.entries.filter(e => {
+      // Profile Changes = account status PENDING_VERIFICATION (profile edited / KYC downgraded).
+      if (this.activeFilter === 'PROFILE_CHANGE') return e.user.status === 'PENDING_VERIFICATION';
       const status = e.kycStatus?.overallStatus?.toUpperCase() || 'NOT_SUBMITTED';
       // PARTIAL = imported-only (no real submission); PENDING = a real document awaiting review.
       if (this.activeFilter === 'PARTIAL') return status === 'PARTIAL';
@@ -331,7 +342,7 @@ export class SAKycReviewPage implements OnInit, OnDestroy {
     this.applyFilter();
   }
 
-  setFilter(filter: 'PARTIAL' | 'PENDING'): void {
+  setFilter(filter: 'PARTIAL' | 'PENDING' | 'PROFILE_CHANGE'): void {
     this.activeFilter = filter;
     this.currentPage = 0;
     this.loadUsers();

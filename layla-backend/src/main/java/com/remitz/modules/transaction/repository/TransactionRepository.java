@@ -1,5 +1,6 @@
 package com.remitz.modules.transaction.repository;
 
+import com.remitz.common.enums.PaymentMethodType;
 import com.remitz.common.enums.TransactionStatus;
 import com.remitz.modules.transaction.entity.TransactionEntity;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,10 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
     // Used to detect a Trust Payments transactionreference being reused to fund
     // more than one transaction (replayed/duplicate card success).
     List<TransactionEntity> findByPaymentReference(String paymentReference);
+
+    // In-flight transactions of a given payment method — used by the Trust settlement
+    // scheduler to find PENDING card (Trust) transactions to re-check against Trust.
+    List<TransactionEntity> findByStatusAndPaymentMethodType(TransactionStatus status, PaymentMethodType paymentMethodType);
 
     // Highest numeric suffix among existing "TXN<n>" reference numbers. Used to seed the
     // sequential reference generator at startup so new transactions continue the series.
@@ -54,6 +59,25 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
             " ORDER BY t.created_at DESC",
             nativeQuery = true)
     java.util.List<TransactionEntity> findUsiEligibleTransactions(org.springframework.data.domain.Pageable pageable);
+
+    // PAID export: ALL paid-out transactions (PAID or its post-completion COMPLETED state) —
+    // i.e. money delivered to the beneficiary — regardless of payout partner (USI or not).
+    // Exported in the USI-required column format. Optional created_at range narrows to dates.
+    @Query(value =
+            "SELECT t.* FROM transactions t " +
+            " WHERE t.status IN ('PAID','COMPLETED') " +
+            "   AND (:startDate IS NULL OR t.created_at >= :startDate) " +
+            "   AND (:endDate IS NULL OR t.created_at <= :endDate) " +
+            " ORDER BY t.created_at DESC",
+            nativeQuery = true)
+    List<TransactionEntity> findPaidTransactionsForExport(@Param("startDate") LocalDateTime startDate,
+                                                          @Param("endDate") LocalDateTime endDate);
+
+    // Count of ALL PAID transactions — drives the CSV button count/visibility.
+    @Query(value =
+            "SELECT COUNT(*) FROM transactions t WHERE t.status IN ('PAID','COMPLETED')",
+            nativeQuery = true)
+    long countPaidTransactions();
 
     Optional<TransactionEntity> findByIdempotencyKey(String idempotencyKey);
 
@@ -110,8 +134,10 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
     @Query("SELECT t FROM TransactionEntity t WHERE " +
             "(:senderId IS NULL OR t.senderId = :senderId) AND " +
             "(:status IS NULL OR t.status = :status) AND " +
-            // Hide archived (stale-pending) transactions from the default list unless explicitly filtered.
-            "(:status IS NOT NULL OR t.status <> com.remitz.common.enums.TransactionStatus.ARCHIVED) AND " +
+            // Hide archived (stale-pending) transactions from the DEFAULT list only — i.e. when no
+            // status filter AND no search term. A reference/sender search must still find archived
+            // transactions (otherwise searching an archived reference returns nothing).
+            "(:status IS NOT NULL OR :search IS NOT NULL OR t.status <> com.remitz.common.enums.TransactionStatus.ARCHIVED) AND " +
             "(:corridorId IS NULL OR t.corridorId = :corridorId) AND " +
             "(:startDate IS NULL OR t.createdAt >= :startDate) AND " +
             "(:endDate IS NULL OR t.createdAt <= :endDate) AND " +

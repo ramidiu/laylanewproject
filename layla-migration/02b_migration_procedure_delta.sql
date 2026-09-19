@@ -124,6 +124,7 @@ BEGIN
         user_type,
         kyc_tier,
         payin_enabled,
+        date_of_birth,
         created_at,
         updated_at
     )
@@ -151,6 +152,13 @@ BEGIN
         -- KYC tier: set to TIER_0 now, updated in Phase 5
         'TIER_0',
         0,
+        -- Date of birth: the legacy DoB lives on user_identity.DOB (the ID-document
+        -- record), stored as a 'YYYY-MM-DD' varchar. A user may have several ID docs,
+        -- so take MAX() of the strictly-formatted values (junk like '-'/'' is ignored).
+        (SELECT STR_TO_DATE(MAX(TRIM(ui.DOB)), '%Y-%m-%d')
+           FROM layla_old.user_identity ui
+          WHERE ui.USER_ID = u.USER_ID
+            AND TRIM(COALESCE(ui.DOB, '')) REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'),
         -- Timestamps: replace MySQL zero-dates with NOW()
         CASE WHEN u.CREATED_ON IS NULL OR UNIX_TIMESTAMP(u.CREATED_ON) = 0
              THEN NOW() ELSE u.CREATED_ON END,

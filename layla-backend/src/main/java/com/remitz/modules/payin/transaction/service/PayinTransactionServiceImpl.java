@@ -67,6 +67,7 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
     private final PayinPartnerRepository payinPartnerRepository;
     private final com.remitz.modules.transaction.service.TransactionReceiptService transactionReceiptService;
     private final UsiPayoutService usiPayoutService;
+    private final com.remitz.modules.payin.customer.service.BackendCustomerLoginProvisioner loginProvisioner;
     private final UsiPayoutProperties usiProperties;
 
     /** Destination countries served by USI Money — mirrors TransactionRepository.findUsiEligibleTransactions. */
@@ -79,13 +80,39 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
             "AE", "ARE", "UNITED ARAB EMIRATES", "UAE");
 
     @Override
+    @Transactional
     public byte[] generateReceiptPdf(String transactionId) {
         PayinTransactionEntity txn = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException("PayinTransaction", "transactionId", transactionId));
+        // Self-heal: some pay-ins were saved without a linked regular transaction (e.g. the sender
+        // user was only findable by email, not uuid), which made the receipt 404. Build it now
+        // (without re-pushing to USI) so the receipt works instead of failing.
+        if (txn.getLinkedTransactionId() == null) {
+            tryRepairLinkedTransaction(txn);
+            txn = transactionRepository.findByTransactionId(transactionId).orElse(txn);
+        }
         if (txn.getLinkedTransactionId() == null) {
             throw new ResourceNotFoundException("Receipt", "transactionId", transactionId);
         }
         return transactionReceiptService.generatePdfForTransaction(txn.getLinkedTransactionId());
+    }
+
+    /** Rebuild the linked regular transaction for a pay-in that has none (repair path — no USI push). */
+    private void tryRepairLinkedTransaction(PayinTransactionEntity txn) {
+        try {
+            PayinCustomerEntity customer = customerRepository.findByCustomerId(txn.getCustomerId()).orElse(null);
+            PayinBeneficiaryEntity ben = txn.getBeneficiaryId() != null
+                    ? beneficiaryRepository.findById(txn.getBeneficiaryId()).orElse(null) : null;
+            if (customer == null || ben == null) {
+                log.warn("Cannot repair linked transaction for PayIn {} — missing customer/beneficiary",
+                        txn.getTransactionId());
+                return;
+            }
+            log.info("Repairing missing linked transaction for PayIn {}", txn.getTransactionId());
+            createLinkedTransaction(txn, customer, ben, txn.getPaymentMode(), txn.getCreatedAt(), false);
+        } catch (Exception e) {
+            log.error("Repair of linked transaction failed for PayIn {}: {}", txn.getTransactionId(), e.getMessage());
+        }
     }
 
     @Override
@@ -196,14 +223,14 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 saved.getTransactionId(), saved.getCustomerId(), saved.getCustomerSource());
 
         // Create linked regular transaction so Payout Partner can action it
-        createLinkedTransaction(saved, customer, beneficiary, paymentMode, customCreatedAt);
+        createLinkedTransaction(saved, customer, beneficiary, paymentMode, customCreatedAt, true);
 
         return CreatePayinTransactionResponse.success(saved.getTransactionId(), saved.getStatus().name(), saved.getCustomerSource().name());
     }
 
     private void createLinkedTransaction(PayinTransactionEntity payinTxn, PayinCustomerEntity customer,
                                          PayinBeneficiaryEntity payinBen, PaymentMode paymentMode,
-                                         java.time.LocalDateTime customCreatedAt) {
+                                         java.time.LocalDateTime customCreatedAt, boolean pushToUsi) {
         try {
             String sendCurrency = payinTxn.getCurrency();
             String receiveCurrency = payinTxn.getReceiveCurrency();
@@ -220,11 +247,33 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 return;
             }
 
-            // Resolve sender userId
+            // Resolve sender userId. Partner-created customers get a login account whose uuid is a
+            // fresh random UUID (NOT the payin customerId), so match by uuid FIRST, then fall back to
+            // the customer's email — otherwise the linked transaction (and thus the receipt) is never
+            // created and the receipt endpoint 404s.
             Long senderId = userRepository.findByUuid(customer.getCustomerId())
+                    .or(() -> (customer.getEmail() != null && !customer.getEmail().isBlank())
+                            ? userRepository.findByEmail(customer.getEmail().trim().toLowerCase())
+                            : java.util.Optional.empty())
                     .map(u -> u.getId()).orElse(null);
+            // Still no user (login account was never provisioned for this customer) — provision one
+            // now. provision() is idempotent (returns the existing user by email, else creates it),
+            // guaranteeing the linked transaction and receipt can always be built.
+            if (senderId == null && customer.getEmail() != null && !customer.getEmail().isBlank()) {
+                try {
+                    var provisioned = loginProvisioner.provision(
+                            customer.getFirstName(), customer.getLastName(), customer.getEmail().trim().toLowerCase(),
+                            customer.getPhone(), customer.getCountry(), customer.getNationality(),
+                            customer.getAddressLine1(), customer.getCity(), customer.getPostalCode());
+                    if (provisioned != null) senderId = provisioned.getId();
+                } catch (Exception e) {
+                    log.error("On-demand login provisioning failed for customer {}: {}",
+                            customer.getCustomerId(), e.getMessage());
+                }
+            }
             if (senderId == null) {
-                log.warn("Cannot resolve senderId for customerId {}", customer.getCustomerId());
+                log.warn("Cannot resolve senderId for customerId {} (email {})",
+                        customer.getCustomerId(), customer.getEmail());
                 return;
             }
 
@@ -296,9 +345,9 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 fxMarginPct = java.math.BigDecimal.ZERO;
             }
 
-            // The fee is deducted from the send amount before conversion, so the true FX rate is the
-            // receive amount over the CONVERTED portion (send - fee), not over the gross send amount.
-            java.math.BigDecimal amountConverted = sendAmt != null ? sendAmt.subtract(feeAmount) : java.math.BigDecimal.ZERO;
+            // Fee-on-top: the full send amount is converted for the beneficiary (the fee is charged
+            // on top, not taken out), so the true FX rate is the receive amount over the gross send.
+            java.math.BigDecimal amountConverted = sendAmt != null ? sendAmt : java.math.BigDecimal.ZERO;
             java.math.BigDecimal rate = (amountConverted.compareTo(java.math.BigDecimal.ZERO) > 0 && receiveAmt.compareTo(java.math.BigDecimal.ZERO) > 0)
                     ? receiveAmt.divide(amountConverted, 8, java.math.RoundingMode.HALF_UP)
                     : java.math.BigDecimal.ONE;
@@ -339,7 +388,7 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                     .feeCurrency(sendCurrency)
                     .fxMarginAmount(fxMarginPct)
                     .usiCommissionAmount(usiCommissionAmount)
-                    .totalDebitAmount(sendAmt)
+                    .totalDebitAmount(sendAmt != null ? sendAmt.add(feeAmount) : feeAmount)
                     .paymentMethodType(resolvePaymentMethodType(paymentMode))
                     .payinPartnerId(null)
                     .payoutPartnerId(payoutPartnerId)
@@ -350,12 +399,16 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
             TransactionEntity savedLinked = regularTransactionRepository.save(linked);
             payinTxn.setLinkedTransactionId(savedLinked.getId());
             regularTransactionRepository.flush();
+            transactionRepository.save(payinTxn);   // persist the link (needed on the repair path too)
             log.info("Linked regular transaction {} created for PayIn txn {}",
                     savedLinked.getReferenceNumber(), payinTxn.getTransactionId());
 
             // Push to USI Money when the destination is a USI corridor — same flow as the
-            // admin "Create on USI" button, but automatic on pay-in creation.
-            maybeTriggerUsiPayout(savedLinked.getReferenceNumber(), corridor.getReceiveCountry());
+            // admin "Create on USI" button, but automatic on pay-in creation. Skipped on the
+            // receipt-repair path so viewing a receipt never triggers a live payout.
+            if (pushToUsi) {
+                maybeTriggerUsiPayout(savedLinked.getReferenceNumber(), corridor.getReceiveCountry());
+            }
         } catch (Exception e) {
             log.error("Failed to create linked transaction for PayIn txn {}: {}",
                     payinTxn.getTransactionId(), e.getMessage());
@@ -463,7 +516,7 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
                 .lastName(user.getLastName() != null ? user.getLastName() : "")
                 .email(user.getEmail())
                 .phone(user.getPhone() != null ? user.getPhone() : "")
-                .dob(user.getDateOfBirth() != null ? user.getDateOfBirth() : java.time.LocalDate.of(1990, 1, 1))
+                .dob(user.getDateOfBirth())   // may be null — never persist a placeholder DoB (see V562)
                 .nationality(user.getNationality() != null ? user.getNationality() : "")
                 .addressLine1(user.getAddressLine1() != null ? user.getAddressLine1() : "")
                 .city(user.getCity() != null ? user.getCity() : "")

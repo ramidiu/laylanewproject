@@ -9,6 +9,7 @@ import {
 import { Observable, throwError, catchError } from 'rxjs';
 import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
@@ -16,7 +17,8 @@ export class ErrorInterceptor implements HttpInterceptor {
 
   constructor(
     private toastController: ToastController,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
@@ -25,6 +27,11 @@ export class ErrorInterceptor implements HttpInterceptor {
         // Don't show toast for 401 (handled by auth interceptor)
         // Don't show toast for auth endpoints (handled by login page)
         if (error.status === 401 || this.isSilentPath(request.url)) {
+          return throwError(() => error);
+        }
+        // Session-expired 403: the auth interceptor is logging the user out to the correct login
+        // page — don't also flash an "access denied" toast at them.
+        if (error.status === 403 && !this.authService.isAuthenticated()) {
           return throwError(() => error);
         }
 

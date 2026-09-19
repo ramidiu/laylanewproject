@@ -40,6 +40,15 @@ public class BeneficiaryService {
     private void validateBeneficiaryFields(CreateBeneficiaryRequest r) {
         if (blank(r.getFullName()))
             throw new RemitzException("Beneficiary full name is required", HttpStatus.BAD_REQUEST);
+        // USI/RemitONE requires the beneficiary name to have at least 2 letter-parts (first + last).
+        // Enforce it here at Add-Recipient so a single-word/invalid name can never be saved and then
+        // silently fail the payout AFTER the customer has paid (the recurring "Beneficiary Name must
+        // have at least 2 parts" error). Cleaned to letters + spaces, same as the USI push.
+        String cleanedName = r.getFullName().replaceAll("[^a-zA-Z ]", "").trim().replaceAll("\\s+", " ");
+        if (cleanedName.isEmpty() || cleanedName.split(" ").length < 2)
+            throw new RemitzException(
+                    "Recipient name must include at least a first and last name (e.g. \"John Smith\").",
+                    HttpStatus.BAD_REQUEST);
         DeliveryMethod dm = r.getDeliveryMethod();
         if (dm == DeliveryMethod.BANK_DEPOSIT) {
             if (blank(r.getBankName()))
@@ -124,6 +133,14 @@ public class BeneficiaryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Beneficiary", "id", id));
 
         applyBeneficiaryUpdates(entity, request);
+        // Same name rule as add — a single-word/invalid name can't be saved on edit either (it would
+        // later fail the USI payout with "Beneficiary Name must have at least 2 parts").
+        String cleanedName = (entity.getFullName() == null ? "" : entity.getFullName())
+                .replaceAll("[^a-zA-Z ]", "").trim().replaceAll("\\s+", " ");
+        if (cleanedName.isEmpty() || cleanedName.split(" ").length < 2)
+            throw new RemitzException(
+                    "Recipient name must include at least a first and last name (e.g. \"John Smith\").",
+                    HttpStatus.BAD_REQUEST);
 
         BeneficiaryEntity saved = beneficiaryRepository.save(entity);
         log.info("Beneficiary updated id={} for userId={}", id, userId);

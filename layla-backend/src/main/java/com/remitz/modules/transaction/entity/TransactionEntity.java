@@ -148,6 +148,14 @@ public class TransactionEntity {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    // Remitter's declared purpose of the transfer and source of income — captured at
+    // send-money time and surfaced in the USI-required CSV report.
+    @Column(name = "purpose_of_transaction", length = 100)
+    private String purposeOfTransaction;
+
+    @Column(name = "source_of_income", length = 100)
+    private String sourceOfIncome;
+
     @Column(name = "wallet_amount_used", precision = 18, scale = 4)
     private BigDecimal walletAmountUsed;
 

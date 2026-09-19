@@ -50,6 +50,34 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   // Payment method selection
   selectedPaymentMethod: 'OPEN_BANKING' | 'CARD' = 'OPEN_BANKING';
 
+  // Compliance: remitter's declared purpose of transfer + source of income (required on review).
+  purposeOfTransaction = '';
+  sourceOfIncome = '';
+  readonly purposeOptions: string[] = [
+    'Family Maintenance / Living Expenses',
+    'Gift / Donation',
+    'Education / Tuition Fees',
+    'Medical Expenses',
+    'Property Purchase / Rent',
+    'Business / Trade Payment',
+    'Savings / Investment',
+    'Travel Expenses',
+    'Loan Repayment',
+    'Other'
+  ];
+  readonly sourceOfIncomeOptions: string[] = [
+    'Salary / Employment',
+    'Business Income',
+    'Savings',
+    'Investment Returns',
+    'Pension',
+    'Rental Income',
+    'Sale of Property',
+    'Gift / Inheritance',
+    'Loan',
+    'Other'
+  ];
+
   // Volume Pay state
   transactionCreated = false;
   createdTxnRef = '';
@@ -658,17 +686,45 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyBeneficiaryFilter();
   }
 
+  /** Normalise a delivery method to a coarse group so BANK_TRANSFER/BANK_DEPOSIT etc. match. */
+  private deliveryGroup(v: string): string {
+    const x = (v || '').toUpperCase();
+    if (x === 'BANK_TRANSFER' || x === 'BANK_DEPOSIT') return 'BANK';
+    if (x === 'MOBILE_MONEY' || x === 'MOBILE_WALLET') return 'MOBILE';
+    if (x === 'CASH_PICKUP' || x === 'CASH_COLLECTION') return 'CASH';
+    return x;
+  }
+
+  /** Normalise a country to ISO-2 so 'QAT' / 'QA' / 'Qatar' all compare equal. */
+  private normCountry(v: string): string {
+    const x = (v || '').trim().toUpperCase();
+    const iso3to2: Record<string, string> = {
+      IND:'IN', PAK:'PK', NGA:'NG', GHA:'GH', PHL:'PH', KEN:'KE', NPL:'NP', BGD:'BD',
+      AUS:'AU', GBR:'GB', USA:'US', DEU:'DE', ARE:'AE', ZAF:'ZA', UGA:'UG', TZA:'TZ',
+      LKA:'LK', SDN:'SD', TUR:'TR', EGY:'EG', SAU:'SA', QAT:'QA'
+    };
+    const names: Record<string, string> = {
+      QATAR:'QA', SUDAN:'SD', 'SAUDI ARABIA':'SA', 'UNITED ARAB EMIRATES':'AE', EGYPT:'EG', TURKEY:'TR', UGANDA:'UG'
+    };
+    if (names[x]) return names[x];
+    if (x.length === 3 && iso3to2[x]) return iso3to2[x];
+    return x;
+  }
+
   applyBeneficiaryFilter(): void {
     let list = this.beneficiaries;
 
-    // Filter by selected country
+    // Filter by selected destination country (normalised so QAT/QA/Qatar all match).
     if (this.selectedCorridor) {
-      list = list.filter(b => b.country === this.selectedCorridor!.receiveCountry);
+      const country = this.normCountry(this.selectedCorridor.receiveCountry);
+      list = list.filter(b => this.normCountry((b as any).country) === country);
     }
 
-    // Only show recipients matching the selected delivery method (bank / mobile / cash).
+    // Only show recipients matching the selected delivery method (bank / mobile / cash),
+    // normalised so BANK_DEPOSIT/BANK_TRANSFER and CASH_PICKUP/CASH_COLLECTION match.
     if (this.selectedDeliveryMethod) {
-      list = list.filter(b => (b as any).deliveryMethod === this.selectedDeliveryMethod);
+      const sel = this.deliveryGroup(this.selectedDeliveryMethod);
+      list = list.filter(b => this.deliveryGroup((b as any).deliveryMethod) === sel);
     }
 
     // Filter by favourites
@@ -771,6 +827,13 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   confirmSend(): void {
     if (!this.quote || !this.selectedBeneficiary || !this.selectedCorridor || this.submitting) return;
 
+    // Purpose of transaction and source of income are required (compliance / USI reporting).
+    if (!this.purposeOfTransaction || !this.sourceOfIncome) {
+      this.showToast('Please select the purpose of transaction and source of income.', 'warning');
+      document.getElementById('compliance-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     // Capture all values NOW before any async work — prevents stale-closure bugs
     const snapshotAmount     = this.sendAmount;
     const snapshotCorridor   = this.selectedCorridor;
@@ -804,6 +867,8 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
           sendAmount: snapshotAmount,
           sendCurrency: snapshotCorridor.sendCurrency,
           paymentMethodType: paymentMethodType,
+          purposeOfTransaction: this.purposeOfTransaction,
+          sourceOfIncome: this.sourceOfIncome,
           idempotencyKey: idempotencyKey,
           referralCode: this.referralValid ? this.referralCode : undefined,
           useWallet: this.useWallet && this.walletAmountToUse > 0,
@@ -880,7 +945,8 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.http.post<any>(`${this.apiUrl}/volume/payment-intent`, {
       transactionId: this.createdTxnRef,
       merchantPaymentId: this.merchantPaymentId,
-      amount: this.sendAmount,
+      // Charge the full total (send amount + fee, less any wallet) — fee is on top.
+      amount: this.effectiveTotal,
       currency: this.selectedCorridor?.sendCurrency || 'GBP'
     }).subscribe({
       next: (res) => {
@@ -913,7 +979,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     });
 
     volume.createPayment({
-      amount: this.sendAmount,
+      // Charge the FULL total (send + fee, less wallet) — must equal the amount registered with the
+      // /volume/payment-intent above, otherwise the completion webhook is rejected as a MISMATCH and
+      // the paid transaction is left stuck in PENDING (fee-on-top regression).
+      amount: this.effectiveTotal,
       merchantPaymentId: this.merchantPaymentId,
       paymentReference: this.createdTxnRef,
       agentType: 'WEB_BROWSER'
@@ -936,7 +1005,7 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       this.router.navigate(['/home/volume-callback'], {
         queryParams: {
           merchantPaymentId: this.merchantPaymentId,
-          amount: this.sendAmount,
+          amount: this.effectiveTotal,
           currency: this.selectedCorridor?.sendCurrency || 'GBP',
           status: 'COMPLETED'
         }
@@ -970,9 +1039,18 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   private payWithCard(txn: any): void {
+    // SECURE PATH: when the TRU Connect JWT flow is enabled, the amount is signed server-side and
+    // can't be tampered with. Falls back to the legacy redirect form only when the flag is off.
+    if ((environment as any).trustJwtEnabled) {
+      this.payWithCardJwt(txn);
+      return;
+    }
+
     const total      = this.effectiveTotal;
     const mainamount = total.toFixed(2);
 
+    // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
+    // everyone else uses the LIVE reference, so real customer payments go through live.
     // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
     // everyone else uses the LIVE reference, so real customer payments go through live.
     const trustTest = localStorage.getItem('trust_test') === '1';
@@ -990,6 +1068,9 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
 
     const safeDob = this.parseDobForTrust(this.billingDob);
     const callbackUrl = `${window.location.origin}/home/trust-callback`;
+    // Server-to-server URL notification (webhook) — independent of the browser redirect.
+    // STR-8 is Trust's URL-notification rule; successful/declined notifications POST here.
+    const notifyUrl  = `${window.location.origin}/api/trust-payment/callback`;
 
     const fields: Array<[string, string]> = [
       ['sitereference',         siteRef],
@@ -1008,6 +1089,16 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       ['successfulurlredirect', callbackUrl],
       ['declinedurlredirect',   callbackUrl],
     ];
+
+    // WEBHOOK TEST (sandbox only): add Trust's URL-notification rule (STR-8) + notification URLs
+    // so a server-to-server webhook fires to /api/trust-payment/callback. Scoped to test mode so
+    // live card payments are unaffected until the webhook endpoint is confirmed and deployed.
+    if (trustTest) {
+      fields.push(['ruleidentifier', 'STR-8']);
+      fields.push(['successfulurlnotification', notifyUrl]);
+      fields.push(['declinedurlnotification', notifyUrl]);
+      console.log('[Trust] TEST MODE — webhook notification enabled →', notifyUrl);
+    }
 
     // Billing address (AVS) — Trust Payments' address rules (STR-11) can require these.
     // Send each only when present so we never post an empty required field.
@@ -1045,6 +1136,100 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     });
     document.body.appendChild(form);
     form.submit();
+  }
+
+  // --- Trust Payments TRU Connect (st.js, JWT) — secure card flow ---
+
+  /**
+   * Secure card payment via Trust's TRU Connect JavaScript Library. The amount is NOT sent from the
+   * browser: we ask the backend for a request JWT (which it signs with the amount taken from the
+   * transaction), load st.js, and let it render the card form + 3-D Secure overlay. The signed
+   * response JWT is posted back to the backend for signature verification and status update.
+   */
+  private async payWithCardJwt(txn: any): Promise<void> {
+    const ref = (txn?.referenceNumber || this.createdTxnRef || '').toString();
+    try {
+      const resp: any = await this.http
+        .post(`${environment.apiUrl}/trust-payment/jwt`, { referenceNumber: ref })
+        .toPromise();
+      if (!resp?.jwt) throw new Error('no jwt returned');
+
+      await this.loadStJs();
+      this.ensureStForm();
+
+      const SecureTrading = (window as any).SecureTrading;
+      if (typeof SecureTrading !== 'function') throw new Error('st.js not loaded');
+
+      const st = SecureTrading({
+        jwt: resp.jwt,
+        livestatus: resp.livestatus ?? 0,
+        // Keep control of the result instead of auto-posting the form to Trust's action URL.
+        submitOnSuccess: false,
+        submitOnError: false,
+        submitCallback: (data: any) => this.onTrustJwtResponse(data, ref)
+      });
+      st.Components();
+    } catch (err: any) {
+      console.error('[Trust JWT] card flow failed:', err?.message || err);
+      // Route to the callback page with an error so the user isn't left on a dead form.
+      this.router.navigate(['/home/trust-callback'], {
+        queryParams: { errorcode: '999', orderreference: ref }
+      });
+    }
+  }
+
+  /** Post the signed response JWT from st.js back to the backend, then go to the status page. */
+  private onTrustJwtResponse(data: any, ref: string): void {
+    const responseJwt = data?.jwt || data?.response?.jwt || '';
+    this.http
+      .post<{ success: boolean; referenceNumber: string }>(
+        `${environment.apiUrl}/trust-payment/jwt/response`, { jwt: responseJwt })
+      .subscribe({
+        next: (res) => this.router.navigate(['/home/trust-callback'], {
+          queryParams: { errorcode: res?.success ? '0' : '1', orderreference: res?.referenceNumber || ref }
+        }),
+        error: () => this.router.navigate(['/home/trust-callback'], {
+          queryParams: { errorcode: '1', orderreference: ref }
+        })
+      });
+  }
+
+  /** Dynamically load st.js once. Resolves when the library global is available. */
+  private loadStJs(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if ((window as any).SecureTrading) { resolve(); return; }
+      const url = (environment as any).trustStJsUrl as string;
+      const existing = document.querySelector(`script[src="${url}"]`) as HTMLScriptElement | null;
+      if (existing) {
+        existing.addEventListener('load', () => resolve());
+        existing.addEventListener('error', () => reject(new Error('st.js failed to load')));
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('st.js failed to load'));
+      document.body.appendChild(s);
+    });
+  }
+
+  /** Ensure the st-form and its card-field placeholders exist for st.js to bind to. */
+  private ensureStForm(): void {
+    if (document.getElementById('st-form')) return;
+    const form = document.createElement('form');
+    form.id = 'st-form';
+    ['st-card-number', 'st-expiration-date', 'st-security-code'].forEach((id) => {
+      const div = document.createElement('div');
+      div.id = id;
+      form.appendChild(div);
+    });
+    const pay = document.createElement('button');
+    pay.type = 'submit';
+    pay.textContent = 'Pay';
+    form.appendChild(pay);
+    const host = document.getElementById('st-form-host') || document.body;
+    host.appendChild(form);
   }
 
   // --- Helpers ---

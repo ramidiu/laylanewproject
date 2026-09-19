@@ -79,7 +79,9 @@ public class PlatformLedgerService {
                     send, BigDecimal.ONE, "Payment received for " + txnDisplayId, "HOLDING");
         }
 
-        BigDecimal payoutGbp = send.subtract(fee).max(BigDecimal.ZERO);
+        // Fee-on-top: the beneficiary receives the FULL send amount converted, so the payout
+        // principal is the whole send (the fee is booked separately as REVENUE, not withheld here).
+        BigDecimal payoutGbp = send.max(BigDecimal.ZERO);
         addEntry(transactionId, txnDisplayId, "DEBIT", payoutGbp, "GBP",
                 payoutGbp, BigDecimal.ONE, "Payout for " + txnDisplayId, "PAYOUT");
     }

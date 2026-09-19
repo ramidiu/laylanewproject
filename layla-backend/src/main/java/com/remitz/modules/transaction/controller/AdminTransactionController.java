@@ -56,6 +56,8 @@ public class AdminTransactionController {
     private final TransactionService transactionService;
     private final FeeDistributionService feeDistributionService;
     private final UserRepository userRepository;
+    private final com.remitz.modules.payout.usi.repository.UsiTransactionRepository usiTransactionRepository;
+    private final com.remitz.modules.payin.customer.repository.PayinCustomerRepository payinCustomerRepository;
 
     /**
      * Resolve the sender's display name. Prefers the real first+last name from
@@ -307,6 +309,149 @@ public class AdminTransactionController {
                 .success(true)
                 .data(stats)
                 .build());
+    }
+
+    /**
+     * How many PAID USI transactions exist — the admin UI uses this to only show the
+     * "USI CSV" download button when there is at least one paid USI payout to export.
+     */
+    @GetMapping("/usi-csv/count")
+    @PreAuthorize("hasPermission(null, 'ledger:view')")
+    @Operation(summary = "Count of PAID USI transactions available for CSV export")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUsiCsvCount() {
+        long count = transactionRepository.countPaidTransactions();
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", count);
+        return ResponseEntity.ok(ApiResponse.<Map<String, Object>>builder()
+                .success(true)
+                .data(data)
+                .build());
+    }
+
+    /**
+     * USI CSV export — the report USI Money requires. Includes ONLY transactions that were
+     * pushed to USI (have a usi_transactions row) AND are PAID (money delivered to the
+     * beneficiary — PAID or its post-completion COMPLETED state); it never includes non-USI
+     * or unpaid transactions. Columns match the USI-supplied template exactly. An optional
+     * startDate/endDate (yyyy-MM-dd) narrows the export to the admin's selected date range.
+     */
+    @GetMapping("/usi-csv")
+    @PreAuthorize("hasPermission(null, 'ledger:view')")
+    @Operation(summary = "Download ALL PAID transactions as CSV in the USI-required column format")
+    public ResponseEntity<byte[]> downloadUsiCsv(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        LocalDateTime start = null;
+        if (startDate != null && !startDate.isBlank()) {
+            try { start = LocalDateTime.parse(startDate + "T00:00:00"); } catch (Exception ignored) {}
+        }
+        LocalDateTime end = null;
+        if (endDate != null && !endDate.isBlank()) {
+            try { end = LocalDateTime.parse(endDate + "T23:59:59"); } catch (Exception ignored) {}
+        }
+
+        List<TransactionEntity> txns = transactionRepository.findPaidTransactionsForExport(start, end);
+
+        java.time.format.DateTimeFormatter dateFmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        // Header row — exactly the columns in the USI-supplied Excel template.
+        String[] headers = {
+                "Date of transaction (internal)", "Trans No. (internal)", "Remitter's Internal ID No",
+                "Remitter's Full Name", "Remitter's DoB", "Remitter's Address in UK", "Amount (GBP)",
+                "Payment Method", "Purpose of Transaction", "Source of Income", "Beneficiary Name",
+                "Destination", "Transfer Type", "Receiving Amount", "Currency", "Status"
+        };
+
+        StringBuilder sb = new StringBuilder();
+        // BOM so Excel opens UTF-8 correctly.
+        sb.append('\uFEFF');
+        sb.append(String.join(",", java.util.Arrays.stream(headers).map(this::csv).toList())).append("\r\n");
+
+        for (TransactionEntity tx : txns) {
+            var user = tx.getSenderId() != null ? userRepository.findById(tx.getSenderId()).orElse(null) : null;
+            var bnf = tx.getBeneficiaryId() != null ? beneficiaryRepository.findById(tx.getBeneficiaryId()).orElse(null) : null;
+            var usi = usiTransactionRepository.findByTransactionId(tx.getReferenceNumber()).orElse(null);
+
+            String remitterName = resolveSenderName(tx.getSenderId(), tx.getSenderName(), tx.getSenderEmail());
+            // Remitter DoB: prefer the users table; fall back to the pay-in customer record
+            // (matched by uuid = payin customerId) for transactions created via the pay-in flow,
+            // whose DoB is only captured on payin_customers.
+            java.time.LocalDate dobDate = (user != null) ? user.getDateOfBirth() : null;
+            if (dobDate == null && user != null && user.getUuid() != null) {
+                dobDate = payinCustomerRepository.findByCustomerId(user.getUuid())
+                        .map(com.remitz.modules.payin.customer.entity.PayinCustomerEntity::getDob)
+                        .orElse(null);
+            }
+            String dob = dobDate != null ? dobDate.format(dateFmt) : "";
+            String address = user != null ? ukAddress(user.getAddressLine1(), user.getAddressLine2(), user.getCity(), user.getPostcode()) : "";
+            String beneficiaryName = bnf != null ? bnf.getFullName() : (usi != null ? usi.getBeneficiaryName() : "");
+            String destination = bnf != null ? bnf.getCountry() : (usi != null ? usi.getDestinationCountry() : "");
+            // Prefer the exact trans_type recorded by USI; fall back to our delivery method.
+            String transferType = (usi != null && usi.getTransType() != null && !usi.getTransType().isBlank())
+                    ? usi.getTransType()
+                    : (tx.getDeliveryMethod() != null ? tx.getDeliveryMethod().name() : "");
+
+            String[] row = {
+                    tx.getCreatedAt() != null ? tx.getCreatedAt().format(dateFmt) : "",
+                    tx.getReferenceNumber(),
+                    tx.getSenderId() != null ? String.valueOf(tx.getSenderId()) : "",
+                    remitterName,
+                    dob,
+                    address,
+                    tx.getSendAmount() != null ? tx.getSendAmount().toPlainString() : "",
+                    paymentMethodLabel(tx.getPaymentMethodType() != null ? tx.getPaymentMethodType().name() : null),
+                    // Declared by the remitter on the send-money form. Historical rows (captured before
+                    // these fields existed) fall back to the previous constant defaults.
+                    (tx.getPurposeOfTransaction() != null && !tx.getPurposeOfTransaction().isBlank())
+                            ? tx.getPurposeOfTransaction() : "Family Maintenance",
+                    (tx.getSourceOfIncome() != null && !tx.getSourceOfIncome().isBlank())
+                            ? tx.getSourceOfIncome() : "Salary",
+                    beneficiaryName,
+                    destination,
+                    transferType,
+                    tx.getReceiveAmount() != null ? tx.getReceiveAmount().toPlainString() : "",
+                    tx.getReceiveCurrency(),
+                    tx.getStatus() != null ? tx.getStatus().name() : ""
+            };
+            sb.append(String.join(",", java.util.Arrays.stream(row).map(this::csv).toList())).append("\r\n");
+        }
+
+        byte[] bytes = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"paid-transactions.csv\"")
+                .header("Content-Type", "text/csv; charset=UTF-8")
+                .body(bytes);
+    }
+
+    /** RFC-4180 CSV field escaping: wrap in quotes when the value has a comma/quote/newline. */
+    private String csv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
+    /** Human-readable pay-in method for the USI report (mirrors the admin transactions list). */
+    private String paymentMethodLabel(String type) {
+        if (type == null) return "";
+        return switch (type) {
+            case "CARD" -> "Card";
+            case "OPEN_BANKING", "BANK_TRANSFER" -> "Bank Transfer";
+            case "AGENT_CASH" -> "Cash";
+            case "WALLET" -> "Wallet";
+            default -> type;
+        };
+    }
+
+    /** Compose the remitter's UK address from its parts, skipping blanks. */
+    private String ukAddress(String line1, String line2, String city, String postcode) {
+        List<String> parts = new ArrayList<>();
+        for (String p : new String[]{line1, line2, city, postcode}) {
+            if (p != null && !p.isBlank()) parts.add(p.trim());
+        }
+        return String.join(", ", parts);
     }
 
     @PutMapping("/{id}/release-from-compliance")

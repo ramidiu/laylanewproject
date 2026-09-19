@@ -28,6 +28,6 @@ import { Component } from '@angular/core';
       Opening Hours: Monday – Saturday 11:00am to 7:00pm · Sunday: Closed</p>
       <p><a href="/contact-us">Contact us &rarr;</a></p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class AboutPage {}

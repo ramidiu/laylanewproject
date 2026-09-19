@@ -7,6 +7,12 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: $fb-space-6;
+
+  .header-actions {
+    display: flex;
+    gap: $fb-space-2;
+    flex-wrap: wrap;
+  }
 }
 
 .page-title {

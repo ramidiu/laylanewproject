@@ -33,6 +33,6 @@ import { Component } from '@angular/core';
       <h2>7. Contact</h2>
       <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a href="/mobile-privacy">Mobile Privacy Policy</a>.</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class MobileTermsPage {}

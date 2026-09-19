@@ -36,6 +36,6 @@ import { Component } from '@angular/core';
       <h2>8. Contact</h2>
       <p>Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a> or visit our <a href="/contact-us">Contact page</a>.</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class UserAgreementPage {}

@@ -64,11 +64,13 @@ public class UserService {
             user.setPhone(request.getPhone());
             sensitiveChanged = true;
         }
-        if (request.getDateOfBirth() != null) {
+        if (request.getDateOfBirth() != null && !request.getDateOfBirth().equals(user.getDateOfBirth())) {
             user.setDateOfBirth(request.getDateOfBirth());
+            sensitiveChanged = true;   // DOB is a core identity field — a change requires re-verification
         }
-        if (StringUtils.hasText(request.getCountry())) {
+        if (StringUtils.hasText(request.getCountry()) && !request.getCountry().equals(user.getCountry())) {
             user.setCountry(request.getCountry());
+            sensitiveChanged = true;   // Country is an identity field — a change requires re-verification
         }
         if (StringUtils.hasText(request.getAddressLine1()) && !request.getAddressLine1().equals(user.getAddressLine1())) {
             user.setAddressLine1(request.getAddressLine1());
@@ -107,10 +109,12 @@ public class UserService {
             }
         }
 
-        // Any profile update requires admin review before the user can transact again
-        if (request.getStatus() == null) {
+        // Only a change to a real IDENTITY field (name / DOB / phone / address / city / postcode /
+        // country) requires admin re-verification. Cosmetic edits (e.g. preferred language) leave
+        // the account as-is. Admin edits that explicitly set a status are handled above.
+        if (request.getStatus() == null && sensitiveChanged) {
             user.setStatus(UserStatus.PENDING_VERIFICATION);
-            log.info("User {} profile updated — status set to PENDING_VERIFICATION pending admin review", uuid);
+            log.info("User {} identity field changed — status set to PENDING_VERIFICATION pending admin review", uuid);
         }
 
         UserEntity saved = userRepository.save(user);

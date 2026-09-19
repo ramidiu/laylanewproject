@@ -4,10 +4,16 @@
       <h1 class="page-title">Transactions</h1>
       <p class="page-subtitle">{{ totalElements }} total corridor transactions</p>
     </div>
-    <button class="fb-btn fb-btn--secondary" (click)="exportTransactions()">
-      <ion-icon name="download-outline"></ion-icon>
-      Export
-    </button>
+    <div class="header-actions">
+      <button class="fb-btn fb-btn--secondary" (click)="exportTransactions()">
+        <ion-icon name="download-outline"></ion-icon>
+        Export
+      </button>
+      <button class="fb-btn fb-btn--primary" (click)="downloadUsiCsv()">
+        <ion-icon name="document-text-outline"></ion-icon>
+        Paid CSV<span *ngIf="usiPaidCount > 0"> ({{ usiPaidCount }})</span>
+      </button>
+    </div>
   </div>
 
   <!-- Main Tab Switcher -->

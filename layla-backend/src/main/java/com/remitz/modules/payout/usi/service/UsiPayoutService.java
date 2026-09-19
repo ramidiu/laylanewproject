@@ -55,6 +55,21 @@ public interface UsiPayoutService {
      */
     Map<String, Object> syncBeneficiary(Long beneficiaryId);
 
+    /**
+     * True when USI is enabled AND the given destination country is a USI-payout corridor.
+     * Self-gating: returns false if USI is disabled, so callers can guard without a separate
+     * enabled-check. Used by the customer transaction-create flow to require complete remitter
+     * KYC (e.g. date of birth) up front for USI destinations instead of faking it later.
+     */
+    boolean isUsiCorridorCountry(String country);
+
+    /**
+     * True only when the sender has a USI remitter that is BOTH created and verified.
+     * Used to gate USI-corridor sends: a sender who isn't a verified USI remitter cannot
+     * transact on USI corridors (the payout would be rejected downstream anyway).
+     */
+    boolean isRemitterVerified(Long userId);
+
     Map<String, Object> createTransaction(String referenceNumber);
 
     /**

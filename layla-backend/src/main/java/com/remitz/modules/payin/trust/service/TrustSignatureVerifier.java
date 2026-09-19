@@ -6,22 +6,37 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * SECURITY (SEC-04): verifies the {@code responsesitesecurity} hash on Trust Payments URL
- * notifications (webhooks). Trust computes it as SHA-256(hex) of the configured response fields'
- * values concatenated in the MyST-defined order, followed by the account's Site Security password.
+ * notifications (webhooks), authenticating that a callback genuinely came from Trust.
  *
- * <p>Deliberately runs in <b>LOG-ONLY</b> mode by default ({@code app.trust.verify-signature=false}):
- * it logs MATCH / MISMATCH / cannot-compute for every callback but NEVER rejects, so it can be
- * deployed with zero risk of dropping a genuine payment callback. Once the logs confirm real Trust
- * traffic hashes correctly (password + field order set), flip {@code verify-signature=true} to enforce.
+ * <h2>Trust's algorithm (self-describing — no field list to configure)</h2>
+ * Per Trust's "Response site security" spec, the hash is computed as:
+ * <ol>
+ *   <li>Take <b>every</b> field in the notification EXCEPT {@code notificationreference} and
+ *       {@code responsesitesecurity} (and any field whose value is blank — blanks are omitted).</li>
+ *   <li>Sort the remaining fields by field <b>name</b> in ASCII alphabetical order.</li>
+ *   <li>Concatenate their <b>values</b> (values only, not name=value; not URL-encoded; whitespace kept).</li>
+ *   <li>Append the account's Site Security password at the <b>end</b>.</li>
+ *   <li>{@code SHA-256} the string and hex-encode (lower-case). The response hash is NOT prefixed with 'h'.</li>
+ * </ol>
+ * Worked example from Trust's docs: fields errorcode=0, orderreference=Order,
+ * paymenttypedescription=VISA, requestreference=RR555, settlestatus=0, sitereference=test_site12345,
+ * transactionreference=2-44-66, password=PASSWORD →
+ * {@code sha256("0OrderVISARR5550test_site123452-44-66PASSWORD")}
+ * = {@code 1a8b45c137c1d1df8ce6ff923421043f879a85a181e9c0d96a8904211af8b0b0}.
  *
- * <p>Uses only the JDK ({@link MessageDigest}) — no new dependency.
+ * <p>Runs in <b>LOG-ONLY</b> mode by default ({@code app.trust.verify-signature=false}): it logs
+ * MATCH / MISMATCH for every callback but NEVER rejects, so it can be deployed with zero risk of
+ * dropping a genuine payment callback. Once the logs confirm real Trust traffic hashes correctly
+ * (the Site Security password is set and matches MyST), flip {@code verify-signature=true} to enforce.
+ *
+ * <p>Uses only the JDK ({@link MessageDigest}) — no new dependency. Never throws: on any internal
+ * error it fails OPEN (allows) so a verifier bug can never lose a real payment notification.
  */
 @Component
 @Slf4j
@@ -30,22 +45,17 @@ public class TrustSignatureVerifier {
     /** Field carrying Trust's hash on the notification. */
     private static final String SIG_FIELD = "responsesitesecurity";
 
+    /** Fields Trust excludes from the hash input (per spec). */
+    private static final Set<String> EXCLUDED = Set.of("notificationreference", SIG_FIELD);
+
     private final String password;
     private final boolean enforce;
-    private final List<String> fields;
 
     public TrustSignatureVerifier(
             @Value("${app.trust.site-security-password:}") String password,
-            @Value("${app.trust.verify-signature:false}") boolean enforce,
-            @Value("${app.trust.signature-fields:}") String signatureFields) {
+            @Value("${app.trust.verify-signature:false}") boolean enforce) {
         this.password = password == null ? "" : password.trim();
         this.enforce = enforce;
-        this.fields = (signatureFields == null || signatureFields.isBlank())
-                ? List.of()
-                : Arrays.stream(signatureFields.split(","))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .collect(Collectors.toList());
     }
 
     /** Outcome of verifying a notification. {@code reject} is only ever true when enforcing. */
@@ -68,16 +78,6 @@ public class TrustSignatureVerifier {
                 return Result.allow("verification disabled (no password)");
             }
 
-            // Password set but we don't yet know which fields Trust hashes -> cannot compute.
-            // Log the received hash + the field names present so the order can be determined from
-            // real traffic, then allow. We never enforce without a field list (would drop everything).
-            if (fields.isEmpty()) {
-                log.warn("Trust {} : cannot verify signature yet — app.trust.signature-fields is not set. "
-                                + "received {}={} ; notification fields present={}",
-                        source, SIG_FIELD, received, params.keySet());
-                return Result.allow("no signature-fields configured");
-            }
-
             if (received == null || received.isBlank()) {
                 String msg = "notification carried no " + SIG_FIELD;
                 if (enforce) {
@@ -88,8 +88,13 @@ public class TrustSignatureVerifier {
                 return Result.allow(msg);
             }
 
-            String concat = fields.stream()
-                    .map(f -> params.getOrDefault(f, ""))
+            // Trust's algorithm: all fields except the two excluded, blanks omitted, sorted by field
+            // name (ASCII), values concatenated, password appended. See class javadoc.
+            String concat = params.entrySet().stream()
+                    .filter(e -> !EXCLUDED.contains(e.getKey()))
+                    .filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(Map.Entry::getValue)
                     .collect(Collectors.joining());
             String expected = sha256Hex(concat + password);
             boolean match = MessageDigest.isEqual(
@@ -97,12 +102,20 @@ public class TrustSignatureVerifier {
                     received.trim().toLowerCase().getBytes(StandardCharsets.UTF_8));
 
             if (match) {
-                log.info("Trust {} : signature MATCH (fields={})", source, fields);
+                log.info("Trust {} : signature MATCH", source);
                 return Result.allow("signature match");
             }
 
+            // On mismatch, log the field ORDER we hashed (names only — never the password) so a real
+            // mismatch can be diagnosed against MyST without leaking secrets.
+            String order = params.entrySet().stream()
+                    .filter(e -> !EXCLUDED.contains(e.getKey()))
+                    .filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+                    .map(Map.Entry::getKey)
+                    .sorted()
+                    .collect(Collectors.joining(","));
             String msg = "signature MISMATCH — expected=" + expected + " received=" + received
-                    + " (fields=" + fields + ")";
+                    + " (hashed fields in order=[" + order + "])";
             if (enforce) {
                 log.error("Trust {} : {} — REJECTING (enforce on)", source, msg);
                 return Result.deny(msg);

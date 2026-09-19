@@ -42,6 +42,6 @@ import { Component } from '@angular/core';
       <h2>Changes</h2>
       <p>We may update this policy and will post changes here. Continued use of the app means you accept the updated policy.</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class MobilePrivacyPage {}

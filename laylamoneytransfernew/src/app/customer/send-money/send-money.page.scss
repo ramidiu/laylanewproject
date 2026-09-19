@@ -792,6 +792,35 @@
   gap: 8px;
 }
 
+.compliance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  & + & { margin-top: 12px; }
+}
+
+.compliance-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.compliance-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: var(--ion-color-primary, #1B3A6B); }
+  &:disabled { background: #f3f4f6; color: #9ca3af; }
+}
+
 .referral-input {
   width: 100%;
   padding: 10px 14px;

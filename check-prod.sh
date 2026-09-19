@@ -2,7 +2,7 @@
 # Diagnose the prod KYC "already under review" issue.
 # Run from WSL:  bash /mnt/c/Users/umesh/claude/laylanewproject/check-prod.sh
 # Asks for the server password ONCE. Paste the whole output back.
-ssh root@68.169.55.246 'bash -s' <<"EOF"
+ssh root@213.171.210.135 'bash -s' <<"EOF"
 echo "===== 1. Backend SOURCE has the fix?  (expect: 1) ====="
 grep -c "This document is already under review" /opt/layla-live/layla-backend/src/main/java/com/remitz/modules/user/service/KycService.java 2>/dev/null || echo "MISSING_FILE"
 

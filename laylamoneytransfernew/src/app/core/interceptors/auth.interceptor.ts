@@ -66,6 +66,14 @@ export class AuthInterceptor implements HttpInterceptor {
         if (error instanceof HttpErrorResponse && error.status === 401 && !request.url.includes('/auth/change-password')) {
           return this.handle401Error(request, next);
         }
+        // Session expired but the backend answered 403 (access denied) instead of 401 — rather than
+        // leaving the user staring at "access denied", log them out to the correct login page.
+        // Only when the token is actually expired/missing, so a genuine permission-403 for a valid
+        // user (who just lacks rights for one action) does NOT log them out.
+        if (error instanceof HttpErrorResponse && error.status === 403 && !this.authService.isAuthenticated()) {
+          this.authService.sessionExpiredLogout();
+          return throwError(() => error);
+        }
         return throwError(() => error);
       })
     );
@@ -102,7 +110,8 @@ export class AuthInterceptor implements HttpInterceptor {
         }),
         catchError(error => {
           this.isRefreshing = false;
-          this.authService.logout();
+          // Refresh failed → session is truly gone. Log out to the correct login page for the role.
+          this.authService.sessionExpiredLogout();
           return throwError(() => error);
         })
       );

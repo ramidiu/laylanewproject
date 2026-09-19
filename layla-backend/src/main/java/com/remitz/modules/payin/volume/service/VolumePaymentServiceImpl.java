@@ -126,11 +126,20 @@ public class VolumePaymentServiceImpl implements VolumePaymentService {
 
             if ("COMPLETED".equalsIgnoreCase(payload.getPaymentStatus())) {
                 entity.setSettleStatus("success");
-                // Payment succeeded -> move the transaction into PROCESSING (ready for payout).
+                // ONLY a successful payment advances the customer transaction (-> PROCESSING, ready for payout).
                 updateTransactionStatus(entity, TransactionStatus.PROCESSING);
             } else if ("FAILED".equalsIgnoreCase(payload.getPaymentStatus())) {
+                // IMPORTANT: a Volume FAILED webhook must NOT flip the customer transaction to FAILED.
+                // Open-banking can report FAILED for a payment that is still in flight or was actually
+                // received, so hard-failing here wrongly shows customers a failed transfer (past incident:
+                // TXN5286/5287/5302). We RECORD the failed attempt on the volume_payments row for audit,
+                // but leave the transaction untouched (stays PENDING). If it never completes, the
+                // pending-transaction archive scheduler retires it after its window. Only a later
+                // COMPLETED webhook advances it.
                 entity.setSettleStatus("failed");
-                updateTransactionStatus(entity, TransactionStatus.FAILED);
+                log.warn("Volume webhook FAILED for {} (txn {}) — recorded for audit, transaction left "
+                        + "unchanged (PENDING). Raw payload: {}",
+                        payload.getMerchantPaymentId(), entity.getTransactionId(), json);
             }
             // SETTLED — virtual-account/internal only; recorded above, no customer-facing action.
 

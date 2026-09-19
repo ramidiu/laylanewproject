@@ -275,8 +275,8 @@ import { environment } from '../../../environments/environment';
             </div>
             <div *ngIf="!loadingQuote && quote" class="ct-rate-box">
               <div class="ct-rate-value">1 {{ sendCurrency }} = {{ quote.appliedRate | number:'1.4-4' }} {{ receiveCurrency }}</div>
-              <div class="ct-fee-value">Fee: {{ sendCurrency }} {{ quote.fee | number:'1.2-2' }}</div>
-              <div class="ct-fee-value">Amount converted: {{ sendCurrency }} {{ (quote.sendAmount - quote.fee) | number:'1.2-2' }}</div>
+              <div class="ct-fee-value">Fee (on top): {{ sendCurrency }} {{ quote.fee | number:'1.2-2' }}</div>
+              <div class="ct-fee-value">Amount converted: {{ sendCurrency }} {{ quote.sendAmount | number:'1.2-2' }}</div>
             </div>
             <ion-icon name="arrow-forward-outline" *ngIf="!loadingQuote && !quote"></ion-icon>
           </div>
@@ -304,9 +304,21 @@ import { environment } from '../../../environments/environment';
           <strong>{{ sendCurrency }} {{ quote.totalCost | number:'1.2-2' }}</strong>
         </div>
 
-        <!-- Delivery Method -->
+        <!-- Plain-language explainer so staff never mix up the two methods -->
+        <div style="display:flex;gap:10px;background:#eef4ff;border:1px solid #c9dcff;border-radius:10px;padding:12px 14px;margin:6px 0 16px;font-size:13px;line-height:1.5;color:#1b3a6b;">
+          <span style="font-size:18px;">💡</span>
+          <div>
+            These are <b>two different things</b>:<br>
+            <b>1) Payment Method</b> = money coming <b>IN</b> from your customer (Cash / Card / Bank).<br>
+            <b>2) Delivery Method</b> = money going <b>OUT</b> to the recipient abroad (Bank Transfer / Cash Pickup).<br>
+            <span style="color:#555;">Example: customer pays you in <b>Cash</b> → recipient in Qatar collects it as <b>Cash Pickup</b>.</span>
+          </div>
+        </div>
+
+        <!-- Delivery Method (payout side — how the beneficiary abroad receives) -->
         <div class="ct-field-group">
-          <label class="ct-label">Delivery Method <span class="ct-req">*</span></label>
+          <label class="ct-label">📤 Delivery Method — money OUT to recipient <span class="ct-req">*</span></label>
+          <p style="margin:2px 0 8px;font-size:12.5px;color:#666;">How the <b>person abroad</b> collects the money.</p>
           <div class="ct-pill-group">
             <button
               *ngFor="let m of deliveryMethods"
@@ -320,9 +332,10 @@ import { environment } from '../../../environments/environment';
           </div>
         </div>
 
-        <!-- Collection Type -->
+        <!-- Payment Method (pay-in side — how the customer paid you here) -->
         <div class="ct-field-group">
-          <label class="ct-label">Collection Type <span class="ct-req">*</span> <span class="ct-hint">(how you received the money)</span></label>
+          <label class="ct-label">📥 Payment Method — money IN from customer <span class="ct-req">*</span></label>
+          <p style="margin:2px 0 8px;font-size:12.5px;color:#666;">How <b>your customer paid you</b> here in the branch.</p>
           <div class="ct-pill-group">
             <button
               *ngFor="let c of collectionTypes"
@@ -537,7 +550,7 @@ import { environment } from '../../../environments/environment';
 
           <div class="ct-add-ben-actions">
             <button class="ct-btn ct-btn--outline" (click)="cancelBenForm()" [disabled]="savingBen">Cancel</button>
-            <button *ngIf="!editingBenId" class="ct-btn ct-btn--success" (click)="useNewBeneficiary()">Use This Beneficiary</button>
+            <!-- "Use This Beneficiary" removed — the new recipient is picked up automatically on Next. -->
             <button *ngIf="editingBenId" class="ct-btn ct-btn--success" (click)="saveEditBeneficiary()" [disabled]="savingBen">
               {{ savingBen ? 'Saving…' : 'Save & Sync to USI' }}
             </button>
@@ -617,18 +630,18 @@ import { environment } from '../../../environments/environment';
           </div>
           <div class="ct-review-row">
             <span class="ct-review-label">Amount converted</span>
-            <span class="ct-review-value">{{ sendCurrency }} {{ ((quote?.sendAmount || 0) - (quote?.fee || 0)) | number:'1.2-2' }}</span>
+            <span class="ct-review-value">{{ sendCurrency }} {{ quote?.sendAmount | number:'1.2-2' }}</span>
           </div>
           <div class="ct-review-row">
             <span class="ct-review-label">Total to Collect</span>
             <span class="ct-review-value"><strong>{{ sendCurrency }} {{ quote?.totalCost | number:'1.2-2' }}</strong></span>
           </div>
           <div class="ct-review-row">
-            <span class="ct-review-label">Delivery Method</span>
+            <span class="ct-review-label">Delivery Method <span class="ct-hint">(recipient receives)</span></span>
             <span class="ct-review-value">{{ deliveryMethodLabel(selectedDeliveryMethod) }}</span>
           </div>
           <div class="ct-review-row">
-            <span class="ct-review-label">Collection Type</span>
+            <span class="ct-review-label">Payment Method <span class="ct-hint">(customer paid)</span></span>
             <span class="ct-review-value">{{ collectionTypeLabel(selectedCollectionType) }}</span>
           </div>
           <div class="ct-review-row">
@@ -639,7 +652,9 @@ import { environment } from '../../../environments/environment';
             </span>
             <span class="ct-review-value ct-review-new" *ngIf="!selectedBeneficiary && newBen.name">
               {{ newBen.name }} (New)
-              <span class="ct-review-sub">{{ newBen.bankName }} · {{ newBen.accountNumber || newBen.iban }}</span>
+              <span class="ct-review-sub" *ngIf="selectedDeliveryMethod === 'CASH_PICKUP'">Cash Pickup · {{ newBen.collectionPointName }}{{ newBen.collectionPointCode ? ' (' + newBen.collectionPointCode + ')' : '' }}</span>
+              <span class="ct-review-sub" *ngIf="isMobileMoney()">{{ newBen.mobileProvider }} · {{ newBen.accountNumber }}</span>
+              <span class="ct-review-sub" *ngIf="selectedDeliveryMethod !== 'CASH_PICKUP' && !isMobileMoney()">{{ newBen.bankName }} · {{ newBen.accountNumber || newBen.iban }}</span>
             </span>
           </div>
         </div>
@@ -1457,11 +1472,32 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     return x;
   }
 
+  /** Normalise a country to ISO-2 so 'QAT' / 'QA' / 'Qatar' all compare equal. */
+  private normCountry(v: string): string {
+    const x = (v || '').trim().toUpperCase();
+    const iso3to2: Record<string, string> = {
+      IND:'IN', PAK:'PK', NGA:'NG', GHA:'GH', PHL:'PH', KEN:'KE', NPL:'NP', BGD:'BD',
+      AUS:'AU', GBR:'GB', USA:'US', DEU:'DE', ARE:'AE', ZAF:'ZA', UGA:'UG', TZA:'TZ',
+      LKA:'LK', SDN:'SD', TUR:'TR', EGY:'EG', SAU:'SA', QAT:'QA'
+    };
+    const names: Record<string, string> = {
+      QATAR:'QA', SUDAN:'SD', 'SAUDI ARABIA':'SA', 'UNITED ARAB EMIRATES':'AE', EGYPT:'EG', TURKEY:'TR', UGANDA:'UG'
+    };
+    if (names[x]) return names[x];
+    if (x.length === 3 && iso3to2[x]) return iso3to2[x];
+    return x;
+  }
+
   filterBeneficiaries(): void {
     const t = this.beneficiarySearch.toLowerCase();
     const sel = this.deliveryGroup(this.selectedDeliveryMethod);
-    // Only show recipients whose delivery method matches the selected one (bank / mobile / cash).
-    let list = this.beneficiaries.filter(b => this.deliveryGroup(b.deliveryMethod) === sel);
+    const country = this.normCountry(this.receiveCountry);
+    // Show only recipients for THIS destination country AND the selected delivery
+    // method (e.g. Qatar + Cash) — not every recipient the customer has.
+    let list = this.beneficiaries.filter(b =>
+      this.deliveryGroup(b.deliveryMethod) === sel &&
+      (!country || this.normCountry(b.country) === country)
+    );
     if (t) {
       list = list.filter(b => b.name?.toLowerCase().includes(t) || b.bankName?.toLowerCase().includes(t));
     }
@@ -1576,14 +1612,6 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     });
   }
 
-  useNewBeneficiary(): void {
-    const err = this.validateNewBeneficiaryForUsi();
-    if (err) { this.stepError = err; return; }
-    this.selectedBeneficiary = null;
-    this.showAddBeneficiary = false;
-    this.stepError = '';
-  }
-
   /**
    * Strict USI-aligned validation for the new-beneficiary form. Returns an error message, or null if valid.
    * Enforces the rules USI Money requires so a recipient doesn't fail at createBeneficiary/transaction time.
@@ -1598,15 +1626,28 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
     if (!NAME.test(name)) return "Enter the recipient's full name — first and last name, letters only";
 
     const isBank   = this.selectedDeliveryMethod === 'BANK_DEPOSIT'  || this.selectedDeliveryMethod === 'BANK_TRANSFER';
-    const isMobile = this.selectedDeliveryMethod === 'MOBILE_WALLET' || this.selectedDeliveryMethod === 'MOBILE_MONEY';
+    const isMobile = this.isMobileMoney();
+    const isCash   = this.selectedDeliveryMethod === 'CASH_PICKUP';
+
+    // Shared fields — enforced exactly as the form marks them required (*):
+    // • Contact mobile number: shown/required for every method except mobile wallet
+    //   (there the Wallet Number itself is the payout number).
+    if (!isMobile) {
+      const m = (this.newBen.mobileNumber || '').replace(/\s/g, '');
+      if (!m) return 'Mobile number is required';
+      if (!PHONE.test(m)) return 'Enter a valid mobile number (7-15 digits, optional +)';
+    }
+    // • Address + City: shown/required for everyone except Sudan bank.
+    if (!this.isSudanBank()) {
+      if (!this.newBen.address?.trim()) return 'Address is required';
+      if (!this.newBen.city?.trim())    return 'City is required';
+    }
 
     if (isMobile) {
       if (!this.newBen.mobileProvider) return 'Select the mobile network';
       const wallet = (this.newBen.accountNumber || '').replace(/\s/g, '');
       if (!wallet) return 'Wallet number is required';
       if (!PHONE.test(wallet)) return 'Enter a valid wallet number (7-15 digits, optional +)';
-      if (!this.newBen.address?.trim()) return 'Address is required';
-      if (!this.newBen.city?.trim())    return 'City is required';
     } else if (isBank) {
       if (!this.newBen.bankName?.trim()) return 'Bank name is required';
       if (this.isUsiIbanCountry()) {
@@ -1617,14 +1658,15 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
         const acct = (this.newBen.accountNumber || '').trim();
         if (!acct) return 'Account number is required';
         if (acct.length < 5) return 'Enter a valid account number (at least 5 characters)';
+        // SWIFT/BIC is shown & required for non-IBAN countries that aren't no-SWIFT or Sudan.
+        if (!this.isNoSwiftCountry() && !this.isSudan() && !this.newBen.swiftBic?.trim())
+          return 'SWIFT / BIC code is required';
       }
-      if (!this.isSudanBank()) {
-        if (!this.newBen.address?.trim()) return 'Address is required';
-        if (!this.newBen.city?.trim())    return 'City is required';
-      }
-    } else if (this.selectedDeliveryMethod === 'CASH_PICKUP') {
-      if (!this.newBen.collectionPointName?.trim() || !this.newBen.collectionPointCode?.trim())
-        return 'Collection point name and code are required';
+    } else if (isCash) {
+      if (!this.newBen.collectionPointName?.trim())    return 'Collection point name is required';
+      if (!this.newBen.collectionPointCode?.trim())    return 'Collection code is required';
+      if (!this.newBen.collectionPointAddress?.trim()) return 'Collection address is required';
+      if (!this.newBen.collectionPointCity?.trim())    return 'Collection city is required';
     }
     return null;
   }
@@ -1657,13 +1699,30 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
 
   goToStep3(): void {
     this.stepError = '';
-    // Account is satisfied by an account number OR an IBAN (IBAN countries have no account-number field).
-    const hasBeneficiary = this.selectedBeneficiary || (this.newBen.name && this.newBen.bankName && (this.newBen.accountNumber || this.newBen.iban));
-    if (!hasBeneficiary) {
-      this.stepError = 'Select an existing beneficiary or add a new one';
+
+    // Adding a new recipient inline: validate the form for the chosen delivery method
+    // (bank / mobile / cash pickup) and use it directly — no separate "Use" click needed.
+    if (this.showAddBeneficiary && !this.editingBenId) {
+      const err = this.validateNewBeneficiaryForUsi();
+      if (err) { this.stepError = err; return; }
+      this.selectedBeneficiary = null;   // new recipient — submitted via beneficiaryDetails
+      this.currentStep = 3;
       return;
     }
-    this.currentStep = 3;
+
+    // Still mid-edit on an existing recipient — save those changes first.
+    if (this.editingBenId) {
+      this.stepError = 'Save the beneficiary changes first (Save & Sync to USI), or Cancel.';
+      return;
+    }
+
+    // Using an existing recipient selected from the list.
+    if (this.selectedBeneficiary) {
+      this.currentStep = 3;
+      return;
+    }
+
+    this.stepError = 'Select an existing beneficiary or add a new one';
   }
 
   // ── Step 3: Submit ────────────────────────────────────────────

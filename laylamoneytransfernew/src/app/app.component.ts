@@ -5,14 +5,17 @@ import { Component, OnInit } from '@angular/core';
   template: '<ion-app><ion-router-outlet></ion-router-outlet></ion-app>'
 })
 export class AppComponent implements OnInit {
-  // Filename of the main JS bundle this page actually loaded. When a new build is
-  // deployed the bundle hash changes, so we detect it by comparing this against the
-  // latest index.html on the server — and reload automatically. This means a client
-  // never has to manually refresh to pick up a new version.
-  private runningBundle = '';
+  // Signature of ALL hashed entry bundles this page loaded (runtime, polyfills, main…).
+  // When a new build is deployed, at least the `runtime` bundle's hash changes — even
+  // when only a lazy-loaded feature (e.g. Send Money / Create Transaction) changed and
+  // `main.js` stays identical. Comparing the whole set against the latest index.html on
+  // the server lets us detect ANY new build and reload automatically, so a client never
+  // has to manually refresh. (The old code watched only `main.js` and missed lazy-chunk
+  // deploys — hence changes appeared only after a manual refresh.)
+  private runningSig = '';
 
   ngOnInit(): void {
-    this.runningBundle = this.mainBundle(
+    this.runningSig = this.bundleSig(
       Array.from(document.querySelectorAll('script[src]'))
         .map(s => (s as HTMLScriptElement).getAttribute('src') || '')
     );
@@ -23,10 +26,13 @@ export class AppComponent implements OnInit {
     });
   }
 
-  /** Extract the hashed main bundle filename (e.g. "main.ab12cd.js") from a list of srcs. */
-  private mainBundle(srcs: string[]): string {
-    const hit = srcs.find(s => /(^|\/)main\.[^/]*\.js(\?|$)/.test(s));
-    return hit ? hit.replace(/^.*\//, '').replace(/\?.*$/, '') : '';
+  /** Build a stable signature from every hashed entry bundle (runtime/main/polyfills/…). */
+  private bundleSig(srcs: string[]): string {
+    return srcs
+      .map(s => s.replace(/^.*\//, '').replace(/\?.*$/, ''))
+      .filter(s => /^(runtime|main|polyfills|scripts|vendor)\.[^/]*\.js$/.test(s))
+      .sort()
+      .join('|');
   }
 
   private async checkForNewVersion(): Promise<void> {
@@ -34,9 +40,9 @@ export class AppComponent implements OnInit {
       const res = await fetch('index.html', { cache: 'no-store' });
       if (!res.ok) return;
       const html = await res.text();
-      const latest = this.mainBundle(html.match(/[^"'\s()]+\.js/g) || []);
-      // Reload once when the deployed main bundle differs from the running one.
-      if (latest && this.runningBundle && latest !== this.runningBundle
+      const latest = this.bundleSig(html.match(/[^"'\s()]+\.js/g) || []);
+      // Reload once when ANY deployed entry bundle differs from what we're running.
+      if (latest && this.runningSig && latest !== this.runningSig
           && sessionStorage.getItem('reloadedForBuild') !== latest) {
         sessionStorage.setItem('reloadedForBuild', latest);
         location.reload();

@@ -37,6 +37,6 @@ import { Component } from '@angular/core';
       <p>For assistance contact <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>.</p>
       <p>See also our <a href="/privacy-policy">Privacy Policy</a>.</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class AccountDeletionPage {}

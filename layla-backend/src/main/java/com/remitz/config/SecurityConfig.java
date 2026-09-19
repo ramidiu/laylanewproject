@@ -69,8 +69,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         // PayIn endpoints
                         .requestMatchers("/api/payin/**").authenticated()
-                        // Internal service-to-service endpoints
-                        .requestMatchers("/internal/**").permitAll()
+                        // Internal service-to-service endpoints — MUST NOT be public.
+                        // SECURITY: previously permitAll, which exposed KYC status lookup and
+                        // compliance (CTR/alerts/screen) creation to the internet. In this
+                        // deployment compliance/KYC run in-process (no external caller), so these
+                        // require authentication. A future internal service must send a valid token.
+                        .requestMatchers("/internal/**").authenticated()
                         // FX public endpoints
                         .requestMatchers("/api/fx/rates").permitAll()
                         .requestMatchers("/api/fx/rates/**").permitAll()
@@ -107,8 +111,9 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/swagger-config").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
-                        // Code added by Naresh: Phase 2 DEV/POC Kuber smoke-test endpoint (remove before production).
-                        .requestMatchers("/api/dev/kuber/**").permitAll()
+                        // SECURITY: DEV/POC Kuber smoke-test endpoint is no longer public
+                        // (it was flagged "remove before production"). Now requires authentication.
+                        .requestMatchers("/api/dev/kuber/**").authenticated()
                         // Volume Pay webhook — called by Volume servers, not authenticated users
                         .requestMatchers("/api/webhooks/volume").permitAll()
                         // Trust Payments callback — called by frontend after card payment redirect

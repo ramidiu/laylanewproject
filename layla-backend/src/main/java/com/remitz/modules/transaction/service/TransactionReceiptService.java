@@ -187,9 +187,12 @@ public class TransactionReceiptService {
         v.put("statusBgSoftSvg", statusBgSoft(tone));
         v.put("statusIconSvg", statusIconSvg(tone));
         v.put("statusSubtitleSvg", statusSubtitle(tone));
-        // Totals
-        BigDecimal totalDeducted = (tx.getSendAmount() != null ? tx.getSendAmount() : BigDecimal.ZERO)
-                .add(tx.getFeeAmount() != null ? tx.getFeeAmount() : BigDecimal.ZERO);
+        // Totals — fee-on-top: the customer is charged sendAmount + fee. Prefer the authoritative
+        // totalDebitAmount (what was actually debited); fall back to send + fee for older rows.
+        BigDecimal totalDeducted = tx.getTotalDebitAmount() != null
+                ? tx.getTotalDebitAmount()
+                : (tx.getSendAmount() != null ? tx.getSendAmount() : BigDecimal.ZERO)
+                        .add(tx.getFeeAmount() != null ? tx.getFeeAmount() : BigDecimal.ZERO);
         v.put("totalDeducted", formatAmount(totalDeducted));
         // Code added by Naresh: expand ISO country codes to human-readable names
         v.put("senderCountry", countryName(tx.getSendCurrency()));

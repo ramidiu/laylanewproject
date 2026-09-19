@@ -7,6 +7,8 @@ export interface CreateTransactionRequest {
   sendCurrency: string;
   paymentMethodType?: string;
   notes?: string;
+  purposeOfTransaction?: string;
+  sourceOfIncome?: string;
   idempotencyKey?: string;
   referralCode?: string;
   useWallet?: boolean;

@@ -129,20 +129,18 @@ public class QuoteService {
             java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, sendAmount, slabMethod);
             if (slab.isPresent()) { appliedRate = slab.get(); slabApplied = true; }
             BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, sendAmount).add(usiCommissionFee);
-            // Fee is deducted from the amount the customer sends BEFORE conversion: the customer pays
-            // exactly sendAmount, the fee is taken out of it, and only the remainder is converted.
-            // So receive = (sendAmount - fee) * rate and total-to-pay = sendAmount.
-            BigDecimal amountToConvert = sendAmount.subtract(fee).max(BigDecimal.ZERO);
-            receiveAmount = amountToConvert.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal totalCost = sendAmount;
+            // Fee-on-top: the FULL send amount is converted for the beneficiary and the fee is added
+            // on top. So receive = sendAmount * rate and total-to-pay = sendAmount + fee.
+            receiveAmount = sendAmount.multiply(appliedRate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalCost = sendAmount.add(fee);
 
             return buildQuoteResponse(request, midRate, appliedRate,
                     slabApplied ? BigDecimal.ZERO : marginPercentage,
                     fee, usiCommissionFee, sendAmount, receiveAmount, totalCost, corridorId, deliveryMethod);
         } else {
             receiveAmount = request.getReceiveAmount();
-            // Fee-inclusive: the converted portion must hit the requested receive amount, and the fee
-            // sits on top, so the customer pays (converted + fee) in total.
+            // Fee-on-top: the converted principal that produces the requested receive amount IS the
+            // send amount, and the fee sits on top — so the customer pays (sendAmount + fee) in total.
             BigDecimal amountToConvert = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
             // The slab depends on the converted amount, so resolve it from that and re-derive.
             java.util.Optional<BigDecimal> slab = rateSlabService.getSlabRate(corridorId, amountToConvert, slabMethod);
@@ -152,8 +150,8 @@ public class QuoteService {
                 amountToConvert = receiveAmount.divide(appliedRate, 2, RoundingMode.HALF_UP);
             }
             BigDecimal fee = corridorFeeService.getFee(corridorId, deliveryMethod, amountToConvert).add(usiCommissionFee);
-            sendAmount = amountToConvert.add(fee);
-            BigDecimal totalCost = sendAmount;
+            sendAmount = amountToConvert;
+            BigDecimal totalCost = sendAmount.add(fee);
 
             return buildQuoteResponse(request, midRate, appliedRate,
                     slabApplied ? BigDecimal.ZERO : marginPercentage,

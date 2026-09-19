@@ -51,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Port of the legacy USImoneyServiceImpl into the new com.remitz.* backend.
@@ -130,6 +131,29 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
 
     // ── Remitter ─────────────────────────────────────────────────────────
 
+    /** USI-payout corridor destinations (ISO2 / ISO3 / name variants). */
+    private static final Set<String> USI_CORRIDOR_COUNTRIES = Set.of(
+            "UG", "UGA", "UGANDA",
+            "TR", "TUR", "TURKEY",
+            "EG", "EGY", "EGYPT",
+            "QA", "QAT", "QATAR",
+            "SA", "SAU", "SAUDI ARABIA",
+            "AE", "ARE", "UNITED ARAB EMIRATES", "UAE");
+
+    @Override
+    public boolean isUsiCorridorCountry(String country) {
+        if (!props.isEnabled() || country == null || country.isBlank()) return false;
+        return USI_CORRIDOR_COUNTRIES.contains(country.trim().toUpperCase(Locale.ROOT));
+    }
+
+    @Override
+    public boolean isRemitterVerified(Long userId) {
+        if (userId == null) return false;
+        return usiRemitterRepository.findByUserId(userId)
+                .map(r -> Boolean.TRUE.equals(r.getVerified()))
+                .orElse(false);
+    }
+
     @Override
     public Map<String, Object> createRemitter(Long userId) {
         guardEnabled();
@@ -143,6 +167,15 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
             json.put("status", "EXISTS");
             json.put("remitterId", existing.getRemitterId());
             json.put("message", "Remitter already exists");
+            return json;
+        }
+
+        // Never fake a date of birth to USI: that would send false KYC to the payout partner.
+        // If DOB is missing, fail cleanly so the caller (and admin) sees the real reason.
+        if (user.getDateOfBirth() == null) {
+            json.put("status", "MISSING_INFO");
+            json.put("message", "Date of birth is required before this sender can be registered with USI Money.");
+            log.warn("USI createRemitter blocked for user {} — no date of birth on file", userId);
             return json;
         }
 
@@ -162,10 +195,8 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         body.add("city", user.getCity() != null ? user.getCity() : "");
         body.add("postcode", user.getPostcode() != null ? user.getPostcode() : "");
         body.add("mobile", normalisePhone(user.getPhone(), iso3));
-        // USI requires a date-of-birth — fall back to a placeholder 18+ DOB if the user
-        // hasn't completed their profile so the create call doesn't bounce. This will
-        // be replaced when KYC capture wires DOB into users.date_of_birth.
-        body.add("dob", user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : "1990-01-01");
+        // Real date of birth only — guaranteed present by the guard above (never fake it to USI).
+        body.add("dob", user.getDateOfBirth().toString());
         // Pull the user's primary identity document — prefer PASSPORT, then DRIVING_LICENCE, then NATIONAL_ID.
         KycDocumentEntity primaryId = pickPrimaryId(userId);
         body.add("id_type",          primaryId != null && primaryId.getDocumentType() != null
@@ -473,15 +504,30 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         UsiRemitterEntity remitter = usiRemitterRepository.findByUserId(bnf.getUserId())
                 .orElseThrow(() -> new RuntimeException("Remitter not found for user " + bnf.getUserId()));
 
-        // USI demands at least 2 name parts. Normalise + pad with "." if needed.
-        String cleaned = ((bnf.getFullName() == null ? "" : bnf.getFullName()).replaceAll("[^a-zA-Z ]", "")).trim().replaceAll("\\s+", " ");
-        String fullName = cleaned.contains(" ") ? cleaned : (cleaned.isEmpty() ? "Customer User" : cleaned + " Recipient");
+        // RemitONE/USI createBeneficiary name fields (per the RemitONE web-services form): send
+        // full_name + first_name + last_name (+ middle_name) in snake_case — NOT `name`. USI ignores
+        // `name` and then reports "Beneficiary Name must have at least 2 parts". Cleaned to letters+spaces.
+        String[] nameWords = ((bnf.getFullName() == null ? "" : bnf.getFullName())
+                .replaceAll("[^a-zA-Z ]", "")).trim().replaceAll("\\s+", " ").split(" ");
+        String benFirstName = (nameWords.length > 0 && !nameWords[0].isEmpty()) ? nameWords[0] : "Customer";
+        String benLastName  = (nameWords.length > 1 && !nameWords[nameWords.length - 1].isEmpty())
+                ? nameWords[nameWords.length - 1] : "Recipient";
+        String benMiddleName = "";
+        if (nameWords.length > 2) {
+            benMiddleName = String.join(" ", java.util.Arrays.asList(nameWords).subList(1, nameWords.length - 1));
+        }
+        String fullName = String.join(" ", nameWords).trim();
+        if (fullName.isEmpty()) fullName = benFirstName + " " + benLastName;
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("group", "beneficiary");
         body.add("method", "createBeneficiary");
+        // RemitONE createBeneficiary form field names: name (Full Name), fname, mname, lname, orgtype.
         body.add("name", fullName);
-        body.add("organisation_type", "INDIVIDUAL");
+        body.add("fname", benFirstName);
+        if (!benMiddleName.isEmpty()) body.add("mname", benMiddleName);
+        body.add("lname", benLastName);
+        body.add("orgtype", "Individual");
         // USI requires non-empty address1 + city — fall back to the country capital when blank.
         // Use the beneficiary's own city; only fall back to the capital when no city was captured.
         // Never reuse the street address as the city (that produced wrong values like "King Saud").
@@ -499,22 +545,21 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
             // matches the account/IBAN (previously the bank name was forced to a sandbox test
             // bank, which mismatched the real IBAN and got rejected by the live bank).
             // Whitespace is stripped from the account/IBAN so a stray leading space isn't rejected.
+            // RemitONE form field names: bank / bank_branch / bank_branch_city / bank_branch_state / benef_bank_iban.
             body.add("bank",             value(bnf.getBankName(), ""));
             body.add("bank_branch",      value(bnf.getSortCode(), bnf.getBankName()));
-            // Branch city + state are hard-coded to "Any Branch" for USI bank transactions
-            // (client requirement). The recipient's real city goes in the top-level `city` field only.
             body.add("bank_branch_city", "Any Where");
             body.add("bank_branch_state","Any Where");
             body.add("account_number",   value(bnf.getAccountNumber(), "").replaceAll("\\s", ""));
 
-            // IBAN required for non-Uganda/non-Egypt corridors
+            // IBAN required for non-Uganda/non-Egypt corridors — RemitONE field: benef_bank_iban
             String c = bnf.getCountry() != null ? bnf.getCountry().toUpperCase() : "";
             if (!c.contains("UGANDA") && !c.contains("EGYPT")) {
                 body.add("benef_bank_iban", value(bnf.getIban(), "").replaceAll("\\s", ""));
             }
         }
 
-        body.add("linked_member_id", remitter.getRemitterId());
+        body.add("remitter_id", remitter.getRemitterId());
         addCreds(body);
 
         String responseBody = postMultipart("/beneficiary/createBeneficiary", body);
@@ -676,7 +721,7 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         body.add("beneficiary_id", usiBeneficiaryId);
         addBeneficiaryProfileFields(body, bnf);
         usiRemitterRepository.findByUserId(bnf.getUserId())
-                .ifPresent(r -> body.add("linked_member_id", r.getRemitterId()));
+                .ifPresent(r -> body.add("remitter_id", r.getRemitterId()));
         addCreds(body);
 
         String responseBody = postMultipart("/beneficiary/updateBeneficiary", body);
@@ -696,11 +741,21 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
      * Kept identical to the createBeneficiary body so an update sends the same data the create did.
      */
     private void addBeneficiaryProfileFields(MultiValueMap<String, Object> body, BeneficiaryEntity bnf) {
-        // USI demands at least 2 name parts. Normalise + pad with "Recipient" if needed.
-        String cleaned = ((bnf.getFullName() == null ? "" : bnf.getFullName()).replaceAll("[^a-zA-Z ]", "")).trim().replaceAll("\\s+", " ");
-        String fullName = cleaned.contains(" ") ? cleaned : (cleaned.isEmpty() ? "Customer User" : cleaned + " Recipient");
+        // RemitONE beneficiary name fields: name (Full Name) + fname/mname/lname + orgtype.
+        String[] nameWords = ((bnf.getFullName() == null ? "" : bnf.getFullName())
+                .replaceAll("[^a-zA-Z ]", "")).trim().replaceAll("\\s+", " ").split(" ");
+        String bFirst = (nameWords.length > 0 && !nameWords[0].isEmpty()) ? nameWords[0] : "Customer";
+        String bLast  = (nameWords.length > 1 && !nameWords[nameWords.length - 1].isEmpty())
+                ? nameWords[nameWords.length - 1] : "Recipient";
+        String bMiddle = nameWords.length > 2
+                ? String.join(" ", java.util.Arrays.asList(nameWords).subList(1, nameWords.length - 1)) : "";
+        String fullName = String.join(" ", nameWords).trim();
+        if (fullName.isEmpty()) fullName = bFirst + " " + bLast;
         body.add("name", fullName);
-        body.add("organisation_type", "INDIVIDUAL");
+        body.add("fname", bFirst);
+        if (!bMiddle.isEmpty()) body.add("mname", bMiddle);
+        body.add("lname", bLast);
+        body.add("orgtype", "Individual");
         // USI requires non-empty address1 + city — fall back to the country capital when blank.
         String address = (bnf.getAddress() != null && !bnf.getAddress().isBlank())
                 ? bnf.getAddress() : defaultCityFor(bnf.getCountry());
@@ -712,15 +767,14 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
         body.add("mobile", normalisePhone(bnf.getMobileNumber(), iso2OrThree(bnf.getCountry())));
 
         if (bnf.getDeliveryMethod() == DeliveryMethod.BANK_DEPOSIT) {
+            // RemitONE form field names: bank / bank_branch / bank_branch_city / bank_branch_state / benef_bank_iban.
             body.add("bank",             value(bnf.getBankName(), ""));
             body.add("bank_branch",      value(bnf.getSortCode(), bnf.getBankName()));
-            // Branch city + state are hard-coded to "Any Branch" for USI bank transactions
-            // (client requirement). The recipient's real city goes in the top-level `city` field only.
             body.add("bank_branch_city", "Any Where");
             body.add("bank_branch_state","Any Where");
             body.add("account_number",   value(bnf.getAccountNumber(), "").replaceAll("\\s", ""));
 
-            // IBAN required for non-Uganda/non-Egypt corridors
+            // IBAN required for non-Uganda/non-Egypt corridors — RemitONE field: benef_bank_iban
             String c = bnf.getCountry() != null ? bnf.getCountry().toUpperCase() : "";
             if (!c.contains("UGANDA") && !c.contains("EGYPT")) {
                 body.add("benef_bank_iban", value(bnf.getIban(), "").replaceAll("\\s", ""));
@@ -806,10 +860,17 @@ public class UsiPayoutServiceImpl implements UsiPayoutService {
                                 iso2OrThree(bnf.getCountry()), "CASH_COLLECTION")
                         .stream().findFirst().orElse(null);
                 if (fallback != null && fallback.getCollectionPoint() != null) {
+                    // USI validates collection_point and collection_point_bank as DISTINCT values
+                    // that must match its registered collection-point list, e.g. Qatar:
+                    //   collection_point      = "Al Dar for Exchange Works"
+                    //   collection_point_bank = "Qatar Cash Pickup"
+                    // Sending a placeholder (or the same value for both) makes confirmTransaction 500.
+                    // Point name comes from collection_point; bank comes from bank_name.
+                    String cpCity = firstNonBlank(fallback.getBankBranchCity(), bnf.getCity(), "Anywhere");
                     body.add("collection_point", fallback.getCollectionPoint());
-                    body.add("collection_point_bank", fallback.getCollectionPoint());
-                    body.add("collection_point_address", fallback.getBankBranchCity() != null ? fallback.getBankBranchCity() : "");
-                    body.add("collection_point_city", fallback.getBankBranchCity() != null ? fallback.getBankBranchCity() : "");
+                    body.add("collection_point_bank", firstNonBlank(fallback.getBankName(), fallback.getCollectionPoint()));
+                    body.add("collection_point_address", cpCity);
+                    body.add("collection_point_city", cpCity);
                 }
             }
             default -> body.add("trans_type", "Account");

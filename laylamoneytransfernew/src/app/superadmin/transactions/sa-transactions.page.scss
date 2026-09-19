@@ -4,6 +4,8 @@
 
 .page-header {
   display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: $fb-space-6;
+
+  .header-actions { display: flex; gap: $fb-space-2; flex-wrap: wrap; }
 }
 .page-title { font-size: $fb-text-2xl; font-weight: $fb-font-bold; color: $fb-gray-900; margin: 0 0 $fb-space-1; }
 .page-subtitle { font-size: $fb-text-sm; color: $fb-gray-500; margin: 0; }

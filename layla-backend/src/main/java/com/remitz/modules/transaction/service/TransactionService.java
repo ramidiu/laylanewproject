@@ -24,6 +24,7 @@ import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.compliance.entity.ScreeningResultEntity;
 import com.remitz.modules.compliance.service.ComplianceAlertService;
 import com.remitz.modules.compliance.service.SanctionsScreeningService;
+import com.remitz.modules.payout.usi.service.UsiPayoutService;
 import com.remitz.modules.user.service.KycService;
 import com.remitz.modules.user.service.ReferralService;
 import com.remitz.modules.user.service.SystemConfigService;
@@ -139,6 +140,7 @@ public class TransactionService {
     private final ComplianceAlertService complianceAlertService;
     // Code added by Naresh: System Controls Phase 5 — runtime min/max send-amount guardrails.
     private final SystemConfigService systemConfigService;
+    private final UsiPayoutService usiPayoutService;
     private final NotificationDispatcher notificationDispatcher;
 
     @Transactional
@@ -192,6 +194,31 @@ public class TransactionService {
 
         // Enforce KYC verification: all submitted documents must be APPROVED
         validateKycDocumentsVerified(senderUuid);
+
+        // USI-corridor compliance gate: USI Money requires the sender's real date of birth to
+        // register them as a remitter. Block up front for USI destinations when DOB is missing —
+        // rather than creating the transfer and later sending a FAKE DOB to the payout partner
+        // (which is false KYC and previously left transfers silently stuck at "Create on USI").
+        if (usiPayoutService.isUsiCorridorCountry(beneficiary.getCountry())) {
+            boolean senderHasDob = userRepository.findById(senderUserId)
+                    .map(u -> u.getDateOfBirth() != null)
+                    .orElse(false);
+            if (!senderHasDob) {
+                throw new RemitzException(
+                        "Your date of birth is required to send to this destination. "
+                                + "Please add it to your profile and try again.",
+                        HttpStatus.BAD_REQUEST);
+            }
+            // The sender must be a CREATED and VERIFIED USI remitter before they can transact on a
+            // USI corridor — otherwise the payout is rejected downstream. Block up front with a clear
+            // message instead of letting the transfer be created and then fail at the USI push.
+            if (!usiPayoutService.isRemitterVerified(senderUserId)) {
+                throw new RemitzException(
+                        "Your account is still being verified with our payout partner for this destination. "
+                                + "You'll be able to send once verification is complete — please contact support if this persists.",
+                        HttpStatus.BAD_REQUEST);
+            }
+        }
 
         // Server-side gate: the sender's currency must have at least one ACTIVE payment
         // method configured in Transfer Config. Prevents users from disabled sender
@@ -394,6 +421,8 @@ public class TransactionService {
                 .payinPartnerId(payinPartnerId)
                 .isRecurring(false)
                 .notes(request.getNotes())
+                .purposeOfTransaction(request.getPurposeOfTransaction())
+                .sourceOfIncome(request.getSourceOfIncome())
                 .walletAmountUsed(walletAmountUsed)
                 .referralCodeUsed(validatedReferralCode)
                 .rateBoostApplied(rateBoostPct.compareTo(BigDecimal.ZERO) > 0 ? rateBoostPct : null)

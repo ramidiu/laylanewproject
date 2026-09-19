@@ -649,12 +649,30 @@
   &__bottom {
     border-top: 1px solid rgba($fb-white, 0.12);
     padding-top: $fb-space-6;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $fb-space-2;
 
     p {
       font-size: $fb-text-sm;
       color: rgba($fb-white, 0.55);
       margin: 0;
+    }
+
+    .landing-footer__powered {
+      font-size: $fb-text-xs;
+      color: rgba($fb-white, 0.4);
+      letter-spacing: 0.02em;
+    }
+
+    .landing-footer__powered-link {
+      color: rgba($fb-white, 0.75);
+      text-decoration: underline;
+      transition: color 0.15s;
+
+      &:hover { color: $fb-white; }
     }
   }
 }

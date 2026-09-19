@@ -40,6 +40,12 @@ public class CreateTransactionRequest {
 
     private String notes;
 
+    /** Remitter's declared purpose of the transfer (e.g. "Family Maintenance"). Surfaced in the USI report. */
+    private String purposeOfTransaction;
+
+    /** Remitter's declared source of income/funds (e.g. "Salary"). Surfaced in the USI report. */
+    private String sourceOfIncome;
+
     /** Client-generated idempotency key (UUID). Prevents duplicate transaction creation on retries. */
     private String idempotencyKey;
 

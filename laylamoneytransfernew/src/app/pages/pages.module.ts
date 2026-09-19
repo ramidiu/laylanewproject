@@ -14,6 +14,7 @@ import { UserAgreementPage } from './user-agreement.page';
 import { MobileTermsPage } from './mobile-terms.page';
 import { MobilePrivacyPage } from './mobile-privacy.page';
 import { AccountDeletionPage } from './account-deletion.page';
+import { SiteFooterComponent } from './site-footer.component';
 
 const PAGES = [
   PrivacyPolicyPage, AboutPage, ContactUsPage, TermsPage,
@@ -23,7 +24,7 @@ const PAGES = [
 
 @NgModule({
   imports: [CommonModule, RouterModule, IonicModule],
-  declarations: [...PAGES],
-  exports: [...PAGES]
+  declarations: [...PAGES, SiteFooterComponent],
+  exports: [...PAGES, SiteFooterComponent]
 })
 export class PagesModule {}

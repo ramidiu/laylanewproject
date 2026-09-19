@@ -98,7 +98,7 @@
         </div>
         <div class="rate-card__row">
           <span>{{ 'SEND_MONEY.AMOUNT_CONVERTED' | translate }}</span>
-          <span class="rate-card__value">{{ (quote.sendAmount - quote.fee) | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+          <span class="rate-card__value">{{ quote.sendAmount | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
         </div>
         <div class="rate-card__row" *ngIf="useWallet && walletAmountToUse > 0">
           <span>{{ 'SEND_MONEY.SUBTOTAL' | translate }}</span>
@@ -305,7 +305,7 @@
         </div>
         <div class="review-row">
           <span class="review-row__label">{{ 'SEND_MONEY.AMOUNT_CONVERTED' | translate }}</span>
-          <span class="review-row__value mono">{{ (quote.sendAmount - quote.fee) | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
+          <span class="review-row__value mono">{{ quote.sendAmount | currency:(selectedCorridor?.sendCurrency || 'USD'):'symbol-narrow':'1.2-2' }}</span>
         </div>
         <div class="review-row" *ngIf="useWallet && walletAmountToUse > 0" style="color:#059669;">
           <span class="review-row__label">{{ 'SEND_MONEY.WALLET_CREDIT' | translate }}</span>
@@ -327,6 +327,29 @@
         <div class="review-row">
           <span class="review-row__label">{{ 'SEND_MONEY.METHOD' | translate }}</span>
           <span class="review-row__value">{{ getDeliveryLabel(selectedBeneficiary?.deliveryMethod || selectedDeliveryMethod) }}</span>
+        </div>
+      </div>
+
+      <!-- Purpose & Source of Income (required — compliance / USI reporting) -->
+      <div class="review-section" id="compliance-section">
+        <h3 class="review-section__title">Purpose &amp; Source of Income</h3>
+        <div class="compliance-field">
+          <label class="compliance-field__label">Purpose of Transaction</label>
+          <select class="compliance-select"
+                  [(ngModel)]="purposeOfTransaction"
+                  [disabled]="submitting || transactionCreated">
+            <option value="" disabled>Select purpose…</option>
+            <option *ngFor="let p of purposeOptions" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+        <div class="compliance-field">
+          <label class="compliance-field__label">Source of Income</label>
+          <select class="compliance-select"
+                  [(ngModel)]="sourceOfIncome"
+                  [disabled]="submitting || transactionCreated">
+            <option value="" disabled>Select source…</option>
+            <option *ngFor="let s of sourceOfIncomeOptions" [value]="s">{{ s }}</option>
+          </select>
         </div>
       </div>
 

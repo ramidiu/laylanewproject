@@ -74,6 +74,21 @@ export class TransactionService {
     return this.http.get(`${environment.apiUrl}/transactions/admin/stats`);
   }
 
+  /** How many PAID USI transactions exist — used to only show the USI CSV button when there's data. */
+  getUsiCsvCount(): Observable<number> {
+    return this.http.get<any>(`${environment.apiUrl}/transactions/admin/usi-csv/count`).pipe(
+      map(res => (res?.data ?? res)?.count ?? 0)
+    );
+  }
+
+  /** Download PAID USI transactions as a CSV blob in the USI-required format. */
+  downloadUsiCsv(filters?: { startDate?: string; endDate?: string }): Observable<Blob> {
+    let params: Record<string, string> = {};
+    if (filters?.startDate) params['startDate'] = filters.startDate;
+    if (filters?.endDate) params['endDate'] = filters.endDate;
+    return this.http.get(`${environment.apiUrl}/transactions/admin/usi-csv`, { params, responseType: 'blob' });
+  }
+
   markFundsReceived(id: number, paymentReference?: string): Observable<any> {
     return this.http.put(`${environment.apiUrl}/transactions/admin/${id}/funds-received`, { paymentReference });
   }

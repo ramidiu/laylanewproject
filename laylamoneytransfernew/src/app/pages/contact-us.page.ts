@@ -49,6 +49,6 @@ import { Component } from '@angular/core';
 
       <p class="info-muted">Layla (London) Limited · Companies House 9672013 · FCA 740120</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class ContactUsPage {}

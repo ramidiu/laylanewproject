@@ -50,10 +50,33 @@ public class CorridorRateSlabService {
     }
 
     private Optional<BigDecimal> matchBand(List<CorridorRateSlabEntity> slabs, BigDecimal amount) {
-        for (CorridorRateSlabEntity slab : slabs) {
-            boolean aboveMin = slab.getMinAmount() == null || amount.compareTo(slab.getMinAmount()) >= 0;
-            boolean belowMax = slab.getMaxAmount() == null || amount.compareTo(slab.getMaxAmount()) <= 0;
-            if (aboveMin && belowMax) return Optional.ofNullable(slab.getRate());
+        if (slabs == null || slabs.isEmpty() || amount == null) return Optional.empty();
+
+        // Work on a copy sorted by minAmount ASC so the contiguous-band logic is correct
+        // regardless of caller ordering (the repository already sorts; this is defensive).
+        List<CorridorRateSlabEntity> ordered = new java.util.ArrayList<>(slabs);
+        ordered.sort(java.util.Comparator.comparing(
+                CorridorRateSlabEntity::getMinAmount,
+                java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())));
+
+        // Treat adjacent bands as CONTIGUOUS so a decimal amount never falls into a gap between
+        // whole-number bands (e.g. bands 1–49 then 50–99 previously left 49.01–49.99 uncovered,
+        // making the rate fall back to the mid/margin rate). A band that has a following band
+        // covers [min, nextBand.min); the TOP band keeps its OWN max (finite → amounts above the
+        // cap still fall back to the margin rate; null → open-ended). This only fills internal
+        // gaps — it never changes the top-cap or the below-minimum fallback behaviour.
+        for (int i = 0; i < ordered.size(); i++) {
+            CorridorRateSlabEntity slab = ordered.get(i);
+            if (slab.getMinAmount() != null && amount.compareTo(slab.getMinAmount()) < 0) continue; // below this band
+            boolean isLast = (i == ordered.size() - 1);
+            boolean withinUpper;
+            if (isLast) {
+                withinUpper = slab.getMaxAmount() == null || amount.compareTo(slab.getMaxAmount()) <= 0;
+            } else {
+                BigDecimal nextMin = ordered.get(i + 1).getMinAmount();
+                withinUpper = (nextMin == null) || amount.compareTo(nextMin) < 0;
+            }
+            if (withinUpper) return Optional.ofNullable(slab.getRate());
         }
         return Optional.empty();
     }

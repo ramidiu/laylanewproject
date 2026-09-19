@@ -34,7 +34,9 @@ public class PayinCustomerEntity {
     @Column(nullable = false, length = 20)
     private String phone;
 
-    @Column(nullable = false)
+    // Nullable: DoB is often unknown when a regular user is auto-registered as a
+    // pay-in customer. We store NULL rather than a fake placeholder (see V562).
+    @Column
     private LocalDate dob;
 
     @Column(nullable = false, length = 100)

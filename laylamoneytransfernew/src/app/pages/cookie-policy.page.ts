@@ -34,6 +34,6 @@ import { Component } from '@angular/core';
       <h2>Contact</h2>
       <p>Questions about cookies? Email <a href="mailto:info@laylamoneytransfer.co.uk">info@laylamoneytransfer.co.uk</a>. See also our <a href="/privacy-policy">Privacy Policy</a>.</p>
     </div>
-  </div></ion-content>`
+  <app-site-footer></app-site-footer></div></ion-content>`
 })
 export class CookiePolicyPage {}

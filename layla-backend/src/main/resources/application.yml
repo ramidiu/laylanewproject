@@ -97,6 +97,23 @@ app:
       site-reference: ${TRUST_JWT_SITEREFERENCE:test_laylalondo147950}
       # 0 = test/sandbox, 1 = live.
       live-status: ${TRUST_JWT_LIVESTATUS:0}
+    # Webservices API (TRANSACTIONQUERY) — READ-ONLY status checks only. Independent of the STPP
+    # payment flow and the webhook/callback handler; never writes to our DB. Credentials are strictly
+    # server-side. Inert until username/password are set.
+    ws:
+      url: ${TRUST_WS_URL:https://webservices.securetrading.net/json/}
+      # Preferred env names are TRUST_PAYMENTS_*; legacy TRUST_WS_* are kept as fallbacks.
+      username: ${TRUST_PAYMENTS_USERNAME:${TRUST_WS_USERNAME:}}
+      password: ${TRUST_PAYMENTS_PASSWORD:${TRUST_WS_PASSWORD:}}
+      # Live site reference used for status queries.
+      site-reference: ${TRUST_PAYMENTS_SITE_REFERENCE:${TRUST_WS_SITEREFERENCE:laylalondo147951}}
+      # Connect/read timeout (ms) for TRANSACTIONQUERY calls.
+      timeout-ms: ${TRUST_WS_TIMEOUT_MS:10000}
+    # Scheduler: re-checks PENDING card (Trust) transactions and advances them PENDING -> PROCESSING
+    # when Trust reports settlestatus=100 (SETTLED). Read-only against Trust; no other status changed.
+    settlement-poll:
+      enabled: ${TRUST_SETTLEMENT_POLL_ENABLED:true}
+      interval-ms: ${TRUST_SETTLEMENT_POLL_INTERVAL_MS:300000}
   # Code added by Naresh: Veriff / Amal / Volume modules removed — related config blocks deleted
   fx:
     exchange-rates-api:
