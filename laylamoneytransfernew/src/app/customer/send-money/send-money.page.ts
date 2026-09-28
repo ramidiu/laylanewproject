@@ -158,6 +158,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   userSendCurrency = 'GBP';
   userCountry = 'GB';
 
+  // Primary destination corridor — a fresh transfer preselects this country (ISO-2, matches normCountry())
+  // instead of whatever the corridors API happens to return first. Sudan is the main corridor for Layla.
+  private readonly DEFAULT_RECEIVE_COUNTRY = 'SD';
+
   private countryToCurrency: Record<string, string> = {
     'GB': 'GBP', 'US': 'USD', 'AU': 'AUD', 'AE': 'AED', 'DE': 'EUR',
     'IN': 'INR', 'PK': 'PKR', 'NG': 'NGN', 'GH': 'GHS', 'PH': 'PHP',
@@ -506,9 +510,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
               seen.add(key);
               return true;
             });
-            // Auto-select first corridor
+            // Auto-select the default corridor (Sudan when available, otherwise the first tile).
             if (this.corridors.length > 0 && !this.selectedCorridor) {
-              this.onCorridorSelect(this.corridors[0]);
+              const defaultCorridor = this.pickDefaultCorridor();
+              if (defaultCorridor) this.onCorridorSelect(defaultCorridor);
             }
           },
           error: () => this.corridors = []
@@ -559,6 +564,9 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
           .filter((p: any) => p.isActive)
           .map((p: any) => this.payoutToDelivery[p.payoutType] || p.payoutType)
           .filter((m: string) => m && !seen.has(m) && !!seen.add(m));
+        // For Sudan, Bank Transfer is the default payout: surface it first so it becomes the
+        // preselected option below (never auto-select Cash Pickup). Other corridors keep API order.
+        this.deliveryMethods = this.orderDeliveryMethods(this.deliveryMethods, corridor.receiveCountry);
         this.selectedDeliveryMethod = this.deliveryMethods[0] || '';
         this.applyBeneficiaryFilter();
         if (this.deliveryMethods.length === 0) {
@@ -709,6 +717,32 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     if (names[x]) return names[x];
     if (x.length === 3 && iso3to2[x]) return iso3to2[x];
     return x;
+  }
+
+  /**
+   * Choose the corridor to preselect on a fresh transfer. Prefers the configured default
+   * destination (Sudan) when it's among the available corridors; otherwise falls back to the
+   * first tile. This replaces the previous "always take corridors[0]" behaviour that made the
+   * default depend on the corridors API order (which surfaced Qatar first).
+   */
+  private pickDefaultCorridor(): CorridorResponse | null {
+    if (!this.corridors.length) return null;
+    const preferred = this.corridors.find(
+      c => this.normCountry(c.receiveCountry) === this.DEFAULT_RECEIVE_COUNTRY
+    );
+    return preferred || this.corridors[0];
+  }
+
+  /**
+   * Order delivery methods for display/selection. For the default corridor (Sudan) Bank Transfer
+   * must be the first — and therefore preselected — option, so bank-deposit payouts are moved to
+   * the front. All other corridors keep the order returned by Transfer Config unchanged.
+   */
+  private orderDeliveryMethods(methods: string[], receiveCountry: string): string[] {
+    if (this.normCountry(receiveCountry) !== this.DEFAULT_RECEIVE_COUNTRY) return methods;
+    const bank = methods.filter(m => this.deliveryGroup(m) === 'BANK');
+    const rest = methods.filter(m => this.deliveryGroup(m) !== 'BANK');
+    return [...bank, ...rest];
   }
 
   applyBeneficiaryFilter(): void {
