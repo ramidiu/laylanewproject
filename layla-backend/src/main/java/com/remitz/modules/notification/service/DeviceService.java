@@ -31,7 +31,8 @@ public class DeviceService {
             device.setUserId(userId);
             device.setPlatform(request.getPlatform());
             device.setIsActive(true);
-            log.info("Updated device registration for user: {}, token: {}", userId, request.getDeviceToken());
+            log.info("Updated device registration for user: {}, token: {}", userId,
+                    com.remitz.common.util.PiiMasker.maskToken(request.getDeviceToken()));
         } else {
             // Create new device registration
             device = UserDeviceEntity.builder()

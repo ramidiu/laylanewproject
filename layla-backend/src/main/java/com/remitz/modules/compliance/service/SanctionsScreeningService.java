@@ -114,8 +114,9 @@ public class SanctionsScreeningService {
 
     private List<ScreeningResultEntity> screenDisabled(String fullName, String country, String dateOfBirth,
                                                EntityType entityType, Long entityId) {
-        log.info("Screening '{}' (country={}, dob={}) for {}:{}",
-                fullName, country, dateOfBirth, entityType, entityId);
+        // SECURITY (H-I): do not log full legal name + DOB (KYC PII) at INFO on every screening.
+        log.info("Screening '{}' (country={}) for {}:{}",
+                com.remitz.common.util.PiiMasker.maskName(fullName), country, entityType, entityId);
 
         List<ScreeningResultEntity> results = new ArrayList<>();
         String normalizedQuery = normalize(fullName);
@@ -179,7 +180,7 @@ public class SanctionsScreeningService {
                     .status(ScreeningStatus.CLEAR)
                     .build();
             results.add(screeningResultRepository.save(clearResult));
-            log.info("Screening clear for '{}' on {}:{}", fullName, entityType, entityId);
+            log.info("Screening clear for '{}' on {}:{}", com.remitz.common.util.PiiMasker.maskName(fullName), entityType, entityId);
         }
 
         return results;
