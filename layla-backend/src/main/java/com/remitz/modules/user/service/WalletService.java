@@ -54,6 +54,11 @@ public class WalletService {
 
     @Transactional
     public WalletEntity debit(Long userId, BigDecimal amount, String description, String referenceId, String referenceType) {
+        // SECURITY (M-E): reject non-positive amounts. A negative debit would ADD funds (balance check
+        // passes trivially) and journal a "DEBIT" — manufacturing balance / corrupting the ledger.
+        if (amount == null || amount.signum() <= 0) {
+            throw new RemitzException("Debit amount must be positive", HttpStatus.BAD_REQUEST);
+        }
         WalletEntity wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseGet(() -> getOrCreateWallet(userId));
 
@@ -84,6 +89,10 @@ public class WalletService {
 
     @Transactional
     public WalletEntity credit(Long userId, BigDecimal amount, String description, String referenceId, String referenceType) {
+        // SECURITY (M-E): reject non-positive amounts (a negative credit would silently reduce balance).
+        if (amount == null || amount.signum() <= 0) {
+            throw new RemitzException("Credit amount must be positive", HttpStatus.BAD_REQUEST);
+        }
         WalletEntity wallet = getOrCreateWallet(userId);
 
         BigDecimal balanceBefore = wallet.getBalance();

@@ -130,6 +130,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/dev/kuber/**").authenticated()
                         // Volume Pay webhook — called by Volume servers, not authenticated users
                         .requestMatchers("/api/webhooks/volume").permitAll()
+                        // SECURITY (M-B): /jwt mints a server-signed payment token and is an
+                        // enumeration oracle for transaction references — it must be authenticated
+                        // (the Send Money page calls it with a bearer token). The server-to-server
+                        // callback/confirm paths remain public below.
+                        .requestMatchers("/api/trust-payment/jwt").authenticated()
                         // Trust Payments callback — called by frontend after card payment redirect
                         .requestMatchers("/api/trust-payment/**").permitAll()
                         // Smarty address lookup — public, used during registration

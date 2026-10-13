@@ -58,8 +58,8 @@ public class NotificationController {
 
     @PutMapping("/{id}/read")
     @Operation(summary = "Mark as read", description = "Mark a specific notification as read")
-    public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {
-        inAppNotificationService.markAsRead(id);
+    public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id, HttpServletRequest request) {
+        inAppNotificationService.markAsRead(id, extractUserId(request));
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Notification marked as read")
@@ -129,8 +129,8 @@ public class NotificationController {
 
     @DeleteMapping("/devices/{id}")
     @Operation(summary = "Unregister device", description = "Unregister a device from push notifications")
-    public ResponseEntity<ApiResponse<Void>> unregisterDevice(@PathVariable Long id) {
-        deviceService.unregisterDevice(id);
+    public ResponseEntity<ApiResponse<Void>> unregisterDevice(@PathVariable Long id, HttpServletRequest request) {
+        deviceService.unregisterDevice(id, extractUserId(request));
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Device unregistered successfully")

@@ -49,9 +49,15 @@ public class InAppNotificationService {
     }
 
     @Transactional
-    public void markAsRead(Long id) {
+    public void markAsRead(Long id, Long callerUserId) {
         InAppNotificationEntity entity = inAppNotificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+
+        // SECURITY (M-F): a user may only mark their OWN notification read (was IDOR by raw id).
+        if (entity.getUserId() == null || !entity.getUserId().equals(callerUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not authorized to modify this notification");
+        }
 
         if (!entity.getIsRead()) {
             entity.setIsRead(true);

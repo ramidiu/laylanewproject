@@ -68,6 +68,9 @@ public class SettlementRateController {
     @Operation(summary = "Add new global settlement rate")
     public ResponseEntity<ApiResponse<SettlementRate>> addRate(@RequestBody SettlementRate rate,
                                                                 Authentication authentication) {
+        // SECURITY (M-C): null any client-supplied id so this create can't overwrite an existing
+        // settlement rate (tampering with settlement rates has direct financial impact).
+        rate.setId(null);
         rate.setUpdatedBy(authentication.getName());
         SettlementRate saved = settlementRateRepository.save(rate);
         return ResponseEntity.status(HttpStatus.CREATED)

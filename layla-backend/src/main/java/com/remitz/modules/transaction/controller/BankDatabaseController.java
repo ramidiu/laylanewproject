@@ -120,6 +120,8 @@ public class BankDatabaseController {
     @PreAuthorize("hasPermission(null, 'config:manage_transfer')")
     @Operation(summary = "Add a bank entry")
     public ResponseEntity<ApiResponse<BankDatabase>> addBank(@RequestBody BankDatabase bank) {
+        // SECURITY (M-C): null any client-supplied id so this create cannot overwrite an existing row.
+        bank.setId(null);
         BankDatabase saved = bankDatabaseRepository.save(bank);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<BankDatabase>builder()
