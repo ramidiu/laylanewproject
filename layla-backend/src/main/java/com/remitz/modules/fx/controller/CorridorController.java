@@ -83,6 +83,9 @@ public class CorridorController {
     @PostMapping("/api/fx/corridors/auto-create")
     @Tag(name = "Corridors Internal", description = "Internal corridor auto-creation endpoint")
     @Operation(summary = "Auto-create corridor", description = "Creates a corridor with defaults if it does not already exist. Called internally by transaction-service.")
+    // SECURITY (M-A): was permitAll — anyone could create live corridors (TIER_0/LOW defaults).
+    // In-process callers use the service directly; the HTTP endpoint now requires the config permission.
+    @PreAuthorize("hasPermission(null, 'config:manage_corridors')")
     public ResponseEntity<ApiResponse<CorridorResponse>> autoCreateCorridor(
             @RequestBody CorridorAutoCreateRequest request) {
         CorridorResponse corridor = corridorAutoCreateService.autoCreateCorridor(request);

@@ -103,6 +103,13 @@ public class SupportTicketService {
 
         SenderType type = SenderType.valueOf(senderType);
 
+        // SECURITY (H-E): a CUSTOMER may only reply to their OWN ticket. Without this, any
+        // authenticated user could post messages/attachments onto, and reopen, a stranger's ticket.
+        if (type == SenderType.CUSTOMER && (ticket.getUserId() == null || !ticket.getUserId().equals(senderId))) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not authorized to reply to this ticket");
+        }
+
         SupportTicketMessageEntity message = SupportTicketMessageEntity.builder()
                 .ticket(ticket)
                 .senderType(type)

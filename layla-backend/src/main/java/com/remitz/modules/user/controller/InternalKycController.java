@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -17,14 +18,16 @@ import java.util.Map;
 
 /**
  * Internal service-to-service endpoints for KYC lookups.
- * Not authenticated — protected by network-level restrictions only.
- * Used by transaction-service to enforce KYC verification before creating transactions.
+ * SECURITY (H-A): in this monolith these are on the same filter chain and were reachable by ANY
+ * authenticated customer (bare .authenticated()). In-process callers use KycService directly (no
+ * HTTP self-call exists), so the HTTP surface is gated to an admin authority to deny customers.
  */
 @RestController
 @RequestMapping("/internal/kyc")
 @RequiredArgsConstructor
 @Slf4j
 @Hidden
+@PreAuthorize("hasPermission(null, 'config:manage_system')")
 public class InternalKycController {
 
     private final KycService kycService;

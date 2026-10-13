@@ -52,6 +52,10 @@ public class AuthController {
 
     @PostMapping("/register-partner")
     @Operation(summary = "Register a partner user", description = "Creates a partner user account with specified role (PAYOUT_PARTNER or PAYIN_PARTNER) and pre-verified email")
+    // SECURITY (C-A): partner onboarding is an admin action. Previously this was reachable
+    // unauthenticated (via /api/auth/** permitAll) with a caller-controlled role, letting anyone
+    // self-issue a PAYIN/PAYOUT_PARTNER account. @PreAuthorize denies anonymous/non-admin callers.
+    @PreAuthorize("hasPermission(null, 'partner:manage_payin') or hasPermission(null, 'partner:manage_payout')")
     public ResponseEntity<RegisterResponse> registerPartner(@Valid @RequestBody RegisterPartnerRequest request) {
         log.info("Partner registration request for email: {} with role: {}", maskEmail(request.getEmail()), request.getRole());
         RegisterResponse response = authService.registerPartner(request);

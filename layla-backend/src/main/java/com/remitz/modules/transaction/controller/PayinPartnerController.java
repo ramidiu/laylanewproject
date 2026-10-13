@@ -405,8 +405,22 @@ public class PayinPartnerController {
                 .build());
     }
 
+    // SECURITY (C-B): true only for callers holding a partner-admin authority. Used to gate the
+    // client-supplied X-Partner-Id override so a partner can't impersonate another partner.
+    private boolean callerHasPartnerAdminAuthority() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("partner:manage_payin")
+                        || a.getAuthority().equals("config:manage_system"));
+    }
+
     private PayinPartner resolvePayinPartner(Long userId, Long adminPartnerId) {
-        if (adminPartnerId != null) {
+        // SECURITY (C-B): X-Partner-Id is a client-supplied header NOT verified by the JWT filter
+        // (unlike X-User-*). Honor it only for admins; otherwise a partner could impersonate another
+        // partner (read their ledger/transactions) by setting the header. Non-admins resolve from JWT.
+        if (adminPartnerId != null && callerHasPartnerAdminAuthority()) {
             return payinPartnerRepository.findById(adminPartnerId)
                     .orElseThrow(() -> new RemitzException("Pay-in partner not found: " + adminPartnerId, HttpStatus.NOT_FOUND));
         }

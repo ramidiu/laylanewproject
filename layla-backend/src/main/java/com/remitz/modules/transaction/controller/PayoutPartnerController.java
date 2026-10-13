@@ -481,9 +481,22 @@ public class PayoutPartnerController {
         return findPartnerForUser(userUuid, userId, userEmail, null);
     }
 
+    // SECURITY (C-B): true only for callers holding a partner-admin authority. Gates the
+    // client-supplied X-Partner-Id override so a partner cannot impersonate another partner.
+    private boolean callerHasPartnerAdminAuthority() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("partner:manage_payout")
+                        || a.getAuthority().equals("config:manage_system"));
+    }
+
     private PayoutPartner findPartnerForUser(String userUuid, Long userId, String userEmail, Long adminPartnerId) {
-        // Admin override: when an admin views the partner portal, X-Partner-Id is sent
-        if (adminPartnerId != null) {
+        // SECURITY (C-B): X-Partner-Id is a client-supplied header NOT verified by the JWT filter.
+        // Honor the admin override ONLY for partner-admins; otherwise a payout partner could read
+        // any other partner's transactions/ledger by setting the header. Non-admins resolve from JWT.
+        if (adminPartnerId != null && callerHasPartnerAdminAuthority()) {
             java.util.Optional<PayoutPartner> byAdmin = payoutPartnerRepository.findById(adminPartnerId);
             if (byAdmin.isPresent()) return byAdmin.get();
         }

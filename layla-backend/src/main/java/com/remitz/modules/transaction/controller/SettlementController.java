@@ -9,6 +9,7 @@ import com.remitz.modules.transaction.entity.Settlement;
 import com.remitz.modules.transaction.repository.PayinPartnerRepository;
 import com.remitz.modules.transaction.repository.PayoutPartnerRepository;
 import com.remitz.modules.transaction.repository.SettlementRepository;
+import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.transaction.service.PartnerLedgerService;
 import com.remitz.modules.transaction.service.PlatformLedgerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,43 @@ public class SettlementController {
     private final PayinPartnerRepository payinPartnerRepository;
     private final PartnerLedgerService partnerLedgerService;
     private final PlatformLedgerService platformLedgerService;
+    private final UserRepository userRepository;
+
+    // SECURITY (C-C): a partner may approve/reject ONLY a settlement they are a party to; admins
+    // (settlement:manage) may act on any. Resolves the caller's partner robustly (userId then email)
+    // to tolerate the known stale partner.user_id rows without falsely denying legitimate partners.
+    private void assertSettlementParty(Settlement s, Authentication auth) {
+        if (auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("settlement:manage"))) {
+            return; // admin / operator
+        }
+        Long callerPartyId = resolveCallerPartnerId(auth);
+        Long requiredParty = "ADMIN_TO_PAYOUT".equals(s.getSettlementType()) ? s.getToPartyId()
+                : "PAYIN_TO_ADMIN".equals(s.getSettlementType()) ? s.getFromPartyId() : null;
+        if (callerPartyId == null || requiredParty == null || !callerPartyId.equals(requiredParty)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not a party to this settlement");
+        }
+    }
+
+    private Long resolveCallerPartnerId(Authentication auth) {
+        if (auth == null || auth.getName() == null) return null;
+        var userOpt = userRepository.findByUuid(auth.getName());
+        if (userOpt.isEmpty()) return null;
+        Long uid = userOpt.get().getId();
+        String email = userOpt.get().getEmail();
+        var po = payoutPartnerRepository.findByUserId(uid);
+        if (po.isPresent()) return po.get().getId();
+        var pi = payinPartnerRepository.findByUserId(uid);
+        if (pi.isPresent()) return pi.get().getId();
+        if (email != null) {
+            var poe = payoutPartnerRepository.findByContactEmail(email);
+            if (poe.isPresent()) return poe.get().getId();
+            var pie = payinPartnerRepository.findByContactEmail(email);
+            if (pie.isPresent()) return pie.get().getId();
+        }
+        return null;
+    }
 
     @PostMapping("/admin-to-payout")
     @PreAuthorize("hasPermission(null, 'settlement:manage')")
@@ -136,6 +174,7 @@ public class SettlementController {
                                                                       Authentication authentication) {
         Settlement settlement = settlementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", id));
+        assertSettlementParty(settlement, authentication);
 
         if (!"PENDING".equals(settlement.getStatus())) {
             throw new RemitzException("Settlement is not in PENDING status", HttpStatus.BAD_REQUEST);
@@ -183,9 +222,11 @@ public class SettlementController {
     @PreAuthorize("hasAnyRole('PAYIN_PARTNER','PAYOUT_PARTNER') or hasPermission(null, 'settlement:manage')")
     @Operation(summary = "Reject settlement")
     public ResponseEntity<ApiResponse<Settlement>> rejectSettlement(@PathVariable Long id,
-                                                                     @RequestBody Map<String, String> body) {
+                                                                     @RequestBody Map<String, String> body,
+                                                                     Authentication authentication) {
         Settlement settlement = settlementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement", "id", id));
+        assertSettlementParty(settlement, authentication);
 
         if (!"PENDING".equals(settlement.getStatus())) {
             throw new RemitzException("Settlement is not in PENDING status", HttpStatus.BAD_REQUEST);
