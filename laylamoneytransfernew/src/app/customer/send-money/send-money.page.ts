@@ -47,8 +47,13 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   submitting = false;
   showRecipientPanel = false;
 
-  // Payment method selection
-  selectedPaymentMethod: 'OPEN_BANKING' | 'CARD' = 'OPEN_BANKING';
+  // Payment method selection — default to Trust Payments card.
+  selectedPaymentMethod: 'OPEN_BANKING' | 'CARD' = 'CARD';
+
+  // Volume (Open Banking / "Pay by Bank") visibility is controlled by the super admin
+  // via System Controls (system_config: routing.payin.volume.enabled). Default off until
+  // the backend flag loads, so the option never flashes in before we know it's enabled.
+  volumePaymentEnabled = false;
 
   // Compliance: remitter's declared purpose of transfer + source of income (required on review).
   purposeOfTransaction = '';
@@ -203,6 +208,7 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.loadCorridors();
     this.loadWalletBalance();
     this.loadUserBillingInfo();
+    this.loadEnabledPayinMethods();
 
     // Debounced quote fetch — switchMap cancels any in-flight request when a new amount arrives,
     // preventing a slow response for amount=10 from overwriting a faster response for amount=105
@@ -290,7 +296,7 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.volumePayStarted = false;
     this.merchantPaymentId = '';
     this.volumeInstance = null;
-    this.selectedPaymentMethod = 'OPEN_BANKING';
+    this.selectedPaymentMethod = 'CARD';
     this.billingInfoLoaded = false;
     this.loadUserBillingInfo();
     this.loadCorridors();
@@ -322,6 +328,18 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.walletService.getWallet().subscribe({
       next: (w) => { this.walletBalance = w?.balance || 0; },
       error: () => { this.walletBalance = 0; }
+    });
+  }
+
+  // Super-admin-controlled checkout rails (System Controls → routing.payin.*.enabled).
+  // On any failure we leave Volume hidden (safe default).
+  private loadEnabledPayinMethods(): void {
+    this.configService.getEnabledPayinMethods().subscribe({
+      next: (res: any) => {
+        const flags = res?.data ?? res ?? {};
+        this.volumePaymentEnabled = flags.volume === true;
+      },
+      error: () => { this.volumePaymentEnabled = false; }
     });
   }
 

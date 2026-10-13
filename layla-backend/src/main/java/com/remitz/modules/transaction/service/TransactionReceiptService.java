@@ -2,6 +2,7 @@ package com.remitz.modules.transaction.service;
 
 import com.remitz.common.enums.DeliveryMethod;
 import com.remitz.common.exception.ResourceNotFoundException;
+import com.remitz.modules.auth.entity.UserEntity;
 import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.transaction.entity.BeneficiaryEntity;
 import com.remitz.modules.transaction.entity.TransactionEntity;
@@ -51,17 +52,28 @@ public class TransactionReceiptService {
      * users table (imported transactions may have stored an email local-part like
      * "abdulmohammed73" or a null name); falls back to the stored name / email.
      */
-    private String resolveSenderName(TransactionEntity tx) {
-        if (tx.getSenderId() != null) {
-            String full = userRepository.findById(tx.getSenderId()).map(u -> {
-                String fn = u.getFirstName() != null ? u.getFirstName().trim() : "";
-                String ln = u.getLastName() != null ? u.getLastName().trim() : "";
-                return (fn + " " + ln).trim();
-            }).orElse("");
-            if (full != null && !full.isBlank()) return full;
+    private String resolveSenderName(TransactionEntity tx, UserEntity sender) {
+        if (sender != null) {
+            String fn = sender.getFirstName() != null ? sender.getFirstName().trim() : "";
+            String ln = sender.getLastName() != null ? sender.getLastName().trim() : "";
+            String full = (fn + " " + ln).trim();
+            if (!full.isBlank()) return full;
         }
         if (tx.getSenderName() != null && !tx.getSenderName().isBlank()) return tx.getSenderName();
         if (tx.getSenderEmail() != null && !tx.getSenderEmail().isBlank()) return tx.getSenderEmail();
+        return "—";
+    }
+
+    /** Sender email — prefers the value stored on the transaction, else the users table. */
+    private String resolveSenderEmail(TransactionEntity tx, UserEntity sender) {
+        if (tx.getSenderEmail() != null && !tx.getSenderEmail().isBlank()) return tx.getSenderEmail();
+        if (sender != null && sender.getEmail() != null && !sender.getEmail().isBlank()) return sender.getEmail();
+        return "—";
+    }
+
+    /** Sender mobile number — only available from the users table. */
+    private String resolveSenderPhone(UserEntity sender) {
+        if (sender != null && sender.getPhone() != null && !sender.getPhone().isBlank()) return sender.getPhone();
         return "—";
     }
 
@@ -124,8 +136,13 @@ public class TransactionReceiptService {
         v.put("updatedAt", formatDateTime(tx.getUpdatedAt()));
         v.put("deliveryMethod", tx.getDeliveryMethod() != null ? tx.getDeliveryMethod().name() : "—");
         v.put("paymentMethodType", tx.getPaymentMethodType() != null ? tx.getPaymentMethodType().name() : "—");
-        v.put("senderName", resolveSenderName(tx));
-        v.put("senderEmail", safe(tx.getSenderEmail()));
+        // Load the sender once so name / email / mobile all resolve from a single lookup.
+        UserEntity sender = tx.getSenderId() != null
+                ? userRepository.findById(tx.getSenderId()).orElse(null)
+                : null;
+        v.put("senderName", resolveSenderName(tx, sender));
+        v.put("senderEmail", resolveSenderEmail(tx, sender));
+        v.put("senderPhone", resolveSenderPhone(sender));
 
         if (beneficiary != null) {
             v.put("beneficiaryName", safe(beneficiary.getFullName()));

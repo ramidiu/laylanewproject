@@ -261,10 +261,15 @@ export class SATransactionsPage implements OnInit {
   async viewBeneficiary(txn: any): Promise<void> {
     const dash = (v: any) => (v !== null && v !== undefined && String(v).trim() !== '' ? v : '—');
     const alert = await this.alertCtrl.create({
-      header: 'Beneficiary Details',
-      subHeader: txn.beneficiaryName || '',
+      header: 'Transaction Details',
+      subHeader: `Reference: ${dash(txn.referenceNumber)}`,
       message: `<div style="text-align:left;line-height:1.7">
-        <b>Reference:</b> ${dash(txn.referenceNumber)}<br>
+        <div style="font-weight:700;color:#1B3A6B;margin-bottom:4px;">Sender Details</div>
+        <b>Name:</b> ${dash(txn.senderName)}<br>
+        <b>Mobile Number:</b> ${dash(txn.senderPhone)}<br>
+        <b>Email:</b> ${dash(txn.senderEmail)}<br>
+        <div style="font-weight:700;color:#1B3A6B;margin:10px 0 4px;">Beneficiary Details</div>
+        <b>Name:</b> ${dash(txn.beneficiaryName)}<br>
         <b>Telephone:</b> ${dash(txn.beneficiaryPhone)}<br>
         <b>Country:</b> ${dash(txn.beneficiaryCountry)}<br>
         <b>City:</b> ${dash(txn.beneficiaryCity)}<br>

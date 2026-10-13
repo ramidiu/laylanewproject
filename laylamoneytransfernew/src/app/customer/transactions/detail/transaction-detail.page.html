@@ -54,6 +54,22 @@
     </div>
   </div>
 
+  <div class="detail-card">
+    <h3 class="detail-card__title">{{ 'TRANSACTION_DETAIL.SENDER_DETAILS' | translate }}</h3>
+    <div class="detail-row">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.SENDER_NAME' | translate }}</span>
+      <span class="detail-row__value">{{ (sender ? ((sender.firstName || '') + ' ' + (sender.lastName || '')).trim() : '') || sender?.email || transaction.senderName || '—' }}</span>
+    </div>
+    <div class="detail-row" *ngIf="sender?.phone">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.MOBILE_NUMBER' | translate }}</span>
+      <span class="detail-row__value">{{ sender?.phone }}</span>
+    </div>
+    <div class="detail-row" *ngIf="sender?.email">
+      <span class="detail-row__label">{{ 'TRANSACTION_DETAIL.EMAIL' | translate }}</span>
+      <span class="detail-row__value">{{ sender?.email }}</span>
+    </div>
+  </div>
+
   <div class="detail-card" *ngIf="beneficiary">
     <h3 class="detail-card__title">{{ 'TRANSACTION_DETAIL.BENEFICIARY_DETAILS' | translate }}</h3>
     <div class="detail-row">

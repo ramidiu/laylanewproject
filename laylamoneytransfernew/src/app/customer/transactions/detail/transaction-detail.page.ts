@@ -21,6 +21,8 @@ import { PdfService } from '../../../core/services/pdf.service';
 export class TransactionDetailPage implements OnInit {
   transaction: TransactionResponse | null = null;
   beneficiary: BeneficiaryResponse | null = null;
+  // The logged-in customer is the sender — their profile fills the Sender Details card.
+  sender: UserResponse | null = null;
   history: StatusHistoryResponse[] = [];
   loading = true;
   downloading = false;
@@ -51,6 +53,15 @@ export class TransactionDetailPage implements OnInit {
       return;
     }
     this.loadTransaction(id);
+    this.loadSender();
+  }
+
+  /** Load the current customer's profile — they are the sender on their own transactions. */
+  private loadSender(): void {
+    this.userService.getProfile().subscribe({
+      next: (profile) => (this.sender = profile),
+      error: () => (this.sender = null)
+    });
   }
 
   private loadTransaction(id: string): void {
@@ -184,6 +195,15 @@ export class TransactionDetailPage implements OnInit {
     const date = this.datePipe.transform(t.createdAt, 'EEEE, MMMM d, y · h:mm a') || '';
     const delivery = this.titleCasePipe.transform(t.deliveryMethod) || t.deliveryMethod;
 
+    const s = this.sender;
+    const senderName = s ? `${s.firstName || ''} ${s.lastName || ''}`.trim() || (s.email || '—') : (t.senderName || '—');
+    const senderPhone = s?.phone || '';
+    const senderEmail = s?.email || '';
+    const senderRows =
+      `<div class="row"><span class="rl">Sender</span><span class="rv">${senderName}</span></div>` +
+      (senderPhone ? `<div class="row"><span class="rl">Mobile Number</span><span class="rv">${senderPhone}</span></div>` : '') +
+      (senderEmail ? `<div class="row"><span class="rl">Email</span><span class="rv">${senderEmail}</span></div>` : '');
+
     const html = `
 <style>
   .ly-receipt { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; max-width: 600px; margin: 0 auto; }
@@ -222,8 +242,11 @@ export class TransactionDetailPage implements OnInit {
   <div class="arrow">→</div>
   <div class="side"><div class="label">Recipient Gets</div><div class="amount receive">${fmt(t.receiveAmount)}<span class="cur">${t.receiveCurrency}</span></div></div>
 </div>
+<div class="section-title">Sender Details</div>
+${senderRows}
+<div class="section-title">Beneficiary Details</div>
+<div class="row"><span class="rl">Beneficiary</span><span class="rv">${t.beneficiaryName}</span></div>
 <div class="section-title">Transfer Details</div>
-<div class="row"><span class="rl">Recipient</span><span class="rv">${t.beneficiaryName}</span></div>
 <div class="row"><span class="rl">Exchange Rate</span><span class="rv" style="font-family:monospace">1 ${t.sendCurrency} = ${fmtRate(t.appliedRate)} ${t.receiveCurrency}</span></div>
 <div class="row"><span class="rl">Transfer Fee</span><span class="rv" style="font-family:monospace">${fmt(t.feeAmount)} ${t.sendCurrency}</span></div>
 ${t.walletAmountUsed ? `<div class="row" style="color:#059669"><span class="rl">Wallet Used</span><span class="rv" style="font-family:monospace">-${fmt(t.walletAmountUsed)} ${t.sendCurrency}</span></div>` : ''}
