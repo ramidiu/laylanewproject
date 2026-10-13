@@ -10,6 +10,7 @@ import com.remitz.modules.notification.repository.SupportTicketMessageRepository
 import com.remitz.modules.notification.repository.SupportTicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +38,11 @@ public class SupportTicketService {
     private final SupportTicketRepository ticketRepository;
     private final SupportTicketMessageRepository messageRepository;
     private final SupportTicketAttachmentRepository attachmentRepository;
+
+    // SECURITY (H-D): signs short-lived per-attachment capability tokens so the file endpoint
+    // can stop serving documents to anonymous callers without requiring a frontend change.
+    @Value("${jwt.secret}")
+    private String attachmentSigningSecret;
 
     @Transactional
     public TicketResponse createTicket(String userId, String email, String name,
@@ -200,6 +206,43 @@ public class SupportTicketService {
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
     }
 
+    // SECURITY (H-D): HMAC-signed, 7-day, per-attachment capability token. Only the authorized
+    // ticket/attachment list endpoints embed it in the returned URL, so an anonymous caller cannot
+    // forge one and the previous enumeration of all attachments is closed.
+    private static final long ATTACHMENT_TOKEN_TTL_MS = 7L * 24 * 60 * 60 * 1000;
+
+    public String signAttachment(Long attachmentId) {
+        long exp = System.currentTimeMillis() + ATTACHMENT_TOKEN_TTL_MS;
+        return exp + "." + hmac(attachmentId + ":" + exp);
+    }
+
+    public boolean isAttachmentTokenValid(Long attachmentId, String token) {
+        if (token == null || !token.contains(".")) return false;
+        int dot = token.indexOf('.');
+        try {
+            long exp = Long.parseLong(token.substring(0, dot));
+            if (System.currentTimeMillis() > exp) return false;
+            String expected = hmac(attachmentId + ":" + exp);
+            return java.security.MessageDigest.isEqual(
+                    expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    token.substring(dot + 1).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String hmac(String data) {
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new javax.crypto.spec.SecretKeySpec(
+                    attachmentSigningSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] h = mac.doFinal(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(h);
+        } catch (Exception e) {
+            throw new RuntimeException("Attachment token signing failed", e);
+        }
+    }
+
     // --- Private helpers ---
 
     private String generateTicketNumber() {
@@ -323,7 +366,7 @@ public class SupportTicketService {
                 .fileName(att.getFileName())
                 .fileSize(att.getFileSize())
                 .contentType(att.getContentType())
-                .url("/api/support/attachments/" + att.getId() + "/file")
+                .url("/api/support/attachments/" + att.getId() + "/file?t=" + signAttachment(att.getId()))
                 .uploadedAt(att.getUploadedAt())
                 .build();
     }
