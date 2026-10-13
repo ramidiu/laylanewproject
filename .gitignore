@@ -15,6 +15,9 @@ node_modules/
 # Large DB dumps / backups
 remitz_backup_*.sql
 *.dump
+# Raw SQL dumps under deploy/ (Flyway migrations live under layla-backend/.../db/migration and are NOT matched here)
+deploy/remitz.sql
+deploy/**/*dump*.sql
 
 # Static asset trees (served separately, not source)
 layla-static/

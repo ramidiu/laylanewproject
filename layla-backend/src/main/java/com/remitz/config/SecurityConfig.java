@@ -19,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -51,7 +52,9 @@ public class SecurityConfig {
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        // Auth is Bearer-token only (no cookies), so credentialed CORS is unnecessary. Keeping
+        // this false also avoids the unsafe wildcard-headers-with-credentials combination.
+        config.setAllowCredentials(false);
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -65,6 +68,14 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Identity-sensitive auth endpoints resolve the caller from the X-User-UUID
+                        // header, which is only authoritative (JWT-derived) when a valid token is
+                        // present. Require authentication so an unauthenticated request cannot spoof it.
+                        .requestMatchers(
+                                "/api/auth/change-password",
+                                "/api/auth/mfa/setup",
+                                "/api/auth/mfa/enable",
+                                "/api/auth/mfa/disable").authenticated()
                         // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         // PayIn endpoints
@@ -87,6 +98,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/transactions/config/active-countries").permitAll()
                         .requestMatchers("/api/transactions/config/active-receive-countries").permitAll()
                         .requestMatchers("/api/transactions/config/payment-methods").permitAll()
+                        .requestMatchers("/api/transactions/config/payin-methods").permitAll()
                         .requestMatchers("/api/transactions/config/payout-types").permitAll()
                         .requestMatchers("/api/transactions/banks/config/**").permitAll()
                         .requestMatchers("/api/transactions/banks/list/**").permitAll()
@@ -96,9 +108,11 @@ public class SecurityConfig {
                         // User public endpoints
                         // SECURITY (SEC-03): /api/users/* removed from permitAll — GET/PUT /api/users/{uuid}
                         // now require auth + owner-or-staff (@PreAuthorize in UserController). The KYC
-                        // reference subtree and the document-file endpoint stay public.
+                        // reference subtree stays public.
+                        // SECURITY: the document-file endpoint is NO LONGER public — it served identity
+                        // documents (passports/IDs) to unauthenticated callers (IDOR). It now requires
+                        // auth + owner-or-staff via @PreAuthorize on KycController.getDocumentFile.
                         .requestMatchers("/api/users/kyc/**").permitAll()
-                        .requestMatchers("/api/users/*/kyc/documents/*/file").permitAll()
                         .requestMatchers("/api/referrals/validate/**").permitAll()
                         .requestMatchers("/api/referrals/on-completed").permitAll()
                         // SECURITY (SEC-01): /api/wallet/credit and /api/wallet/debit removed from
@@ -121,6 +135,16 @@ public class SecurityConfig {
                         // Smarty address lookup — public, used during registration
                         .requestMatchers("/api/address/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                // Security response headers (API responses). The SPA's static assets get the
+                // full header set (incl. CSP) from nginx; these harden direct API responses.
+                .headers(headers -> headers
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000))
+                        .frameOptions(frame -> frame.deny())
+                        .referrerPolicy(ref -> ref.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

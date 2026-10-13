@@ -78,7 +78,7 @@
           </div>
 
           <div class="kyc-doc-card__preview">
-            <img [src]="getDocPreviewUrl(doc)" alt="Document" class="kyc-doc-preview-img" (error)="$event.target.style.display='none'" />
+            <img *ngIf="docPreviews[doc.id]" [src]="docPreviews[doc.id]" alt="Document" class="kyc-doc-preview-img" (error)="$event.target.style.display='none'" />
           </div>
 
           <!-- Rejection reason -->

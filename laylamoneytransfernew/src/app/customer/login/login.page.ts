@@ -42,7 +42,10 @@ export class LoginPage implements OnInit {
       code: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]]
     });
 
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
+    // Open-redirect guard: only accept a same-origin relative path (single leading
+    // slash, not protocol-relative "//", no scheme). Anything else is dropped.
+    const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
+    this.returnUrl = /^\/(?!\/)/.test(rawReturnUrl) ? rawReturnUrl : '';
 
     // Clear error when user types
     this.loginForm.valueChanges.subscribe(() => {

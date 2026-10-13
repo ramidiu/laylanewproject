@@ -1,5 +1,6 @@
 package com.remitz.modules.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.remitz.common.enums.AccountStatus;
 import com.remitz.common.enums.KycTier;
 import com.remitz.common.enums.UserStatus;
@@ -34,6 +35,7 @@ public class UserEntity {
     private String phone;
 
     @Column(name = "password_hash", nullable = false, length = 255)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String passwordHash;
 
     @Column(name = "first_name", length = 100)
@@ -99,6 +101,7 @@ public class UserEntity {
     private Boolean mfaEnabled = false;
 
     @Column(name = "mfa_secret", length = 255)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String mfaSecret;
 
     @Column(name = "email_verified")

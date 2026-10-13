@@ -33,7 +33,8 @@ public class TransactionController {
     @GetMapping(value = "/{id}/receipt.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Download PDF receipt",
             description = "Returns a branded PDF receipt for the given transaction")
-    public ResponseEntity<byte[]> getReceipt(@PathVariable Long id) {
+    public ResponseEntity<byte[]> getReceipt(@PathVariable Long id, Authentication authentication) {
+        assertCanAccessTransaction(id, authentication);
         byte[] pdf = transactionReceiptService.generatePdfForTransaction(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -49,7 +50,8 @@ public class TransactionController {
 
     @GetMapping(value = "/{id}/receipt.html", produces = MediaType.TEXT_HTML_VALUE)
     @Operation(summary = "Receipt as HTML", description = "Branded receipt rendered as HTML (for mobile in-app viewing)")
-    public ResponseEntity<String> getReceiptHtml(@PathVariable Long id) {
+    public ResponseEntity<String> getReceiptHtml(@PathVariable Long id, Authentication authentication) {
+        assertCanAccessTransaction(id, authentication);
         String html = transactionReceiptService.generateHtmlForTransaction(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.TEXT_HTML);
@@ -80,7 +82,9 @@ public class TransactionController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get transaction by ID", description = "Retrieves transaction details by ID")
-    public ResponseEntity<ApiResponse<TransactionResponse>> getTransaction(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<TransactionResponse>> getTransaction(@PathVariable Long id,
+                                                                           Authentication authentication) {
+        assertCanAccessTransaction(id, authentication);
         TransactionResponse response = transactionService.getTransaction(id);
         return ResponseEntity.ok(ApiResponse.<TransactionResponse>builder()
                 .success(true)
@@ -159,7 +163,9 @@ public class TransactionController {
 
     @GetMapping("/{id}/history")
     @Operation(summary = "Get transaction status history", description = "Returns the full status transition history for a transaction")
-    public ResponseEntity<ApiResponse<List<StatusHistoryResponse>>> getStatusHistory(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<List<StatusHistoryResponse>>> getStatusHistory(@PathVariable Long id,
+                                                                                     Authentication authentication) {
+        assertCanAccessTransaction(id, authentication);
         List<StatusHistoryResponse> history = transactionService.getStatusHistory(id);
         return ResponseEntity.ok(ApiResponse.<List<StatusHistoryResponse>>builder()
                 .success(true)
@@ -180,6 +186,22 @@ public class TransactionController {
                 .data(response)
                 .message("Refund initiated successfully")
                 .build());
+    }
+
+    /**
+     * BOLA/IDOR guard: a caller may read a transaction only if they own it (senderId)
+     * or hold the transaction:view_all permission (admin/staff). Throws 403 otherwise.
+     */
+    private void assertCanAccessTransaction(Long id, Authentication authentication) {
+        boolean canViewAll = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("transaction:view_all"));
+        if (canViewAll) return;
+        Long callerId = extractUserId(authentication);
+        Long ownerId = transactionService.getTransactionOwnerId(id);
+        if (!ownerId.equals(callerId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Not authorized to access this transaction");
+        }
     }
 
     private Long extractUserId(Authentication authentication) {
