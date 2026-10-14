@@ -199,11 +199,8 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   ngOnInit(): void {
-    // Trust test mode: open the Send page with ?trusttest=1 to route THIS device's card payments to
-    // the Trust SANDBOX site reference (?trusttest=0 to turn it off). Persisted per-device so it
-    // survives navigation. Live customers never pass this flag, so their payments stay on live.
-    const ttParam = new URLSearchParams(window.location.search).get('trusttest');
-    if (ttParam !== null) localStorage.setItem('trust_test', ttParam === '0' ? '0' : '1');
+    // Clear any legacy Trust test-mode flag so no device can route card payments to the sandbox.
+    localStorage.removeItem('trust_test');
 
     this.loadCorridors();
     this.loadWalletBalance();
@@ -1101,13 +1098,8 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     const total      = this.effectiveTotal;
     const mainamount = total.toFixed(2);
 
-    // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
-    // everyone else uses the LIVE reference, so real customer payments go through live.
-    // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
-    // everyone else uses the LIVE reference, so real customer payments go through live.
-    const trustTest = localStorage.getItem('trust_test') === '1';
-    const siteRef   = trustTest ? 'test_laylalondo147950' : 'laylalondo147951';
-    if (trustTest) console.log('[Trust] TEST MODE — using sandbox site reference:', siteRef);
+    // Live Trust Payments site reference — all card payments go through live.
+    const siteRef = 'laylalondo147951';
 
     const bene        = this.selectedBeneficiary;
     const nameParts   = (bene?.fullName || '').trim().split(/\s+/);
@@ -1120,9 +1112,6 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
 
     const safeDob = this.parseDobForTrust(this.billingDob);
     const callbackUrl = `${window.location.origin}/home/trust-callback`;
-    // Server-to-server URL notification (webhook) — independent of the browser redirect.
-    // STR-8 is Trust's URL-notification rule; successful/declined notifications POST here.
-    const notifyUrl  = `${window.location.origin}/api/trust-payment/callback`;
 
     const fields: Array<[string, string]> = [
       ['sitereference',         siteRef],
@@ -1141,16 +1130,6 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       ['successfulurlredirect', callbackUrl],
       ['declinedurlredirect',   callbackUrl],
     ];
-
-    // WEBHOOK TEST (sandbox only): add Trust's URL-notification rule (STR-8) + notification URLs
-    // so a server-to-server webhook fires to /api/trust-payment/callback. Scoped to test mode so
-    // live card payments are unaffected until the webhook endpoint is confirmed and deployed.
-    if (trustTest) {
-      fields.push(['ruleidentifier', 'STR-8']);
-      fields.push(['successfulurlnotification', notifyUrl]);
-      fields.push(['declinedurlnotification', notifyUrl]);
-      console.log('[Trust] TEST MODE — webhook notification enabled →', notifyUrl);
-    }
 
     // Billing address (AVS) — Trust Payments' address rules (STR-11) can require these.
     // Send each only when present so we never post an empty required field.
