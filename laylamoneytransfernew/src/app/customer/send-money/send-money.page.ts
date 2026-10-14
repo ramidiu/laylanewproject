@@ -1074,12 +1074,21 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     IND: 'IN', PAK: 'PK', NGA: 'NG', GHA: 'GH', PHL: 'PH', KEN: 'KE',
     NPL: 'NP', BGD: 'BD', AUS: 'AU', GBR: 'GB', USA: 'US', ARE: 'AE',
     DEU: 'DE', ZAF: 'ZA', UGA: 'UG', TZA: 'TZ', LKA: 'LK', EGY: 'EG',
-    MAR: 'MA', SGP: 'SG', MYS: 'MY', CAN: 'CA', FRA: 'FR', ITA: 'IT', ESP: 'ES'
+    MAR: 'MA', SGP: 'SG', MYS: 'MY', CAN: 'CA', FRA: 'FR', ITA: 'IT', ESP: 'ES',
+    SDN: 'SD'
   };
 
+  /**
+   * Normalise a country to a valid ISO 3166-1 alpha-2 code, or '' if it cannot be resolved.
+   * Never returns a country name or an ISO-3 code — sending one as (ship/bill)countryiso2a was
+   * rejected by Trust's 3-D Secure as an invalid shipAddrCountry (error 60010).
+   */
   private toIso2(code: string): string {
-    if (!code) return '';
-    return (code.length === 3 && this.iso3ToIso2[code]) ? this.iso3ToIso2[code] : code;
+    const c = (code || '').trim().toUpperCase();
+    if (!c) return '';
+    if (c.length === 2) return c;                                   // already ISO-2
+    if (c.length === 3 && this.iso3ToIso2[c]) return this.iso3ToIso2[c];
+    return '';                                                      // name / unmapped — do not send
   }
 
   /** Trim whitespace and replace non-breaking / zero-width spaces with nothing. */
@@ -1101,14 +1110,15 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     // Live Trust Payments site reference — all card payments go through live.
     const siteRef = 'laylalondo147951';
 
-    const bene        = this.selectedBeneficiary;
-    const nameParts   = (bene?.fullName || '').trim().split(/\s+/);
-    const custFirst   = this.sanitize(nameParts[0] || '');
-    const custLast    = this.sanitize(nameParts.slice(1).join(' ') || nameParts[0] || '');
-    const custCountry = this.toIso2((bene?.country || '').trim());
-    const custAccount = this.sanitize(
-      bene?.accountNumber || bene?.iban || txn?.referenceNumber || ''
-    );
+    // The cardholder (sender) is the only party relevant to a card payment — there is no shipment.
+    // Send the customer/delivery details as the cardholder's OWN billing identity so Trust's 3-D
+    // Secure shipAddr* matches billAddr* (same person, same country — lowers the challenge rate).
+    // We must NEVER put the remittance recipient's foreign country here: it was rejected as an
+    // invalid shipAddrCountry (Trust error 60010) and inflated 3-D Secure challenges.
+    const billingCountry = this.toIso2(this.billingCountryIso2) || 'GB';
+    const custFirst   = this.sanitize(this.billingFirstName);
+    const custLast    = this.sanitize(this.billingLastName);
+    const custCountry = billingCountry;
 
     const safeDob = this.parseDobForTrust(this.billingDob);
     const callbackUrl = `${window.location.origin}/home/trust-callback`;
@@ -1122,9 +1132,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       ['orderreference',        this.sanitize(txn?.referenceNumber || '')],
       ['billingfirstname',      this.sanitize(this.billingFirstName)],
       ['billinglastname',       this.sanitize(this.billingLastName)],
-      ['billingcountryiso2a',   'GB'],
+      ['billingcountryiso2a',   billingCountry],
       ['customerfirstname',     custFirst],
       ['customerlastname',      custLast],
+      ['customercountryiso2a',  custCountry],
       ['ruleidentifier',        'STR-6'],
       ['ruleidentifier',        'STR-11'],
       ['successfulurlredirect', callbackUrl],
@@ -1146,10 +1157,6 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
 
     // Only send DOB if it parsed to a valid YYYY-MM-DD
     if (safeDob) fields.splice(6, 0, ['billingdob', safeDob]);
-
-    if (custCountry) fields.push(['customercountryiso2a', custCountry]);
-    if (custAccount) fields.push(['customeraccountnumber', custAccount],
-                                 ['customeraccountnumbertype', 'ACCOUNT']);
 
     console.log('[Trust] submitting form fields:', Object.fromEntries(
       fields.map(([k, v]) => [k, v])
