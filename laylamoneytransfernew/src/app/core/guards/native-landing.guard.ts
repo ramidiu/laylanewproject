@@ -15,9 +15,29 @@ export class NativeLandingGuard implements CanActivate {
   constructor(private router: Router, private auth: AuthService) {}
 
   canActivate(): boolean | UrlTree {
-    if (!Capacitor.isNativePlatform()) {
-      return true; // web browser — show the marketing landing
+    if (!this.isNativeApp()) {
+      return true; // real web browser — show the marketing landing
     }
     return this.router.parseUrl(this.auth.isAuthenticated() ? '/home' : '/login');
+  }
+
+  /**
+   * Detect that we're running inside the mobile app (Capacitor webview) — robustly, because
+   * Capacitor.isNativePlatform() can return false when the app loads a REMOTE url (the bridge is
+   * not always injected on remote pages). We also look at the Capacitor global directly and at the
+   * Android System WebView user-agent marker ("; wv)"), which a normal mobile browser never has — so
+   * there are no false positives for real Safari/Chrome users.
+   */
+  private isNativeApp(): boolean {
+    try { if (Capacitor.isNativePlatform()) return true; } catch { /* ignore */ }
+    const w = window as any;
+    const cap = w.Capacitor;
+    if (cap && (cap.isNative === true ||
+        (typeof cap.getPlatform === 'function' && cap.getPlatform() !== 'web'))) {
+      return true;
+    }
+    // Android System WebView embeds "; wv)" in the UA; Chrome/Safari do not.
+    if (/;\s*wv\)/.test(navigator.userAgent || '')) return true;
+    return false;
   }
 }
