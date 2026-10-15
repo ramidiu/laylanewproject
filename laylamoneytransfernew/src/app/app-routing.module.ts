@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
+import { NativeLandingGuard } from './core/guards/native-landing.guard';
 import { PrivacyPolicyPage } from './pages/privacy-policy.page';
 import { AboutPage } from './pages/about.page';
 import { ContactUsPage } from './pages/contact-us.page';
@@ -17,6 +18,7 @@ import { AccountDeletionPage } from './pages/account-deletion.page';
 const routes: Routes = [
   {
     path: '',
+    canActivate: [NativeLandingGuard],
     loadChildren: () => import('./landing/landing.module').then(m => m.LandingPageModule)
   },
   // Public info / legal pages

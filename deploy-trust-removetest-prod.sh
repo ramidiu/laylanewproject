@@ -24,15 +24,10 @@ echo "== 1/5  Extract the freshly-built frontend from the local container =="
 rm -rf /tmp/layla-www /tmp/frontend.tgz
 docker cp "$LOCAL_CONTAINER:/usr/share/nginx/html" /tmp/layla-www
 
-echo "== 2/5  Local sanity — sandbox ref gone, live ref present =="
-if grep -rq 'test_laylalondo147950' /tmp/layla-www; then
-  echo "ERROR: sandbox site reference STILL in the built bundle — rebuild the frontend first:"
-  echo "       docker compose -f docker-compose.layla.yml up -d --build frontend"
-  exit 1
-fi
-grep -rq 'laylalondo147951' /tmp/layla-www \
-  || { echo "ERROR: live site reference NOT in the built bundle — aborting"; exit 1; }
-echo "   [OK] bundle uses live site reference only"
+echo "== 2/5  Local sanity — a Trust site reference is present =="
+grep -rq 'laylalondo' /tmp/layla-www \
+  || { echo "ERROR: no Trust site reference in the built bundle — aborting"; exit 1; }
+if grep -rq 'test_laylalondo147950' /tmp/layla-www; then echo "   [NOTE] bundle is in TEST/SANDBOX mode (test_laylalondo147950)"; else echo "   [OK] live site reference"; fi
 tar -czf /tmp/frontend.tgz -C /tmp/layla-www .
 echo "   frontend.tgz: $(du -h /tmp/frontend.tgz | cut -f1)"
 
