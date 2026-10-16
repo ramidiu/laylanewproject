@@ -35,3 +35,4 @@ Thumbs.db
 # Production env secrets (never commit)
 *.env.production
 deploy-live/.env.production
+.code-backup-before-fix1/

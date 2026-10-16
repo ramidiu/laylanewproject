@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -108,6 +111,56 @@ public class TrustPaymentController {
         applyCardPaymentResult("callback", internalRef, txRef, errorCode,
                 params.get("baseamount"), params.get("settlestatus"));
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Browser RETURN target for the hosted-page redirect (successfulurlredirect / declinedurlredirect).
+     *
+     * <p>Trust returns the customer by auto-submitting a <b>form POST</b>. Our SPA status page
+     * (/home/trust-callback) is a static route nginx can only serve for GET — a POST there returns
+     * 405 and the customer sees a blank screen. So the redirect now targets this backend endpoint: it
+     * applies the result (exactly like {@link #handleCallback}) and then issues a 302 redirect (GET)
+     * to the SPA status page with the result on the query string, so the customer always lands on the
+     * proper Payment Successful / Failed screen.
+     */
+    @RequestMapping(value = "/return", method = {RequestMethod.POST, RequestMethod.GET},
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.ALL_VALUE})
+    @Transactional
+    public ResponseEntity<Void> handleReturn(@RequestParam Map<String, String> params) {
+        String errorCode = params.getOrDefault("errorcode", "");
+        String orderRef  = params.get("orderreference");
+        String txRef     = params.get("transactionreference");
+        String settle    = params.get("settlestatus");
+
+        log.info("Trust return (browser redirect): errorcode={} orderRef={} txRef={} settlestatus={}",
+                errorCode, orderRef, txRef, settle);
+
+        saveTrustRecord(params.get("transactionref"), orderRef, txRef, params);
+
+        TrustSignatureVerifier.Result sig = signatureVerifier.verify(params, "return");
+        String internalRef = resolveInternalRef(orderRef, txRef);
+        if (sig.reject()) {
+            log.error("Trust return REJECTED by signature verification: {}", sig.reason());
+        } else if (internalRef != null) {
+            applyCardPaymentResult("return", internalRef, txRef, errorCode,
+                    params.get("baseamount"), settle);
+        } else {
+            log.warn("Trust return: could not resolve internal transaction for orderRef={} txRef={} — recorded only",
+                    orderRef, txRef);
+        }
+
+        // Always send the customer to the SPA status page (GET) so they never see a blank 405.
+        String ref = internalRef != null ? internalRef : (orderRef != null ? orderRef : "");
+        String location = "/home/trust-callback"
+                + "?errorcode="            + enc(errorCode)
+                + "&orderreference="       + enc(ref)
+                + "&transactionreference=" + enc(txRef != null ? txRef : "")
+                + "&settlestatus="         + enc(settle != null ? settle : "");
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(location)).build();
+    }
+
+    private static String enc(String s) {
+        return URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8);
     }
 
     // ── TRU Connect JWT (st.js) — secure, server-signed card flow ──────────
