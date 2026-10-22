@@ -13,7 +13,13 @@ const config: CapacitorConfig = {
     // and Trust's redirect back to the app origin (localhost) resolves in-WebView.
     allowNavigation: [
       'payments.securetrading.net',
-      '*.securetrading.net'
+      '*.securetrading.net',
+      // 3-D Secure challenge/ACS pages are served from securesuite.co.uk. Exactly like
+      // securetrading.net above, they MUST stay inside the WebView — otherwise Capacitor hands the
+      // 3DS navigation to the external browser as a GET, dropping the challenge POST/session and the
+      // customer lands on a blank "General error occurred" page (mobile blank-screen-after-payment).
+      'securesuite.co.uk',
+      '*.securesuite.co.uk'
     ]
   }
 };

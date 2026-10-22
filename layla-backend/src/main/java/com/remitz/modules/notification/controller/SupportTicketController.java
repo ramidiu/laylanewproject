@@ -169,7 +169,14 @@ public class SupportTicketController {
 
     @GetMapping("/attachments/{attachmentId}/file")
     @Operation(summary = "Get attachment file", description = "Download a support ticket attachment")
-    public ResponseEntity<Resource> getAttachmentFile(@PathVariable Long attachmentId) {
+    public ResponseEntity<Resource> getAttachmentFile(@PathVariable Long attachmentId,
+                                                       @RequestParam(value = "t", required = false) String t) {
+        // SECURITY (H-D): require the signed capability token (issued only in authorized ticket/
+        // attachment list responses). Previously this was public + unscoped, allowing anonymous
+        // enumeration and download of every customer's uploaded ID/bank documents.
+        if (!supportTicketService.isAttachmentTokenValid(attachmentId, t)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
         SupportTicketAttachmentEntity attachment = supportTicketService.getAttachment(attachmentId);
         File file = new File(attachment.getFilePath());
 

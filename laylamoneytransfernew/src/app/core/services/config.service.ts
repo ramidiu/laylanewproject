@@ -17,6 +17,7 @@ export class ConfigService {
   getPaymentMethods(): Observable<any> { return this.http.get(`${this.txnUrl}/config/admin/payment-methods`); }
   togglePaymentMethod(id: number): Observable<any> { return this.http.put(`${this.txnUrl}/config/admin/payment-methods/${id}/toggle`, {}); }
   togglePaymentCountry(code: string, active: boolean): Observable<any> { return this.http.put(`${this.txnUrl}/config/admin/payment-methods/country/${code}/toggle`, { active }); }
+  getEnabledPayinMethods(): Observable<any> { return this.http.get(`${this.txnUrl}/config/payin-methods`); }
   getActiveCountries(): Observable<any> { return this.http.get(`${this.txnUrl}/config/active-countries`); }
   getActiveReceiveCountries(): Observable<any> { return this.http.get(`${this.txnUrl}/config/active-receive-countries`); }
   getPayoutTypesByCurrency(currency: string): Observable<any> { return this.http.get(`${this.txnUrl}/config/payout-types`, { params: { currency } }); }

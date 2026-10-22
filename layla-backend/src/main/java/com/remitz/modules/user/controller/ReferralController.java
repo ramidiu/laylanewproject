@@ -52,6 +52,10 @@ public class ReferralController {
     // ── Service-to-Service Endpoints ────────────────────────────────────
 
     @PostMapping("/on-completed")
+    // SECURITY (H-F): was permitAll — anyone could POST a referral code in a loop to mint wallet
+    // credit with no real transaction. Reward issuance is privileged/internal; the in-process
+    // completion path (TransactionService.updateStatus) still credits legitimately.
+    @PreAuthorize("hasPermission(null, 'config:manage_system')")
     public ResponseEntity<ApiResponse<Void>> onTransactionCompleted(
             @RequestParam String referralCode,
             @RequestParam(required = false) Long corridorId,

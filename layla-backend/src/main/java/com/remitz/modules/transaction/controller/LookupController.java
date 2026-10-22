@@ -84,6 +84,8 @@ public class LookupController {
     @Operation(summary = "Add mobile money service")
     public ResponseEntity<ApiResponse<MobileMoneyService>> addMobileService(
             @RequestBody MobileMoneyService service) {
+        // SECURITY (M-C): null any client-supplied id so this create can't overwrite an existing row.
+        service.setId(null);
         MobileMoneyService saved = mobileMoneyServiceRepository.save(service);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<MobileMoneyService>builder()
@@ -143,6 +145,8 @@ public class LookupController {
     @Operation(summary = "Add cash collection point")
     public ResponseEntity<ApiResponse<CashCollectionPoint>> addCashPoint(
             @RequestBody CashCollectionPoint point) {
+        // SECURITY (M-C): null any client-supplied id so this create can't overwrite an existing row.
+        point.setId(null);
         CashCollectionPoint saved = cashCollectionPointRepository.save(point);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<CashCollectionPoint>builder()

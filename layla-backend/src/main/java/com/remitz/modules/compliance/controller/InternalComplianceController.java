@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -24,15 +25,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Service-to-service endpoints. Not routed by the api-gateway (which only
- * forwards /api/** paths), so only in-cluster callers on the compliance-service
- * host port can reach these.
+ * Service-to-service endpoints.
+ * SECURITY (H-A): in this monolith these share the app filter chain and were reachable by ANY
+ * authenticated customer — allowing forged CTR drafts / compliance alerts. In-process callers use
+ * the compliance services directly (no HTTP self-call), so the HTTP surface is gated to admin.
  */
 @RestController
 @RequestMapping("/internal/compliance")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Compliance Internal", description = "Internal service-to-service compliance APIs")
+@PreAuthorize("hasPermission(null, 'config:manage_system')")
 public class InternalComplianceController {
 
     private final SanctionsScreeningService sanctionsScreeningService;

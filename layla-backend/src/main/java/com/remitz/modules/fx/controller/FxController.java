@@ -115,6 +115,9 @@ public class FxController {
     }
 
     @GetMapping("/margins")
+    // SECURITY (M-D): margin config is commercially sensitive (pricing/profit). Was readable by any
+    // authenticated user; now requires the FX margin permission like the write endpoints.
+    @PreAuthorize("hasPermission(null, 'fx:set_margins')")
     @Operation(summary = "List all margin configurations", description = "Returns all FX margin configurations")
     public ResponseEntity<ApiResponse<List<MarginConfigResponse>>> listMargins() {
         List<MarginConfigResponse> margins = fxMarginService.listMargins();
@@ -153,7 +156,9 @@ public class FxController {
     }
 
     @PutMapping("/nostro/{id}")
-    @PreAuthorize("hasPermission(null, 'fx:view_nostro')")
+    // SECURITY (M-D): writing a treasury/nostro balance must not be gated by a *view* permission.
+    // Require the FX write permission so read-only nostro viewers cannot overwrite balances.
+    @PreAuthorize("hasPermission(null, 'fx:set_margins')")
     @Operation(summary = "Update nostro account balance", description = "Manually update a nostro account balance")
     public ResponseEntity<ApiResponse<NostroAccountResponse>> updateBalance(
             @PathVariable Long id, @Valid @RequestBody NostroBalanceUpdateRequest request) {
@@ -168,6 +173,8 @@ public class FxController {
     // --- Competitor Rates ---
 
     @PostMapping("/competitor-rates")
+    // SECURITY (M-D): was writable by any authenticated user. Treasury-only write.
+    @PreAuthorize("hasPermission(null, 'fx:set_margins')")
     @Operation(summary = "Log competitor rate", description = "Log a competitor's FX rate for comparison")
     public ResponseEntity<ApiResponse<Void>> logRate(@Valid @RequestBody CompetitorRateRequest request) {
         competitorRateService.logRate(request);
@@ -234,6 +241,8 @@ public class FxController {
     }
 
     @GetMapping("/competitor-rates")
+    // SECURITY (M-D): competitor comparison is treasury-sensitive; was readable by any user.
+    @PreAuthorize("hasPermission(null, 'fx:set_margins')")
     @Operation(summary = "Get competitor rate comparison", description = "Compare our rates against competitors for a currency pair")
     public ResponseEntity<ApiResponse<CompetitorComparisonResponse>> getComparison(
             @RequestParam String sendCurrency, @RequestParam String receiveCurrency) {

@@ -95,17 +95,34 @@
       </table>
     </div>
 
-    <!-- CUSTOMER / REFERENCE -->
+    <!-- REFERENCE -->
     <div class="card">
       <table>
         <tr>
           <td class="col">
-            <div class="label">Customer Name</div>
-            <div class="value">{{senderName}}</div>
-          </td>
-          <td class="col divider" style="padding-left:14px;">
             <div class="label">Transaction reference: <span class="value">{{referenceNumber}}</span></div>
             <div class="label" style="margin-top:4px;">Transaction date: <span class="value">{{createdDate}}</span></div>
+          </td>
+          <td class="col divider" style="padding-left:14px;">
+            <div class="label">Status: <span class="value">{{statusHeading}}</span></div>
+            <div class="label" style="margin-top:4px;">Payout method: <span class="value">{{deliveryMethodLabel}}</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- SENDER DETAILS -->
+    <div class="sec-head">SENDER DETAILS</div>
+    <div class="card">
+      <table>
+        <tr>
+          <td class="col">
+            <div class="row"><span class="label">Sender Name</span><br/><span class="value">{{senderName}}</span></div>
+            <div class="row"><span class="label">Mobile Number</span><br/><span class="value">{{senderPhone}}</span></div>
+          </td>
+          <td class="col divider" style="padding-left:14px;">
+            <div class="row"><span class="label">Email</span><br/><span class="value">{{senderEmail}}</span></div>
+            <div class="row"><span class="label">Country</span><br/><span class="value">{{senderCountry}}</span></div>
           </td>
         </tr>
       </table>
@@ -129,13 +146,13 @@
       </table>
     </div>
 
-    <!-- RECEIVER DETAILS -->
-    <div class="sec-head">RECEIVER DETAILS</div>
+    <!-- BENEFICIARY DETAILS -->
+    <div class="sec-head">BENEFICIARY DETAILS</div>
     <div class="card">
       <table>
         <tr>
           <td class="col">
-            <div class="row"><span class="label">Receiver Name</span><br/><span class="value">{{beneficiaryName}}</span></div>
+            <div class="row"><span class="label">Beneficiary Name</span><br/><span class="value">{{beneficiaryName}}</span></div>
             <div class="row"><span class="label">Mobile Number</span><br/><span class="value">{{beneficiaryPhone}}</span></div>
             <div class="row"><span class="label">Delivery Method</span><br/><span class="value">{{deliveryMethodLabel}}</span></div>
             <div class="row"><span class="label">Country</span><br/><span class="value">{{beneficiaryCountry}}</span></div>

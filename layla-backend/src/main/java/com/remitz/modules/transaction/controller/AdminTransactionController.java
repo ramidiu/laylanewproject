@@ -5,6 +5,7 @@ import com.remitz.common.enums.ActorType;
 import com.remitz.common.enums.TransactionStatus;
 import com.remitz.common.exception.RemitzException;
 import com.remitz.common.exception.ResourceNotFoundException;
+import com.remitz.modules.auth.entity.UserEntity;
 import com.remitz.modules.auth.repository.UserRepository;
 import com.remitz.modules.transaction.config.RedisPublisher;
 import com.remitz.modules.transaction.entity.*;
@@ -76,6 +77,22 @@ public class AdminTransactionController {
         }
         if (storedName != null && !storedName.isBlank()) return storedName;
         if (senderEmail != null && !senderEmail.isBlank()) return senderEmail;
+        return senderId != null ? "Customer #" + senderId : "—";
+    }
+
+    /**
+     * Sender display name from an already-loaded user entity — avoids a second
+     * DB lookup when the caller has already fetched the sender (for phone/email).
+     */
+    private String resolveSenderName(UserEntity sender, String storedName, String storedEmail, Long senderId) {
+        if (sender != null) {
+            String fn = sender.getFirstName() != null ? sender.getFirstName().trim() : "";
+            String ln = sender.getLastName() != null ? sender.getLastName().trim() : "";
+            String full = (fn + " " + ln).trim();
+            if (!full.isBlank()) return full;
+        }
+        if (storedName != null && !storedName.isBlank()) return storedName;
+        if (storedEmail != null && !storedEmail.isBlank()) return storedEmail;
         return senderId != null ? "Customer #" + senderId : "—";
     }
 
@@ -233,10 +250,18 @@ public class AdminTransactionController {
                     map.put("beneficiarySwift", b.getSwiftBic());
                 });
             }
-            // Sender name — prefer real full name from users table (imported txns
-            // may have stored an email local-part or null).
-            map.put("senderName", resolveSenderName(tx.getSenderId(), tx.getSenderName(), tx.getSenderEmail()));
-            map.put("senderEmail", tx.getSenderEmail());
+            // Sender details — load the sender once so name / email / mobile all
+            // resolve from a single lookup. Prefer the real values from the users
+            // table (imported txns may have stored an email local-part or null).
+            UserEntity sender = tx.getSenderId() != null
+                    ? userRepository.findById(tx.getSenderId()).orElse(null)
+                    : null;
+            map.put("senderName", resolveSenderName(sender, tx.getSenderName(), tx.getSenderEmail(), tx.getSenderId()));
+            map.put("senderEmail",
+                    (tx.getSenderEmail() != null && !tx.getSenderEmail().isBlank())
+                            ? tx.getSenderEmail()
+                            : (sender != null ? sender.getEmail() : null));
+            map.put("senderPhone", sender != null ? sender.getPhone() : null);
             return map;
         }).toList();
 

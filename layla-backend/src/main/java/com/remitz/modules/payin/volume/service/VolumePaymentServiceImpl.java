@@ -8,7 +8,9 @@ import com.remitz.modules.payin.volume.dto.VolumePaymentIntentResponse;
 import com.remitz.modules.payin.volume.dto.VolumeWebhookPayload;
 import com.remitz.modules.payin.volume.entity.VolumePaymentEntity;
 import com.remitz.modules.payin.volume.repository.VolumePaymentRepository;
+import com.remitz.modules.transaction.entity.TransactionEntity;
 import com.remitz.modules.transaction.repository.TransactionRepository;
+import com.remitz.modules.user.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -26,18 +28,35 @@ public class VolumePaymentServiceImpl implements VolumePaymentService {
     private final TransactionRepository transactionRepository;
     private final VolumeSignatureService signatureService;
     private final ObjectMapper objectMapper;
+    // Runtime routing gate — super admin controls this in System Controls
+    // (system_config key routing.payin.volume.enabled, seeded disabled).
+    private final SystemConfigService systemConfigService;
 
     @Override
     @Transactional
     public VolumePaymentIntentResponse createPaymentIntent(VolumePaymentIntentRequest request) {
+        // Default FALSE: if the config row is missing/invalid, Volume stays off (product decision).
+        if (!systemConfigService.getBoolean("routing.payin.volume.enabled", false)) {
+            throw new IllegalStateException(
+                    "Volume (Open Banking) pay-in is disabled (routing.payin.volume.enabled=false)");
+        }
+        // SECURITY: bind the pay-in amount/currency to the SERVER-SIDE transaction, never to the
+        // client-supplied request. Otherwise a caller could declare a £1 intent for a £500 transfer
+        // and the webhook amount-check (which validates against the stored amount) would pass.
+        TransactionEntity tx = transactionRepository.findByReferenceNumber(request.getTransactionId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Unknown transaction reference: " + request.getTransactionId()));
+        final java.math.BigDecimal expectedAmount = tx.getTotalDebitAmount();
+        final String expectedCurrency = tx.getSendCurrency();
+
         VolumePaymentEntity entity = volumePaymentRepository
                 .findByMerchantPaymentId(request.getMerchantPaymentId())
                 .orElseGet(() -> VolumePaymentEntity.builder()
                         .merchantPaymentId(request.getMerchantPaymentId())
                         .transactionId(request.getTransactionId())
                         .transactionReference(request.getTransactionId())
-                        .currencyIso(request.getCurrency())
-                        .amount(request.getAmount())
+                        .currencyIso(expectedCurrency)
+                        .amount(expectedAmount)
                         .paymentStatus("INITIATED")
                         .build());
         volumePaymentRepository.save(entity);

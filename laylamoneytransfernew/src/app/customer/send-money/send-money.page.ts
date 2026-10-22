@@ -47,8 +47,13 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   submitting = false;
   showRecipientPanel = false;
 
-  // Payment method selection
-  selectedPaymentMethod: 'OPEN_BANKING' | 'CARD' = 'OPEN_BANKING';
+  // Payment method selection — default to Trust Payments card.
+  selectedPaymentMethod: 'OPEN_BANKING' | 'CARD' = 'CARD';
+
+  // Volume (Open Banking / "Pay by Bank") visibility is controlled by the super admin
+  // via System Controls (system_config: routing.payin.volume.enabled). Default off until
+  // the backend flag loads, so the option never flashes in before we know it's enabled.
+  volumePaymentEnabled = false;
 
   // Compliance: remitter's declared purpose of transfer + source of income (required on review).
   purposeOfTransaction = '';
@@ -158,6 +163,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   userSendCurrency = 'GBP';
   userCountry = 'GB';
 
+  // Primary destination corridor — a fresh transfer preselects this country (ISO-2, matches normCountry())
+  // instead of whatever the corridors API happens to return first. Sudan is the main corridor for Layla.
+  private readonly DEFAULT_RECEIVE_COUNTRY = 'SD';
+
   private countryToCurrency: Record<string, string> = {
     'GB': 'GBP', 'US': 'USD', 'AU': 'AUD', 'AE': 'AED', 'DE': 'EUR',
     'IN': 'INR', 'PK': 'PKR', 'NG': 'NGN', 'GH': 'GHS', 'PH': 'PHP',
@@ -190,15 +199,13 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   ngOnInit(): void {
-    // Trust test mode: open the Send page with ?trusttest=1 to route THIS device's card payments to
-    // the Trust SANDBOX site reference (?trusttest=0 to turn it off). Persisted per-device so it
-    // survives navigation. Live customers never pass this flag, so their payments stay on live.
-    const ttParam = new URLSearchParams(window.location.search).get('trusttest');
-    if (ttParam !== null) localStorage.setItem('trust_test', ttParam === '0' ? '0' : '1');
+    // Clear any legacy Trust test-mode flag so no device can route card payments to the sandbox.
+    localStorage.removeItem('trust_test');
 
     this.loadCorridors();
     this.loadWalletBalance();
     this.loadUserBillingInfo();
+    this.loadEnabledPayinMethods();
 
     // Debounced quote fetch — switchMap cancels any in-flight request when a new amount arrives,
     // preventing a slow response for amount=10 from overwriting a faster response for amount=105
@@ -286,7 +293,7 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.volumePayStarted = false;
     this.merchantPaymentId = '';
     this.volumeInstance = null;
-    this.selectedPaymentMethod = 'OPEN_BANKING';
+    this.selectedPaymentMethod = 'CARD';
     this.billingInfoLoaded = false;
     this.loadUserBillingInfo();
     this.loadCorridors();
@@ -318,6 +325,18 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     this.walletService.getWallet().subscribe({
       next: (w) => { this.walletBalance = w?.balance || 0; },
       error: () => { this.walletBalance = 0; }
+    });
+  }
+
+  // Super-admin-controlled checkout rails (System Controls → routing.payin.*.enabled).
+  // On any failure we leave Volume hidden (safe default).
+  private loadEnabledPayinMethods(): void {
+    this.configService.getEnabledPayinMethods().subscribe({
+      next: (res: any) => {
+        const flags = res?.data ?? res ?? {};
+        this.volumePaymentEnabled = flags.volume === true;
+      },
+      error: () => { this.volumePaymentEnabled = false; }
     });
   }
 
@@ -506,9 +525,10 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
               seen.add(key);
               return true;
             });
-            // Auto-select first corridor
+            // Auto-select the default corridor (Sudan when available, otherwise the first tile).
             if (this.corridors.length > 0 && !this.selectedCorridor) {
-              this.onCorridorSelect(this.corridors[0]);
+              const defaultCorridor = this.pickDefaultCorridor();
+              if (defaultCorridor) this.onCorridorSelect(defaultCorridor);
             }
           },
           error: () => this.corridors = []
@@ -559,6 +579,9 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
           .filter((p: any) => p.isActive)
           .map((p: any) => this.payoutToDelivery[p.payoutType] || p.payoutType)
           .filter((m: string) => m && !seen.has(m) && !!seen.add(m));
+        // For Sudan, Bank Transfer is the default payout: surface it first so it becomes the
+        // preselected option below (never auto-select Cash Pickup). Other corridors keep API order.
+        this.deliveryMethods = this.orderDeliveryMethods(this.deliveryMethods, corridor.receiveCountry);
         this.selectedDeliveryMethod = this.deliveryMethods[0] || '';
         this.applyBeneficiaryFilter();
         if (this.deliveryMethods.length === 0) {
@@ -709,6 +732,32 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     if (names[x]) return names[x];
     if (x.length === 3 && iso3to2[x]) return iso3to2[x];
     return x;
+  }
+
+  /**
+   * Choose the corridor to preselect on a fresh transfer. Prefers the configured default
+   * destination (Sudan) when it's among the available corridors; otherwise falls back to the
+   * first tile. This replaces the previous "always take corridors[0]" behaviour that made the
+   * default depend on the corridors API order (which surfaced Qatar first).
+   */
+  private pickDefaultCorridor(): CorridorResponse | null {
+    if (!this.corridors.length) return null;
+    const preferred = this.corridors.find(
+      c => this.normCountry(c.receiveCountry) === this.DEFAULT_RECEIVE_COUNTRY
+    );
+    return preferred || this.corridors[0];
+  }
+
+  /**
+   * Order delivery methods for display/selection. For the default corridor (Sudan) Bank Transfer
+   * must be the first — and therefore preselected — option, so bank-deposit payouts are moved to
+   * the front. All other corridors keep the order returned by Transfer Config unchanged.
+   */
+  private orderDeliveryMethods(methods: string[], receiveCountry: string): string[] {
+    if (this.normCountry(receiveCountry) !== this.DEFAULT_RECEIVE_COUNTRY) return methods;
+    const bank = methods.filter(m => this.deliveryGroup(m) === 'BANK');
+    const rest = methods.filter(m => this.deliveryGroup(m) !== 'BANK');
+    return [...bank, ...rest];
   }
 
   applyBeneficiaryFilter(): void {
@@ -1025,12 +1074,21 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     IND: 'IN', PAK: 'PK', NGA: 'NG', GHA: 'GH', PHL: 'PH', KEN: 'KE',
     NPL: 'NP', BGD: 'BD', AUS: 'AU', GBR: 'GB', USA: 'US', ARE: 'AE',
     DEU: 'DE', ZAF: 'ZA', UGA: 'UG', TZA: 'TZ', LKA: 'LK', EGY: 'EG',
-    MAR: 'MA', SGP: 'SG', MYS: 'MY', CAN: 'CA', FRA: 'FR', ITA: 'IT', ESP: 'ES'
+    MAR: 'MA', SGP: 'SG', MYS: 'MY', CAN: 'CA', FRA: 'FR', ITA: 'IT', ESP: 'ES',
+    SDN: 'SD'
   };
 
+  /**
+   * Normalise a country to a valid ISO 3166-1 alpha-2 code, or '' if it cannot be resolved.
+   * Never returns a country name or an ISO-3 code — sending one as (ship/bill)countryiso2a was
+   * rejected by Trust's 3-D Secure as an invalid shipAddrCountry (error 60010).
+   */
   private toIso2(code: string): string {
-    if (!code) return '';
-    return (code.length === 3 && this.iso3ToIso2[code]) ? this.iso3ToIso2[code] : code;
+    const c = (code || '').trim().toUpperCase();
+    if (!c) return '';
+    if (c.length === 2) return c;                                   // already ISO-2
+    if (c.length === 3 && this.iso3ToIso2[c]) return this.iso3ToIso2[c];
+    return '';                                                      // name / unmapped — do not send
   }
 
   /** Trim whitespace and replace non-breaking / zero-width spaces with nothing. */
@@ -1049,28 +1107,28 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
     const total      = this.effectiveTotal;
     const mainamount = total.toFixed(2);
 
-    // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
-    // everyone else uses the LIVE reference, so real customer payments go through live.
-    // Only devices that enabled test mode (?trusttest=1) hit the Trust SANDBOX site reference;
-    // everyone else uses the LIVE reference, so real customer payments go through live.
-    const trustTest = localStorage.getItem('trust_test') === '1';
-    const siteRef   = trustTest ? 'test_laylalondo147950' : 'laylalondo147951';
-    if (trustTest) console.log('[Trust] TEST MODE — using sandbox site reference:', siteRef);
+    // Live Trust Payments site reference — all card payments go through live.
+    const siteRef = 'laylalondo147951';
 
-    const bene        = this.selectedBeneficiary;
-    const nameParts   = (bene?.fullName || '').trim().split(/\s+/);
-    const custFirst   = this.sanitize(nameParts[0] || '');
-    const custLast    = this.sanitize(nameParts.slice(1).join(' ') || nameParts[0] || '');
-    const custCountry = this.toIso2((bene?.country || '').trim());
-    const custAccount = this.sanitize(
-      bene?.accountNumber || bene?.iban || txn?.referenceNumber || ''
-    );
+    // The cardholder (sender) is the only party relevant to a card payment — there is no shipment.
+    // Send the customer/delivery details as the cardholder's OWN billing identity so Trust's 3-D
+    // Secure shipAddr* matches billAddr* (same person, same country — lowers the challenge rate).
+    // We must NEVER put the remittance recipient's foreign country here: it was rejected as an
+    // invalid shipAddrCountry (Trust error 60010) and inflated 3-D Secure challenges.
+    const billingCountry = this.toIso2(this.billingCountryIso2) || 'GB';
+    const custFirst   = this.sanitize(this.billingFirstName);
+    const custLast    = this.sanitize(this.billingLastName);
+    const custCountry = billingCountry;
 
     const safeDob = this.parseDobForTrust(this.billingDob);
-    const callbackUrl = `${window.location.origin}/home/trust-callback`;
-    // Server-to-server URL notification (webhook) — independent of the browser redirect.
-    // STR-8 is Trust's URL-notification rule; successful/declined notifications POST here.
-    const notifyUrl  = `${window.location.origin}/api/trust-payment/callback`;
+    // Trust returns the customer via a form POST. On the web, point it at the backend return
+    // endpoint, which applies the result and 302-redirects (GET) to the SPA status page — a POST
+    // straight to the static /home/trust-callback route returns 405 (blank screen). In the native
+    // shell the app is served locally with no backend at the origin, so keep the SPA route there.
+    const isNativeShell = /^(capacitor:|https?:\/\/localhost)/.test(window.location.origin);
+    const callbackUrl = isNativeShell
+      ? `${window.location.origin}/home/trust-callback`
+      : `${window.location.origin}/api/trust-payment/return`;
 
     const fields: Array<[string, string]> = [
       ['sitereference',         siteRef],
@@ -1081,24 +1139,15 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
       ['orderreference',        this.sanitize(txn?.referenceNumber || '')],
       ['billingfirstname',      this.sanitize(this.billingFirstName)],
       ['billinglastname',       this.sanitize(this.billingLastName)],
-      ['billingcountryiso2a',   'GB'],
+      ['billingcountryiso2a',   billingCountry],
       ['customerfirstname',     custFirst],
       ['customerlastname',      custLast],
+      ['customercountryiso2a',  custCountry],
       ['ruleidentifier',        'STR-6'],
       ['ruleidentifier',        'STR-11'],
       ['successfulurlredirect', callbackUrl],
       ['declinedurlredirect',   callbackUrl],
     ];
-
-    // WEBHOOK TEST (sandbox only): add Trust's URL-notification rule (STR-8) + notification URLs
-    // so a server-to-server webhook fires to /api/trust-payment/callback. Scoped to test mode so
-    // live card payments are unaffected until the webhook endpoint is confirmed and deployed.
-    if (trustTest) {
-      fields.push(['ruleidentifier', 'STR-8']);
-      fields.push(['successfulurlnotification', notifyUrl]);
-      fields.push(['declinedurlnotification', notifyUrl]);
-      console.log('[Trust] TEST MODE — webhook notification enabled →', notifyUrl);
-    }
 
     // Billing address (AVS) — Trust Payments' address rules (STR-11) can require these.
     // Send each only when present so we never post an empty required field.
@@ -1115,10 +1164,6 @@ export class SendMoneyPage implements OnInit, OnDestroy, ViewWillEnter {
 
     // Only send DOB if it parsed to a valid YYYY-MM-DD
     if (safeDob) fields.splice(6, 0, ['billingdob', safeDob]);
-
-    if (custCountry) fields.push(['customercountryiso2a', custCountry]);
-    if (custAccount) fields.push(['customeraccountnumber', custAccount],
-                                 ['customeraccountnumbertype', 'ACCOUNT']);
 
     console.log('[Trust] submitting form fields:', Object.fromEntries(
       fields.map(([k, v]) => [k, v])

@@ -1,0 +1,7 @@
+node_modules
+www
+www.zip
+.git
+.angular
+dist
+*.log

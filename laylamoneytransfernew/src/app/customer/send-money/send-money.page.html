@@ -357,7 +357,8 @@
       <div class="review-section" id="payment-method-section">
         <h3 class="review-section__title">Payment Method</h3>
         <div class="payment-method-row">
-          <label class="payment-method-option payment-method-option--icon-only"
+          <label *ngIf="volumePaymentEnabled"
+                 class="payment-method-option payment-method-option--icon-only"
                  [class.payment-method-option--active]="selectedPaymentMethod === 'OPEN_BANKING'"
                  [class.payment-method-option--locked]="submitting || transactionCreated"
                  (click)="(submitting || transactionCreated) ? null : (selectedPaymentMethod = 'OPEN_BANKING')"

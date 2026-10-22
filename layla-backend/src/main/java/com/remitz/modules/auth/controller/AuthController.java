@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +31,12 @@ public class AuthController {
 
     private final AuthService authService;
 
+    // SECURITY: the public demo-access endpoint self-issues a privileged (ADMIN) account.
+    // Disabled by default so it is never exposed in production; set DEMO_ACCESS_ENABLED=true
+    // only in a controlled demo environment.
+    @Value("${demo-access.enabled:false}")
+    private boolean demoAccessEnabled;
+
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Creates a new user account with CUSTOMER role and sends OTP for email verification")
     @ApiResponses({
@@ -45,6 +52,10 @@ public class AuthController {
 
     @PostMapping("/register-partner")
     @Operation(summary = "Register a partner user", description = "Creates a partner user account with specified role (PAYOUT_PARTNER or PAYIN_PARTNER) and pre-verified email")
+    // SECURITY (C-A): partner onboarding is an admin action. Previously this was reachable
+    // unauthenticated (via /api/auth/** permitAll) with a caller-controlled role, letting anyone
+    // self-issue a PAYIN/PAYOUT_PARTNER account. @PreAuthorize denies anonymous/non-admin callers.
+    @PreAuthorize("hasPermission(null, 'partner:manage_payin') or hasPermission(null, 'partner:manage_payout')")
     public ResponseEntity<RegisterResponse> registerPartner(@Valid @RequestBody RegisterPartnerRequest request) {
         log.info("Partner registration request for email: {} with role: {}", maskEmail(request.getEmail()), request.getRole());
         RegisterResponse response = authService.registerPartner(request);
@@ -55,6 +66,10 @@ public class AuthController {
     @Operation(summary = "Request demo access credentials",
             description = "Creates (or refreshes) a demo user account with a temporary password valid 24h and emails the credentials")
     public ResponseEntity<DemoAccessResponse> demoAccess(@Valid @RequestBody DemoAccessRequest request) {
+        if (!demoAccessEnabled) {
+            log.warn("Demo-access request rejected — feature disabled (demo-access.enabled=false)");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         log.info("Demo-access request from {}", maskEmail(request.getEmail()));
         DemoAccessResponse response = authService.createDemoAccess(request, null);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

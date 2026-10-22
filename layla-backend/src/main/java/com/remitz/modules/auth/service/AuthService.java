@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import static com.remitz.common.util.PiiMasker.maskEmail;
 
 /**
  * Single entry-point for authentication, registration, password management,
@@ -151,7 +152,7 @@ public class AuthService {
             String fullName = (existing.getFirstName() != null ? existing.getFirstName() : "")
                     + " " + (existing.getLastName() != null ? existing.getLastName() : "");
             emailService.sendOtpEmail(request.getEmail(), otp, fullName.trim());
-            log.info("Resent OTP for unverified account: {}", request.getEmail());
+            log.info("Resent OTP for unverified account: {}", maskEmail(request.getEmail()));
 
             return RegisterResponse.builder()
                     .uuid(existing.getUuid())
@@ -202,7 +203,7 @@ public class AuthService {
         // Generate and send OTP for email verification
         String otp = otpService.generateOtp();
         otpService.storeOtp(request.getEmail(), otp);
-        log.debug("OTP generated for {}", request.getEmail());
+        log.debug("OTP generated for {}", maskEmail(request.getEmail()));
 
         String fullName = request.getFirstName() + " " + request.getLastName();
         emailService.sendOtpEmail(request.getEmail(), otp, fullName);
@@ -213,7 +214,7 @@ public class AuthService {
                 user.getCountry(),
                 null);
 
-        log.info("User registered successfully with UUID: {}. OTP sent to {}.", uuid, request.getEmail());
+        log.info("User registered successfully with UUID: {}. OTP sent to {}.", uuid, maskEmail(request.getEmail()));
 
         return RegisterResponse.builder()
                 .uuid(uuid)
@@ -265,7 +266,7 @@ public class AuthService {
                         (user.getLastName() != null ? user.getLastName() : "")).trim();
                 emailService.sendOtpEmail(email, otp, fullName);
             } catch (Exception e) {
-                log.warn("Failed to send OTP on unverified login for {}: {}", email, e.getMessage());
+                log.warn("Failed to send OTP on unverified login for {}: {}", maskEmail(email), e.getMessage());
             }
             throw new UnauthorizedException("Email not verified. Please complete OTP verification.");
         }
@@ -561,7 +562,7 @@ public class AuthService {
 
         String otp = otpService.generateOtp();
         otpService.storeOtp(email, otp);
-        log.debug("OTP generated for {}", email);
+        log.debug("OTP generated for {}", maskEmail(email));
         emailService.sendOtpEmail(email, otp, user.getFirstName() != null ? user.getFirstName() : "User");
     }
 
@@ -799,7 +800,7 @@ public class AuthService {
             existing.getRoles().clear();
             existing.getRoles().add(requested);
             user = userRepository.save(existing);
-            log.info("Demo-access: refreshed credentials for existing demo user {} ({})", email, roleName);
+            log.info("Demo-access: refreshed credentials for existing demo user {} ({})", maskEmail(email), roleName);
         } else {
             RoleEntity requested = roleRepository.findByName(roleName)
                     .orElseThrow(() -> new IllegalStateException("Role not seeded: " + roleName));
@@ -822,7 +823,7 @@ public class AuthService {
                     .build();
             fresh.getRoles().add(requested);
             user = userRepository.save(fresh);
-            log.info("Demo-access: created new demo user {} ({}) id={}", email, roleName, user.getId());
+            log.info("Demo-access: created new demo user {} ({}) id={}", maskEmail(email), roleName, user.getId());
         }
 
         String baseUrl = frontendBaseUrl != null ? frontendBaseUrl : frontendUrl;
@@ -899,7 +900,7 @@ public class AuthService {
         user.setDemoAccessExpiresAt(newExpiry);
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
-        log.info("Demo access extended for user {} to {}", user.getEmail(), newExpiry);
+        log.info("Demo access extended for user {} to {}", maskEmail(user.getEmail()), newExpiry);
     }
 
     public List<UserEntity> listDemoUsers() {

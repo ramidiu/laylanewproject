@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(docker info *)",
+      "Skill(run)",
+      "Bash(docker volume *)",
+      "Bash(echo \"docker: $\\(docker --version 2>&1\\)\")",
+      "Bash(echo \"compose: $\\(docker compose version 2>&1)"
+    ]
+  }
+}

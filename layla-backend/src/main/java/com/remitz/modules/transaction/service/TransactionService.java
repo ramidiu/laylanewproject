@@ -867,6 +867,14 @@ public class TransactionService {
         return mapToResponse(tx, beneficiaryName);
     }
 
+    /** Owner (sender) id of a transaction — used for server-side ownership (BOLA) checks. */
+    @Transactional(readOnly = true)
+    public Long getTransactionOwnerId(Long id) {
+        return transactionRepository.findById(id)
+                .map(TransactionEntity::getSenderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id));
+    }
+
     @Transactional(readOnly = true)
     public TransactionResponse getTransactionByReference(String referenceNumber) {
         TransactionEntity tx = transactionRepository.findByReferenceNumber(referenceNumber)

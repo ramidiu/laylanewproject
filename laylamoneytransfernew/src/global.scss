@@ -729,3 +729,40 @@ ion-toast:not(.fb-toast) {
 .info-contact-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
 .info-contact-row ion-icon { color: #1B3A6B; font-size: 1.2rem; margin-top: 2px; }
 .info-muted { color: #6b7280; font-size: 0.85rem; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   NATIVE-APP FEEL — applies ONLY inside the Capacitor native app (Ionic adds the
+   `.plt-hybrid` class on hybrid/native platforms). The web browser is untouched.
+   This makes the app stop behaving like a webview (no text selection, no tap-
+   highlight flash, no rubber-band overscroll, no long-press menus / image drag).
+   ════════════════════════════════════════════════════════════════════════════ */
+.plt-hybrid {
+  /* Like a native app: content isn't selectable and long-press does nothing… */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* …no blue/grey web tap-highlight flash on taps… */
+  -webkit-tap-highlight-color: transparent;
+  /* …and the page never rubber-bands / shows white edges when over-scrolled. */
+  overscroll-behavior: none;
+
+  /* But real inputs stay fully usable, and anything marked .selectable/.copyable
+     (e.g. a transaction reference the user needs to copy) can still be selected. */
+  input, textarea, select, [contenteditable="true"], .selectable, .copyable {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  /* Images/icons don't drag like on a web page. */
+  img, ion-icon, ion-img { -webkit-user-drag: none; user-drag: none; }
+
+  /* Momentum scrolling + safe-area padding so content clears the notch / home bar. */
+  ion-content { -webkit-overflow-scrolling: touch; }
+}
+
+/* Stop the document itself from bouncing in the native shell. */
+.plt-hybrid, .plt-hybrid body {
+  overscroll-behavior-y: none;
+  overflow: hidden;
+}

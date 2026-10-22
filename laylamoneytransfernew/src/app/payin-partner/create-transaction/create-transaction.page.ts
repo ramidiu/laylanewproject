@@ -1381,7 +1381,12 @@ export class CreateTransactionPage implements OnInit, OnDestroy {
       .map((c: any) => ({ currency: c.receiveCurrency, country: c.receiveCountry }));
 
     if (!this.receiveCurrency && this.availableReceiveCurrencies.length > 0) {
-      this.receiveCurrency = this.availableReceiveCurrencies[0].currency;
+      // Prefer Sudan as the default destination (consistent with the customer Send Money screen)
+      // instead of whatever currency the corridors API returns first. Falls back to the first entry.
+      const sudan = this.availableReceiveCurrencies.find(
+        c => (c.country || '').toUpperCase().startsWith('SD')
+      );
+      this.receiveCurrency = (sudan || this.availableReceiveCurrencies[0]).currency;
     }
     // Track the receive country corresponding to the chosen currency
     const match = this.availableReceiveCurrencies.find(c => c.currency === this.receiveCurrency);

@@ -184,6 +184,7 @@ public class KycController {
     }
 
     @GetMapping("/documents/{docId}/file")
+    @PreAuthorize("@ownershipGuard.ownsUserRef(#userId) or hasPermission(null, 'user:approve_kyc') or hasPermission(null, 'user:view')")
     public ResponseEntity<org.springframework.core.io.Resource> getDocumentFile(
             @PathVariable String userId,
             @PathVariable Long docId) {

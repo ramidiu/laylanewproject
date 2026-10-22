@@ -36,6 +36,10 @@ export class KycPage implements OnInit, OnDestroy {
   // KYC status tracking
   kycStatus: string = ''; // NOT_SUBMITTED, PENDING, VERIFIED, REJECTED
   existingDocuments: any[] = [];
+  // Object-URLs for authenticated KYC document previews, keyed by doc id. The file
+  // endpoint now requires a bearer token, so a raw <img src> no longer works — we
+  // fetch the blob through HttpClient (JWT interceptor) and bind the object URL.
+  docPreviews: { [id: string]: string } = {};
   loadingStatus = true;
   uploadOnly = false; // true = show only document upload sections (no personal/address forms)
   private readonly MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB — must match backend multipart cap
@@ -181,6 +185,7 @@ export class KycPage implements OnInit, OnDestroy {
       next: (docs: any[]) => {
         this.existingDocuments = docs || [];
         this.loadingStatus = false;
+        this.loadDocumentPreviews(userId);
       },
       error: () => {
         this.existingDocuments = [];
@@ -202,9 +207,15 @@ export class KycPage implements OnInit, OnDestroy {
     }
   }
 
-  getDocPreviewUrl(doc: any): string {
-    const user = this.authService.getCurrentUser();
-    return `${environment.apiUrl}/users/${user?.sub}/kyc/documents/${doc.id}/file`;
+  /** Fetch each document's bytes via the authenticated endpoint and expose an object URL. */
+  private loadDocumentPreviews(userId: string): void {
+    for (const doc of this.existingDocuments) {
+      if (!doc || doc.id == null || this.docPreviews[doc.id]) continue;
+      this.kycService.getDocumentFileBlob(userId, doc.id).subscribe({
+        next: (blob: Blob) => { this.docPreviews[doc.id] = URL.createObjectURL(blob); },
+        error: () => { /* preview unavailable — template hides the img on error */ }
+      });
+    }
   }
 
   private loadDocumentTypes(): void {
@@ -663,6 +674,9 @@ export class KycPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    // Release KYC preview object URLs to avoid memory leaks.
+    Object.values(this.docPreviews).forEach(url => URL.revokeObjectURL(url));
+    this.docPreviews = {};
   }
 
   private setupAddrSearch(): void {

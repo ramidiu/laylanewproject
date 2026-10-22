@@ -31,7 +31,8 @@ public class DeviceService {
             device.setUserId(userId);
             device.setPlatform(request.getPlatform());
             device.setIsActive(true);
-            log.info("Updated device registration for user: {}, token: {}", userId, request.getDeviceToken());
+            log.info("Updated device registration for user: {}, token: {}", userId,
+                    com.remitz.common.util.PiiMasker.maskToken(request.getDeviceToken()));
         } else {
             // Create new device registration
             device = UserDeviceEntity.builder()
@@ -48,9 +49,15 @@ public class DeviceService {
     }
 
     @Transactional
-    public void unregisterDevice(Long deviceId) {
+    public void unregisterDevice(Long deviceId, Long callerUserId) {
         UserDeviceEntity device = userDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Device not found with id: " + deviceId));
+
+        // SECURITY (M-F): a user may only unregister their OWN device (was IDOR by raw id).
+        if (device.getUserId() == null || !device.getUserId().equals(callerUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not authorized to unregister this device");
+        }
 
         device.setIsActive(false);
         userDeviceRepository.save(device);

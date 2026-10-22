@@ -643,8 +643,12 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
         // partner's pay-in (send) currency, e.g. GBP for the UK pay-in partner.
         String sendCurrency = resolvePayinSendCurrency(adminPartnerId);
         if (sendCurrency == null) {
-            // Admin / super-admin (they have their own views) or an unmapped caller —
-            // preserve the original behaviour rather than dumping every currency.
+            // SECURITY (H-G): fail CLOSED. Only genuine admins get the global list; a partner whose
+            // currency can't be resolved must NOT receive every transaction in the system (the old
+            // fail-open findAll() leaked the entire table to any unmapped partner).
+            if (!callerIsAdmin()) {
+                return java.util.Collections.emptyList();
+            }
             return transactionRepository.findAll().stream()
                     .map(this::toDto)
                     .collect(Collectors.toList());
@@ -678,6 +682,18 @@ public class PayinTransactionServiceImpl implements PayinTransactionService {
      *        neither resolves (e.g. a plain admin with no partner selected) so the caller
      *        can fall back to the legacy behaviour.
      */
+    // SECURITY (H-G): only real admins/operators may receive the unscoped global transaction list.
+    private boolean callerIsAdmin() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().anyMatch(a -> {
+            String s = a.getAuthority();
+            return s.equals("ROLE_ADMIN") || s.equals("ROLE_SUPER_ADMIN")
+                    || s.equals("ledger:view") || s.equals("config:manage_system");
+        });
+    }
+
     private String resolvePayinSendCurrency(Long adminPartnerId) {
         if (adminPartnerId != null) {
             return payinPartnerRepository.findById(adminPartnerId)

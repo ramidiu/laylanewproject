@@ -9,6 +9,7 @@ import com.remitz.modules.transaction.repository.CountryBankConfigRepository;
 import com.remitz.modules.transaction.repository.PaymentMethodRepository;
 import com.remitz.modules.transaction.repository.PayoutTypeRepository;
 import com.remitz.modules.transaction.service.TransactionCorridorSetupService;
+import com.remitz.modules.user.service.SystemConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +30,25 @@ public class TransferConfigController {
     private final PaymentMethodRepository paymentMethodRepository;
     private final CountryBankConfigRepository countryBankConfigRepository;
     private final TransactionCorridorSetupService corridorAutoCreateService;
+    private final SystemConfigService systemConfigService;
 
     // ---- Customer endpoints ----
+
+    @GetMapping("/payin-methods")
+    @Operation(summary = "Get enabled customer pay-in rails (checkout payment methods)")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> getEnabledPayinMethods() {
+        // Checkout rails shown on the Send Money page. Card (Trust Payments) is always on;
+        // Volume (Open Banking) and Kuber are gated by their runtime routing toggles so the
+        // super admin can turn them off in System Controls.
+        Map<String, Boolean> flags = new java.util.LinkedHashMap<>();
+        flags.put("card", true);
+        flags.put("volume", systemConfigService.getBoolean("routing.payin.volume.enabled", false));
+        flags.put("kuber", systemConfigService.getBoolean("routing.payin.kuber.enabled", true));
+        return ResponseEntity.ok(ApiResponse.<Map<String, Boolean>>builder()
+                .success(true)
+                .data(flags)
+                .build());
+    }
 
     @GetMapping("/payout-types")
     @Operation(summary = "Get active payout types by currency")

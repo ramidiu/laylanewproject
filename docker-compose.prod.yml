@@ -6,7 +6,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: remitz
     ports:
-      - "3310:3306"
+      # Bind to loopback only — never expose MySQL on all host interfaces in prod.
+      - "127.0.0.1:3310:3306"
     volumes:
       - layla_mysql_data:/var/lib/mysql
     networks:
@@ -23,7 +24,8 @@ services:
     image: redis:7-alpine
     container_name: layla-redis-new
     ports:
-      - "6382:6379"
+      # Bind to loopback only — Redis must not be reachable off-host.
+      - "127.0.0.1:6382:6379"
     volumes:
       - layla_redis_data:/data
     networks:
@@ -48,7 +50,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET:-layla-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      # Never let Hibernate mutate a prod schema — Flyway owns migrations.
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY:-4b6992bd8fae644c14a7d8e1bff86c69}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - BREVO_API_KEY=${BREVO_API_KEY:-CHANGE_ME_BREVO_KEY}

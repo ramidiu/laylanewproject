@@ -265,7 +265,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
             if (dob != null) entity.setDob(dob);
             if (isVerified != null) entity.setIsVerified(isVerified);
             PayinCustomerEntity saved = repository.save(entity);
-            log.info("Updated payin customer {} (dob={}, isVerified={})", customerId, dob, isVerified);
+            log.info("Updated payin customer {} (dob={}, isVerified={})", customerId, com.remitz.common.util.PiiMasker.maskDob(dob), isVerified);
             return toDto(saved);
         }
         // Fallback: treat customerId as the users.uuid (frontend / imported customer)
@@ -277,7 +277,7 @@ public class PayinCustomerServiceImpl implements PayinCustomerService {
             user.setKycTier(com.remitz.common.enums.KycTier.TIER_2);
         }
         userRepository.save(user);
-        log.info("Updated frontend user {} (dob={}, isVerified={})", customerId, dob, isVerified);
+        log.info("Updated frontend user {} (dob={}, isVerified={})", customerId, com.remitz.common.util.PiiMasker.maskDob(dob), isVerified);
         // Build a DTO so the caller still gets a 200 OK with usable shape
         return PayinCustomerDto.builder()
                 .customerId(customerId)
